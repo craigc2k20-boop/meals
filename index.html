@@ -3091,8 +3091,17 @@ function hideSignIn() {
 
 document.getElementById("google-signin-btn").addEventListener("click", function() {
   const provider = new firebase.auth.GoogleAuthProvider();
-  fbAuth.signInWithRedirect(provider);
+  fbAuth.signInWithPopup(provider).catch(function(err) {
+    console.warn("Popup failed, trying redirect", err);
+    fbAuth.signInWithRedirect(provider);
+  });
 });
+
+// Set auth persistence to LOCAL (survives page reload)
+fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+// Handle redirect result (fallback if popup was blocked)
+fbAuth.getRedirectResult().catch(function(e){ console.warn("Redirect result:", e); });
 
 fbAuth.onAuthStateChanged(async function(user) {
   window.fbUser = user;
