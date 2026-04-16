@@ -1535,11 +1535,29 @@ function autoCat(cals,p,c,f){
 }
 
 
+// Sequential tip system — shows one at a time in order, no auto-dismiss
+const TIP_ORDER=["day-type","copy-day","lock-ingredient","spread-leftover","plateau-mode","complete-day"];
+
 function Tip({tipKey,title,text,position="below",align="right",children}){
-  const sk="ept:tip:"+tipKey;
-  const[show,setShow]=useState(()=>!localStorage.getItem(sk));
-  const dismiss=()=>{localStorage.setItem(sk,"1");setShow(false);};
-  useEffect(()=>{if(show){const t=setTimeout(dismiss,7000);return()=>clearTimeout(t);}},[show]);
+  const idxKey="ept:tipIdx";
+  const getIdx=()=>parseInt(localStorage.getItem(idxKey)||"0");
+  const myIdx=TIP_ORDER.indexOf(tipKey);
+  const[show,setShow]=useState(()=>myIdx>=0&&getIdx()===myIdx);
+
+  // Listen for other tips being dismissed so this one can appear
+  useEffect(()=>{
+    const check=()=>{setShow(myIdx>=0&&getIdx()===myIdx);};
+    window.addEventListener("tipDismissed",check);
+    return()=>window.removeEventListener("tipDismissed",check);
+  },[]);
+
+  const dismiss=()=>{
+    const next=getIdx()+1;
+    localStorage.setItem(idxKey,String(next));
+    setShow(false);
+    window.dispatchEvent(new Event("tipDismissed"));
+  };
+
   const isAbove=position==="above";
   const arrowStyle={position:"absolute",width:10,height:10,background:"rgba(15,23,42,0.97)",border:"1px solid rgba(59,130,246,0.3)",
     ...(isAbove
@@ -1549,6 +1567,7 @@ function Tip({tipKey,title,text,position="below",align="right",children}){
     {children}
     {show&&(<div onClick={e=>e.stopPropagation()} style={{position:"absolute",...(isAbove?{bottom:"calc(100% + 8px)"}:{top:"calc(100% + 8px)"}), ...(align==="right"?{right:0}:{left:0}),background:"rgba(15,23,42,0.97)",border:"1px solid rgba(59,130,246,0.3)",borderRadius:10,padding:"10px 12px",width:210,zIndex:200,boxShadow:"0 4px 20px rgba(0,0,0,0.5)"}}>
       <div style={arrowStyle}/>
+      <div style={{fontSize:9,color:"#334155",marginBottom:3}}>Tip {myIdx+1} of {TIP_ORDER.length}</div>
       <div style={{fontSize:11,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>{title}</div>
       <div style={{fontSize:10,color:"#64748b",lineHeight:1.5,marginBottom:8}}>{text}</div>
       <button onClick={dismiss} style={{fontSize:9,fontWeight:700,color:"#3b82f6",background:"none",border:"none",cursor:"pointer",padding:0}}>Got it →</button>
