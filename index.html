@@ -1116,7 +1116,7 @@ const DM_BENEFITS=[
   {e:"🏋️",t:"Football & Training Modes",d:"Set individual days as Training, Rest or Football — each gets different calorie and macro splits automatically."},
 ];
 
-function PaywallScreen({onRedeem}){
+function PaywallScreen({onRedeem,trialExpired}){
   const[tab,setTab]=useState("meals");
   const[showCode,setShowCode]=useState(false);
   const[code,setCode]=useState("");
@@ -1176,11 +1176,20 @@ function PaywallScreen({onRedeem}){
       </div>
     </div>)}
 
+    {/* Trial expired banner */}
+    {trialExpired&&(<div style={{background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:8,padding:"8px 12px",marginBottom:10,display:"flex",alignItems:"center",gap:8}}>
+      <span style={{fontSize:16}}>⏰</span>
+      <div>
+        <div style={{fontSize:11,fontWeight:700,color:"#fca5a5"}}>Your free trial has ended</div>
+        <div style={{fontSize:9,color:"#94a3b8"}}>Subscribe to unlock your data and pick up exactly where you left off.</div>
+      </div>
+    </div>)}
+
     {/* Preview banner */}
     <div style={{background:"rgba(59,130,246,0.15)",border:"1px solid rgba(59,130,246,0.3)",borderRadius:8,padding:"6px 12px",marginBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
       <div style={{display:"flex",alignItems:"center",gap:6}}>
         <span style={{fontSize:14}}>👁</span>
-        <span style={{fontSize:10,fontWeight:600,color:"#93c5fd"}}>Preview — example data. Your real data will be private.</span>
+        <span style={{fontSize:10,fontWeight:600,color:"#93c5fd"}}>{trialExpired?"Demo data shown below — your real data is safe and waiting.":"Preview — example data. Your real data will be private."}</span>
       </div>
       <button onClick={()=>setShowInfo(true)} style={{width:24,height:24,borderRadius:12,border:"1.5px solid rgba(59,130,246,0.5)",background:"rgba(59,130,246,0.2)",color:"#93c5fd",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>i</button>
     </div>
@@ -1425,8 +1434,8 @@ function PaywallScreen({onRedeem}){
     <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:640,background:"rgba(10,15,30,0.97)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderTop:"1px solid rgba(59,130,246,0.3)",padding:"16px 20px 24px",zIndex:999}}>
       {!showCode?(<>
         <div style={{textAlign:"center",marginBottom:12}}>
-          <div style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>🔒 Unlock SlimRoute</div>
-          <div style={{fontSize:11,color:"#64748b"}}>Track your nutrition, hit your goals, feel better.</div>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>{trialExpired?"🔓 Get your data back":"🔒 Unlock SlimRoute"}</div>
+          <div style={{fontSize:11,color:"#64748b"}}>{trialExpired?"Your meals, progress and stats are waiting — subscribe to continue.":"Track your nutrition, hit your goals, feel better."}</div>
         </div>
         <button onClick={()=>window.open("https://buy.stripe.com/PLACEHOLDER","_blank")} style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:8,boxShadow:"0 4px 20px rgba(59,130,246,0.4)"}}>Unlock for £4.99 / year</button>
         <div style={{display:"flex",gap:8}}>
@@ -1472,6 +1481,7 @@ const [storageReady, setStorageReady] = useState(false);
   const[exp,setExp]=useState(null);
   const[accessState,setAccessState]=useState("checking"); // checking|open|trial|locked
   const[trialDaysLeft,setTrialDaysLeft]=useState(7);
+  const[trialExpired,setTrialExpired]=useState(false);
   const[isAdmin,setIsAdmin]=useState(false);
   const[adminCodes,setAdminCodes]=useState([]);
   const[adminNewCode,setAdminNewCode]=useState("");
@@ -1530,6 +1540,7 @@ const [storageReady, setStorageReady] = useState(false);
       if(d.trialEnd){
         const te=d.trialEnd.toDate();
         if(te>new Date()){const minsLeft=Math.ceil((te-new Date())/60000);const days=Math.ceil(minsLeft/1440);setTrialDaysLeft(minsLeft);setAccessState("trial");return;}
+        else{setTrialExpired(true);}
       }
       setAccessState("locked");
     }catch{setAccessState("locked");}
@@ -1984,7 +1995,7 @@ const [storageReady, setStorageReady] = useState(false);
   return (
     <>
     {accessState==="checking"&&<div style={{minHeight:"100vh",background:"#0f172a"}}/>}
-    {accessState==="locked"&&<PaywallScreen onRedeem={redeemCode}/>}
+    {accessState==="locked"&&<PaywallScreen onRedeem={redeemCode} trialExpired={trialExpired}/>}
     {(accessState==="open"||accessState==="trial")&&(
     <div style={{...S.wrap,boxShadow:T.wrapGlow,transition:"box-shadow .5s"}} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       {accessState==="trial"&&<div style={{background:"rgba(251,191,36,0.15)",border:"1px solid rgba(251,191,36,0.3)",borderRadius:8,padding:"6px 12px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
