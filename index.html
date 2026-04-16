@@ -3003,7 +3003,42 @@ const [storageReady, setStorageReady] = useState(false);
             <span style={{fontSize:12,fontWeight:700,color:col||"#e2e8f0"}}>{val}</span>
           </div>);
 
+          // Weight stats
+          const userName=window.fbUser?.displayName||window.fbUser?.email?.split('@')[0]||'You';
+          const userInitial=userName[0].toUpperCase();
+          const allHist=[...metaHistory].sort((a,b)=>a.week>b.week?1:-1);
+          const startWRaw=allHist.length>0?parseFloat(allHist[0].startW):weekWeight.start?parseFloat(weekWeight.start):parseFloat(profile.weight)||0;
+          const currentWRaw=weekWeight.end?parseFloat(weekWeight.end):weekWeight.start?parseFloat(weekWeight.start):parseFloat(profile.weight)||0;
+          const lostKg=startWRaw&&currentWRaw?+(startWRaw-currentWRaw).toFixed(1):0;
+          const avgAdherence=weekHistory.length>0?Math.round(weekHistory.reduce((s,h)=>s+(h.adherence||0),0)/weekHistory.length):null;
+          const weeksTracked=Math.max(allHist.length,weekHistory.length);
+          const goalColMap={aggressive:"#f87171",lose:"#fbbf24",maintain:"#4ade80",gain:"#93c5fd",bulk:"#a78bfa"};
+
           return(<div>
+            {/* User identity + summary card */}
+            <div style={{background:"rgba(30,41,59,0.35)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",padding:14,marginBottom:10}}>
+              <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+                <div style={{width:44,height:44,borderRadius:22,background:"linear-gradient(135deg,#3b82f6,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:700,color:"#fff",flexShrink:0}}>{userInitial}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:700,color:"#f1f5f9"}}>{userName}</div>
+                  <div style={{fontSize:10,color:"#64748b"}}>{goalLabels[profile.goal]||profile.goal} · {actLabels[profile.activity]||profile.activity}</div>
+                </div>
+                {weeksTracked>0&&<div style={{textAlign:"right"}}>
+                  <div style={{fontSize:10,fontWeight:700,color:"#4ade80"}}>{weeksTracked} week{weeksTracked!==1?"s":""} tracked</div>
+                  {avgAdherence!==null&&<div style={{fontSize:9,color:"#64748b"}}>{avgAdherence}% adherence</div>}
+                </div>}
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
+                {[
+                  ["Start",startWRaw?(startWRaw+(wu==="lbs"?" lbs":" kg")):"—","#94a3b8"],
+                  ["Current",currentWRaw?(currentWRaw+(wu==="lbs"?" lbs":" kg")):"—","#f1f5f9"],
+                  ["Lost",lostKg>0?"↓ "+lostKg+(wu==="lbs"?" lbs":" kg"):lostKg<0?"↑ "+Math.abs(lostKg)+(wu==="lbs"?" lbs":" kg"):"—",lostKg>0?"#4ade80":lostKg<0?"#f87171":"#64748b"],
+                ].map(([l,v,c])=>(<div key={l} style={{background:"rgba(15,23,42,0.4)",borderRadius:8,padding:"8px 10px",textAlign:"center"}}>
+                  <div style={{fontSize:8,color:"#475569",textTransform:"uppercase",letterSpacing:"1px",marginBottom:2}}>{l}</div>
+                  <div style={{fontSize:13,fontWeight:700,color:c}}>{v}</div>
+                </div>))}
+              </div>
+            </div>
             {/* Macro rings — today's progress */}
             {(()=>{const dTgt=gDT(sel);
               const tP=Math.round(dTgt*effMac.p/100/4);const tC=Math.round(dTgt*effMac.c/100/4);const tF=Math.round(dTgt*effMac.f/100/9);
@@ -3051,7 +3086,10 @@ const [storageReady, setStorageReady] = useState(false);
             {/* OVERVIEW sub-tab */}
             {profTab==="overview"&&(<>
               <div style={{background:"rgba(30,41,59,0.35)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",padding:"2px 14px",marginBottom:12}}>
-                {row("Weight",dispW)}
+                {startWRaw&&startWRaw!==currentWRaw&&row("Start Weight",startWRaw+(wu==="lbs"?" lbs":" kg"),"#94a3b8")}
+                {row("Current Weight",dispW)}
+                {lostKg!==0&&row("Lost / Gained",lostKg>0?"↓ "+lostKg+(wu==="lbs"?" lbs":" kg"):"↑ "+Math.abs(lostKg)+(wu==="lbs"?" lbs":" kg"),lostKg>0?"#4ade80":"#f87171")}
+                {row("Height",dispH)}
                 {row("Height",dispH)}
                 {row("Age",profile.age+" years")}
                 {row("Gender",profile.gender==="male"?"Male":"Female")}
@@ -3187,6 +3225,15 @@ const [storageReady, setStorageReady] = useState(false);
                     <span style={{fontSize:8,color:"#475569",fontWeight:600,textTransform:"uppercase",letterSpacing:".8px"}}>Trend</span>
                   </div>
                 </div>
+                {/* Summary line */}
+                {totalChange!==0&&<div style={{textAlign:"center",padding:"8px 12px",borderRadius:8,background:"rgba(15,23,42,0.4)",marginBottom:4}}>
+                  <span style={{fontSize:11,fontWeight:700,color:totalChange<0?"#4ade80":"#f87171"}}>
+                    {totalChange<0?"↓":"↑"} {Math.abs(totalChange).toFixed(1)}{wu==="lbs"?" lbs":" kg"} over {unique.length} week{unique.length!==1?"s":""}
+                    {avgAdherence!==null&&<span style={{color:"#64748b"}}> · </span>}
+                    {avgAdherence!==null&&<span style={{color:"#fbbf24"}}>{avgAdherence}% adherence</span>}
+                    {totalChange<0&&(["aggressive","lose"].includes(profile.goal))&&" ✅"}
+                  </span>
+                </div>}
               </div>);
             })()}
 
