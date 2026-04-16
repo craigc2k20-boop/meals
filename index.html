@@ -1437,7 +1437,7 @@ function PaywallScreen({onRedeem,trialExpired}){
           <div style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>{trialExpired?"🔓 Get your data back":"🔒 Unlock SlimRoute"}</div>
           <div style={{fontSize:11,color:"#64748b"}}>{trialExpired?"Your meals, progress and stats are waiting — subscribe to continue.":"Track your nutrition, hit your goals, feel better."}</div>
         </div>
-        <button onClick={()=>window.open("https://buy.stripe.com/6oU7sK0Zzaoh8XV8jY1ck00","_blank")} style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:8,boxShadow:"0 4px 20px rgba(59,130,246,0.4)"}}>Unlock for £4.99 / year</button>
+        <button onClick={()=>window.open("https://buy.stripe.com/test_bJe7sL0sH0xH1dd75B0oM00","_blank")} style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:8,boxShadow:"0 4px 20px rgba(59,130,246,0.4)"}}>Unlock for £4.99 / year</button>
         <div style={{display:"flex",gap:8}}>
           <button onClick={()=>setShowCode(true)} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid rgba(148,163,184,0.15)",background:"transparent",color:"#64748b",fontSize:12,fontWeight:600,cursor:"pointer"}}>I have a code</button>
           <button onClick={()=>setShowInfo(true)} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid rgba(59,130,246,0.3)",background:"rgba(59,130,246,0.1)",color:"#93c5fd",fontSize:12,fontWeight:600,cursor:"pointer"}}>ⓘ What's included</button>
@@ -1537,31 +1537,50 @@ const [storageReady, setStorageReady] = useState(false);
   useEffect(()=>{(async()=>{
     const email=window.fbUser?.email;
     const uid=window.fbUser?.uid;
-    if(!uid){setAccessState("locked");return;} // no user, show paywall
+    if(!uid){setAccessState("locked");return;}
     if(email===ADMIN_EMAIL){setIsAdmin(true);setAccessState("open");return;}
+
+    // Check localStorage cache first — skip Firestore if fresh (under 60 mins)
+    try{
+      const cached=localStorage.getItem("ept:accessCache");
+      if(cached){
+        const c=JSON.parse(cached);
+        if(c.uid===uid&&c.expires>Date.now()){
+          if(c.state==="open"){setAccessState("open");return;}
+          if(c.state==="trial"&&c.trialEnd>Date.now()){
+            const daysLeft=Math.max(1,Math.ceil((c.trialEnd-Date.now())/86400000));
+            setTrialDaysLeft(daysLeft);setTrialEndDate(new Date(c.trialEnd));setAccessState("trial");return;
+          }
+        }
+      }
+    }catch{}
+
+    const saveCache=(state,trialEnd)=>{
+      try{localStorage.setItem("ept:accessCache",JSON.stringify({uid,state,trialEnd:trialEnd?.getTime()||null,expires:Date.now()+3600000}));}catch{}
+    };
+
     try{
       const doc=await fbDb.collection("users").doc(uid).get();
       const d=doc.data()||{};
-      if(d.paid&&d.paidUntil?.toDate()>new Date()){setAccessState("open");return;}
+      if(d.paid&&d.paidUntil?.toDate()>new Date()){saveCache("open");setAccessState("open");return;}
       if(d.trialEnd){
         const te=d.trialEnd.toDate();
         if(te>new Date()){
           const daysLeft=Math.max(1,Math.ceil((te-new Date())/86400000));
-          setTrialDaysLeft(daysLeft);setTrialEndDate(te);setAccessState("trial");return;
+          setTrialDaysLeft(daysLeft);setTrialEndDate(te);saveCache("trial",te);setAccessState("trial");return;
         }else{setTrialExpired(true);}
       }
-      setAccessState("locked");
+      saveCache("locked");setAccessState("locked");
     }catch(e){
       console.warn("Access check failed, retrying",e);
-      // Don't immediately lock — retry once after a short delay
       setTimeout(async()=>{
         try{
           const doc=await fbDb.collection("users").doc(window.fbUser?.uid).get();
           const d=doc.data()||{};
-          if(d.paid&&d.paidUntil?.toDate()>new Date()){setAccessState("open");return;}
+          if(d.paid&&d.paidUntil?.toDate()>new Date()){saveCache("open");setAccessState("open");return;}
           if(d.trialEnd){
             const te=d.trialEnd.toDate();
-            if(te>new Date()){const daysLeft=Math.max(1,Math.ceil((te-new Date())/86400000));setTrialDaysLeft(daysLeft);setTrialEndDate(te);setAccessState("trial");return;}
+            if(te>new Date()){const daysLeft=Math.max(1,Math.ceil((te-new Date())/86400000));setTrialDaysLeft(daysLeft);setTrialEndDate(te);saveCache("trial",te);setAccessState("trial");return;}
             else{setTrialExpired(true);}
           }
           setAccessState("locked");
@@ -1648,6 +1667,7 @@ const [storageReady, setStorageReady] = useState(false);
       },{merge:true});
       setAccessState("open");
       setTrialExpired(false);
+      localStorage.removeItem("ept:accessCache");
     }catch(e){console.warn("Payment save failed",e);}
   })();},[]);
 
@@ -2056,13 +2076,23 @@ const [storageReady, setStorageReady] = useState(false);
 
   return (
     <>
-    {accessState==="checking"&&<div style={{minHeight:"100vh",background:"#0f172a"}}/>}
+    {accessState==="checking"&&(<div style={{minHeight:"100vh",background:"linear-gradient(145deg,#0a0f1e 0%,#0f172a 40%,#111827 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif"}}>
+      <div style={{display:"flex",alignItems:"flex-end",gap:2,marginBottom:8}}>
+        <div style={{fontFamily:"'Fraunces',serif",fontSize:38,fontWeight:700,color:"#f1f5f9",letterSpacing:3,textShadow:"0 2px 8px rgba(0,0,0,0.3)"}}>SLIM</div>
+        <div style={{fontFamily:"'Fraunces',serif",fontSize:38,fontWeight:700,color:"#3b82f6",letterSpacing:3,textShadow:"0 2px 8px rgba(59,130,246,0.2)"}}>ROUTE</div>
+        <span style={{fontSize:9,color:"#64748b",marginBottom:8}}>™</span>
+      </div>
+      <div style={{display:"flex",gap:6,marginTop:8}}>
+        {[0,1,2].map(i=>(<div key={i} style={{width:6,height:6,borderRadius:3,background:"#3b82f6",opacity:0.4,animation:`pulse 1.2s ease-in-out ${i*0.2}s infinite`}}/>))}
+      </div>
+      <style>{`@keyframes pulse{0%,100%{opacity:0.2;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}`}</style>
+    </div>)}
     {accessState==="locked"&&<PaywallScreen onRedeem={redeemCode} trialExpired={trialExpired}/>}
     {(accessState==="open"||accessState==="trial")&&(
     <div style={{...S.wrap,boxShadow:T.wrapGlow,transition:"box-shadow .5s"}} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       {accessState==="trial"&&<div style={{background:"rgba(251,191,36,0.15)",border:"1px solid rgba(251,191,36,0.3)",borderRadius:8,padding:"6px 12px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <span style={{fontSize:10,fontWeight:600,color:"#fbbf24"}}>⏱ Free trial {trialEndDate?`ends ${trialEndDate.toLocaleString("en-GB",{timeZone:"Europe/London",day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})} UK time`:"active"}</span>
-        <button onClick={()=>window.open("https://buy.stripe.com/6oU7sK0Zzaoh8XV8jY1ck00","_blank")} style={{fontSize:9,fontWeight:700,color:"#fbbf24",background:"rgba(251,191,36,0.2)",border:"1px solid rgba(251,191,36,0.4)",borderRadius:5,padding:"2px 8px",cursor:"pointer"}}>Unlock £4.99/yr</button>
+        <button onClick={()=>window.open("https://buy.stripe.com/test_bJe7sL0sH0xH1dd75B0oM00","_blank")} style={{fontSize:9,fontWeight:700,color:"#fbbf24",background:"rgba(251,191,36,0.2)",border:"1px solid rgba(251,191,36,0.4)",borderRadius:5,padding:"2px 8px",cursor:"pointer"}}>Unlock £4.99/yr</button>
       </div>}
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet"/>
       <style>{`*:focus,*:focus-visible,*:-moz-focusring{outline:none!important;-moz-outline:none!important;}button{-moz-appearance:none!important;}
@@ -3422,49 +3452,6 @@ const [storageReady, setStorageReady] = useState(false);
                 <button style={{padding:"5px 12px",border:"1px solid rgba(148,163,184,0.2)",borderRadius:7,background:"rgba(30,41,59,0.5)",color:"#94a3b8",fontSize:9,fontWeight:600,cursor:"pointer"}} onClick={()=>{if(window.fbSignOut)window.fbSignOut();}}>Sign out</button>
               </div>)}
               {window.fbSyncStatus&&(<div style={{fontSize:9,color:"#4ade80",textAlign:"center",marginBottom:8}}>{window.fbSyncStatus}</div>)}
-              {/* Transfer Data */}
-              <div style={{marginBottom:14}}>
-                <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:8}}>Transfer Data</div>
-                <div style={{display:"flex",gap:6}}>
-                  <button style={{flex:1,padding:10,border:"1.5px solid rgba(59,130,246,0.3)",borderRadius:10,background:"rgba(23,37,84,0.3)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",color:"#93c5fd",fontSize:11,fontWeight:700,cursor:"pointer",textAlign:"center"}} onClick={async()=>{
-                    try{
-                      const keys=[`${V}:profile`,`${V}:metaHistory`,`${V}:weekHistory`,ik,pk,ck,mk,sk,sk+":wt"];
-                      const prevWkD=new Date(wKey+"T12:00:00");prevWkD.setDate(prevWkD.getDate()-7);
-                      const nextWkD=new Date(wKey+"T12:00:00");nextWkD.setDate(nextWkD.getDate()+7);
-                      keys.push(`${V}:${wk(prevWkD)}`,`${V}:${wk(prevWkD)}:wt`,`${V}:${wk(nextWkD)}`,`${V}:${wk(nextWkD)}:wt`);
-                      const data={_version:V,_exported:new Date().toISOString(),_keys:{}};
-                      for(const k of keys){try{const r=await window.storage.get(k);if(r?.value)data._keys[k]=r.value;}catch{}}
-                      const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-                      const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;
-                      a.download=`eating-plan-${wKey}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-                      fl("Exported ✅");
-                    }catch(e){fl("Export failed: "+e.message);}
-                  }}>{IC.exp(14)} Export</button>
-                  <button style={{flex:1,padding:10,border:"1.5px solid rgba(34,197,94,0.3)",borderRadius:10,background:"rgba(5,46,22,0.3)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",color:"#4ade80",fontSize:11,fontWeight:700,cursor:"pointer",textAlign:"center"}} onClick={()=>{
-                    const inp=document.createElement("input");inp.type="file";inp.accept=".json";
-                    inp.onchange=async(e)=>{
-                      try{
-                        const file=e.target.files[0];if(!file)return;
-                        const text=await file.text();const data=JSON.parse(text);
-                        if(!data._keys||typeof data._keys!=="object")return fl("Invalid file");
-                        let count=0;for(const[k,v] of Object.entries(data._keys)){try{await window.storage.set(k,v);count++;}catch{}}
-                        try{const r=await window.storage.get(sk);if(r?.value){const d=JSON.parse(r.value);
-                          dispatch({type:'LOAD',data:{types:d.types||initT(),checks:d.checks||initC(),cm:d.cm||{},comp:d.completed||{},wCal:d.wCal||null,wMacPct:d.wMacPct||null,stallAdj:d.stallAdj||0}});}}catch{}
-                        try{const r=await window.storage.get(sk+":wt");if(r?.value)dispatch({type:'LOAD_WT',wt:JSON.parse(r.value)});}catch{}
-                        try{const r=await window.storage.get(`${V}:profile`);if(r?.value){const p=JSON.parse(r.value);setProfile(p);setPF(p);}}catch{}
-                        try{const r=await window.storage.get(ik);if(r?.value){const s=JSON.parse(r.value);if(s?.length)setIngs(s);}}catch{}
-                        try{const r=await window.storage.get(pk);if(r?.value)setSP(JSON.parse(r.value));}catch{}
-                        try{const r=await window.storage.get(ck);if(r?.value){const v=JSON.parse(r.value);setCal(v.target||2300);setCalIn(String(v.target||2300));}}catch{}
-                        try{const r=await window.storage.get(mk);if(r?.value){const v=JSON.parse(r.value);if(v.p)setMacPct(v);}}catch{}
-                        try{const r=await window.storage.get(V+":metaHistory");if(r?.value)setMH(JSON.parse(r.value));}catch{}
-                        try{const r=await window.storage.get(V+":weekHistory");if(r?.value)setWH(JSON.parse(r.value));}catch{}
-                        fl(`Imported ${count} items ✅`);setTab("meals");
-                      }catch(e){fl("Import failed: "+e.message);}
-                    };inp.click();
-                  }}>{IC.imp(14)} Import</button>
-                </div>
-                <div style={{fontSize:8,color:"#475569",marginTop:6,lineHeight:1.5,textAlign:"center"}}>Export saves your profile, meals, completed days, weight, macros, and history as a JSON file. Import loads it on any device.</div>
-              </div>
 
               {/* Clear Meals */}
               <div style={{borderTop:"1px solid rgba(148,163,184,0.08)",paddingTop:14}}>
