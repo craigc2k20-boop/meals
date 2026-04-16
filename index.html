@@ -1531,6 +1531,7 @@ const [storageReady, setStorageReady] = useState(false);
   const[showProfile,setShowProfile]=useState(false);
   const[showReset,setShowReset]=useState(false);
   const[showDeleteAccount,setShowDeleteAccount]=useState(false);
+  const[showHomeScreenGuide,setShowHomeScreenGuide]=useState(false);
   const[onboardStep,setOB]=useState(1); // 1=goal, 2=training, 3=stats, 4=meals
   const[obMeals,setObMeals]=useState([{name:"Breakfast",time:"08:00"},{name:"Lunch",time:"12:30"},{name:"Dinner",time:"18:00"},{name:"Snack",time:"15:30"}]); // onboarding meal slots
   const[copyFrom,setCopyFrom]=useState(null); // day name when copy picker is open
@@ -2103,6 +2104,60 @@ const [storageReady, setStorageReady] = useState(false);
       <style>{`@keyframes pulse{0%,100%{opacity:0.2;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}`}</style>
     </div>)}
     {accessState==="locked"&&<PaywallScreen onRedeem={redeemCode} trialExpired={trialExpired} stripeUrl={stripeUrl}/>}
+    {(accessState==="open"||accessState==="trial")&&showHomeScreenGuide&&(()=>{
+      const ua=navigator.userAgent;
+      const isPWA=window.navigator.standalone||window.matchMedia('(display-mode: standalone)').matches;
+      const device=isPWA?'pwa':/iPhone|iPod/.test(ua)?(/CriOS/.test(ua)?'iphone-chrome':'iphone-safari'):/iPad/.test(ua)?'ipad-safari':/Android/.test(ua)?'android':'desktop';
+      if(device==='pwa'){localStorage.setItem("ept:homeScreenDismissed","1");setShowHomeScreenGuide(false);return null;}
+      const steps={
+        'iphone-safari':[
+          {icon:"📤",text:"Tap the Share button at the bottom of Safari"},
+          {icon:"📲",text:"Scroll down and tap Add to Home Screen"},
+          {icon:"✅",text:"Tap Add in the top right corner"},
+        ],
+        'iphone-chrome':[
+          {icon:"⚠️",text:"Chrome on iPhone can't add to home screen"},
+          {icon:"🧭",text:"Open slimroute.co.uk in Safari instead"},
+          {icon:"📤",text:"Tap Share → Add to Home Screen → Add"},
+        ],
+        'ipad-safari':[
+          {icon:"📤",text:"Tap the Share button in the Safari toolbar"},
+          {icon:"📲",text:"Tap Add to Home Screen"},
+          {icon:"✅",text:"Tap Add to confirm"},
+        ],
+        'android':[
+          {icon:"⋮",text:"Tap the three dots menu in the top right"},
+          {icon:"📲",text:"Tap Add to Home screen"},
+          {icon:"✅",text:"Tap Add to confirm"},
+        ],
+        'desktop':[
+          {icon:"⭐",text:"Click the star icon in your browser address bar"},
+          {icon:"⌨️",text:"Or press Cmd+D (Mac) / Ctrl+D (Windows)"},
+          {icon:"✅",text:"SlimRoute will be saved to your bookmarks"},
+        ],
+      };
+      const deviceSteps=steps[device]||steps['desktop'];
+      const deviceLabel={'iphone-safari':'iPhone — Safari','iphone-chrome':'iPhone — Chrome','ipad-safari':'iPad — Safari','android':'Android','desktop':'Desktop'}[device];
+      return(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",zIndex:1000,display:"flex",alignItems:"flex-end",justifyContent:"center",padding:16}}>
+        <div style={{background:"rgba(15,23,42,0.98)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:20,padding:24,width:"100%",maxWidth:480}}>
+          <div style={{textAlign:"center",marginBottom:20}}>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>Add to your home screen</div>
+            <div style={{fontSize:11,color:"#64748b"}}>Detected: {deviceLabel}</div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
+            {deviceSteps.map((s,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:14,padding:"12px 14px",borderRadius:12,background:"rgba(30,41,59,0.5)",border:"1px solid rgba(148,163,184,0.07)"}}>
+              <div style={{width:36,height:36,borderRadius:10,background:"rgba(59,130,246,0.15)",border:"1px solid rgba(59,130,246,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{s.icon}</div>
+              <div>
+                <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1px",marginBottom:2}}>Step {i+1}</div>
+                <div style={{fontSize:12,fontWeight:600,color:"#e2e8f0",lineHeight:1.4}}>{s.text}</div>
+              </div>
+            </div>))}
+          </div>
+          <button style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:8}} onClick={()=>{localStorage.setItem("ept:homeScreenDismissed","1");setShowHomeScreenGuide(false);}}>Got it ✓</button>
+          <button style={{width:"100%",padding:"8px",borderRadius:8,border:"none",background:"transparent",color:"#475569",fontSize:11,cursor:"pointer"}} onClick={()=>{localStorage.setItem("ept:homeScreenDismissed","1");setShowHomeScreenGuide(false);}}>Skip</button>
+        </div>
+      </div>);
+    })()}
     {(accessState==="open"||accessState==="trial")&&(
     <div style={{...S.wrap,boxShadow:T.wrapGlow,transition:"box-shadow .5s"}} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       {accessState==="trial"&&<div style={{background:"rgba(251,191,36,0.15)",border:"1px solid rgba(251,191,36,0.3)",borderRadius:8,padding:"6px 12px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -2434,6 +2489,8 @@ const [storageReady, setStorageReady] = useState(false);
               dispatch({type:'SET_TYPES',types:newTypes,checks:initC(),cm:newCm});
               sv(newTypes,initC(),newCm,{},p.tdee,{p:p.p,c:p.c,f:p.f});
               setShowProfile(false);setOB(1);fl("Welcome! Add ingredients to your meals 🎉");
+              // Show home screen guide first time only
+              if(!localStorage.getItem("ept:homeScreenDismissed")){setShowHomeScreenGuide(true);}
             }}>Complete setup ✅</button>
           </div>
         </div>);})()}
@@ -3170,7 +3227,12 @@ const [storageReady, setStorageReady] = useState(false);
               <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
                 <div style={{width:44,height:44,borderRadius:22,background:"linear-gradient(135deg,#3b82f6,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:700,color:"#fff",flexShrink:0}}>{userInitial}</div>
                 <div style={{flex:1}}>
-                  <div style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:700,color:"#f1f5f9"}}>{userName}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                    <div style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:700,color:"#f1f5f9"}}>{userName}</div>
+                    {accessState==="open"&&!isAdmin&&<span style={{fontSize:9,fontWeight:700,background:"linear-gradient(135deg,#f59e0b,#d97706)",color:"#fff",borderRadius:5,padding:"2px 7px",letterSpacing:"1px"}}>⭐ PRO</span>}
+                    {accessState==="trial"&&<span style={{fontSize:9,fontWeight:700,background:"rgba(251,191,36,0.2)",color:"#fbbf24",border:"1px solid rgba(251,191,36,0.4)",borderRadius:5,padding:"2px 7px",letterSpacing:"1px"}}>⏱ TRIAL</span>}
+                    {isAdmin&&<span style={{fontSize:9,fontWeight:700,background:"rgba(239,68,68,0.2)",color:"#f87171",border:"1px solid rgba(239,68,68,0.3)",borderRadius:5,padding:"2px 7px",letterSpacing:"1px"}}>⚙️ ADMIN</span>}
+                  </div>
                   <div style={{fontSize:10,color:"#64748b"}}>{goalLabels[profile.goal]||profile.goal} · {actLabels[profile.activity]||profile.activity}</div>
                 </div>
                 {weeksTracked>0&&<div style={{textAlign:"right"}}>
@@ -3467,6 +3529,7 @@ const [storageReady, setStorageReady] = useState(false);
                 <button style={{padding:"5px 12px",border:"1px solid rgba(148,163,184,0.2)",borderRadius:7,background:"rgba(30,41,59,0.5)",color:"#94a3b8",fontSize:9,fontWeight:600,cursor:"pointer"}} onClick={()=>{if(window.fbSignOut)window.fbSignOut();}}>Sign out</button>
               </div>)}
               {window.fbSyncStatus&&(<div style={{fontSize:9,color:"#4ade80",textAlign:"center",marginBottom:8}}>{window.fbSyncStatus}</div>)}
+              <button style={{width:"100%",padding:10,border:"1px solid rgba(59,130,246,0.2)",borderRadius:10,background:"rgba(23,37,84,0.2)",color:"#93c5fd",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"center",marginBottom:10}} onClick={()=>setShowHomeScreenGuide(true)}>📲 Add to Home Screen</button>
 
               {/* Clear Meals */}
               <div style={{borderTop:"1px solid rgba(148,163,184,0.08)",paddingTop:14}}>
