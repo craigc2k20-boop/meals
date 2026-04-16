@@ -23,6 +23,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js" async></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -1136,18 +1137,18 @@ const DM_MEALS=[
 const DM_WEIGHTS=[84.0,83.6,83.4,83.1,82.8,82.5,82.3,82.1,81.9,81.7,81.5,81.4,81.2,81.0];
 const DM_DAYS_DONE=[true,true,true,true,true,true,false];
 const DM_BENEFITS=[
-  {e:"🎯",t:"Personalised Calorie Targets",d:"Your daily calories are calculated from your weight, height, age, activity level and goal — not a generic number."},
-  {e:"⚖️",t:"Training vs Rest Day Splitting",d:"Training days automatically get more calories and carbs. Rest days are lower. Your weekly total stays on budget."},
-  {e:"🔄",t:"Adaptive TDEE Learning",d:"The app learns your actual metabolism from weekly weigh-ins and adjusts your targets automatically over time."},
-  {e:"📊",t:"Macro Tracking (P / C / F)",d:"Track protein, carbs and fat against your targets with visual progress rings updated in real time as you log meals."},
-  {e:"🍽️",t:"Auto Meal Planning",d:"Your meals are automatically built and balanced each week using your ingredient list. Adjust portions or swap items freely."},
-  {e:"🔒",t:"Lock Ingredients",d:"Lock any ingredient (like your protein shake) so the app works around it when rebalancing the rest of your meals."},
-  {e:"📱",t:"Barcode Scanner",d:"Scan any food barcode to instantly add it to your ingredient library with full nutritional data pulled automatically. Works on Android Chrome and desktop Chrome — iPhone users can add ingredients manually."},
-  {e:"🌐",t:"Community Ingredients",d:"Scanned items are shared across all users — so the more people use it, the bigger the shared ingredient database grows."},
-  {e:"📈",t:"Weight Progress Tracking",d:"Log your weight each week and see a clear chart of your progress. The app flags if you're losing too fast or too slow."},
-  {e:"📅",t:"Weekly Adherence Stats",d:"See what percentage of meals you completed each week and track your consistency over time in the stats tab."},
-  {e:"💧",t:"Hydration Targets",d:"Daily water targets are calculated from your body weight and increase on training days to keep you performing well."},
-  {e:"🏋️",t:"Football & Training Modes",d:"Set individual days as Training, Rest or Football — each gets different calorie and macro splits automatically."},
+  {e:"🎯",t:"Targets built around you",d:"Your calories are calculated from your weight, height, age, goal and activity level — not a generic number copied from the internet."},
+  {e:"🏋️",t:"Train days vs rest days",d:"Gym days get more calories and carbs, rest days fewer. The split happens automatically — you just mark the day type."},
+  {e:"🍽️",t:"Your meals, planned for you",d:"SlimRoute builds and balances your meals each week from your own ingredient list. Adjust portions, swap items or lock anything you always eat."},
+  {e:"📷",t:"Free barcode scanner — on every device",d:"Scan any food packaging to instantly add it with full nutritional data. Works on iPhone, Android and desktop — no extra subscription required, unlike some apps."},
+  {e:"🌐",t:"Community ingredient library",d:"Every barcode scan is shared across all users. The more people use SlimRoute, the richer the shared food database gets for everyone."},
+  {e:"📊",t:"Real-time macro tracking",d:"See your protein, carbs and fat against your targets the moment you log a meal. Visual rings update instantly as you go through the day."},
+  {e:"🔄",t:"Adapts to your metabolism",d:"Log your weight each week and SlimRoute recalculates your targets based on what actually happened — not a textbook formula."},
+  {e:"💧",t:"Hydration tracker",d:"Your water target is calculated from your body weight and goes up on training days. Log drinks in one tap — water, coffee, sports drinks or a custom amount."},
+  {e:"📈",t:"Progress you can actually see",d:"Weight chart, weekly adherence %, average calories and macro breakdowns — all in one place so you can spot what's working and what isn't."},
+  {e:"📅",t:"Spread calories across the week",d:"Got spare calories? Spread them evenly across future days with one tap so your weekly budget always adds up perfectly."},
+  {e:"🔒",t:"Lock what matters",d:"Lock any ingredient — like your protein shake or morning oats — so the app always works around it when adjusting the rest of your plan."},
+  {e:"💰",t:"£4.99 a year. That's it.",d:"No monthly fees. No upsells. No ads. One flat price for everything — including all future features as the app grows."},
 ];
 
 function PaywallScreen({onRedeem,trialExpired,stripeUrl}){
@@ -1194,10 +1195,11 @@ function PaywallScreen({onRedeem,trialExpired,stripeUrl}){
     {/* Info modal */}
     {showInfo&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",zIndex:1000,display:"flex",alignItems:"flex-end",justifyContent:"center",padding:16}}>
       <div style={{background:"rgba(15,23,42,0.98)",border:"1px solid rgba(148,163,184,0.15)",borderRadius:20,padding:20,width:"100%",maxWidth:600,maxHeight:"80vh",overflowY:"auto"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-          <div style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"#f1f5f9"}}>What you get with SlimRoute</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"#f1f5f9"}}>Everything included</div>
           <button onClick={()=>setShowInfo(false)} style={{width:28,height:28,borderRadius:8,border:"1px solid rgba(148,163,184,0.2)",background:"rgba(30,41,59,0.5)",color:"#94a3b8",fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
         </div>
+        <div style={{fontSize:10,color:"#64748b",marginBottom:14}}>One price. No monthly fees. No hidden extras.</div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {DM_BENEFITS.map((b,i)=>(<div key={i} style={{display:"flex",gap:12,padding:"10px 12px",borderRadius:10,background:"rgba(30,41,59,0.35)",border:"1px solid rgba(148,163,184,0.07)"}}>
             <span style={{fontSize:22,flexShrink:0}}>{b.e}</span>
@@ -1532,6 +1534,46 @@ function autoCat(cals,p,c,f){
   return{cat:"Other",defAmt:100,maxAmt:300};
 }
 
+
+// Sequential tip system — shows one at a time in order, no auto-dismiss
+const TIP_ORDER=["day-type","copy-day","hydration","lock-ingredient","spread-leftover","plateau-mode","complete-day"];
+
+function Tip({tipKey,title,text,position="below",align="right",children}){
+  const idxKey="ept:tipIdx";
+  const getIdx=()=>parseInt(localStorage.getItem(idxKey)||"0");
+  const myIdx=TIP_ORDER.indexOf(tipKey);
+  const[show,setShow]=useState(()=>myIdx>=0&&getIdx()===myIdx);
+
+  // Listen for other tips being dismissed so this one can appear
+  useEffect(()=>{
+    const check=()=>{setShow(myIdx>=0&&getIdx()===myIdx);};
+    window.addEventListener("tipDismissed",check);
+    return()=>window.removeEventListener("tipDismissed",check);
+  },[]);
+
+  const dismiss=()=>{
+    const next=getIdx()+1;
+    localStorage.setItem(idxKey,String(next));
+    setShow(false);
+    window.dispatchEvent(new Event("tipDismissed"));
+  };
+
+  const isAbove=position==="above";
+  const arrowStyle={position:"absolute",width:10,height:10,background:"rgba(15,23,42,0.97)",border:"1px solid rgba(59,130,246,0.3)",
+    ...(isAbove
+      ?{bottom:-6,[align==="right"?"right":"left"]:18,borderTop:"none",borderLeft:"none",transform:"rotate(45deg)"}
+      :{top:-6,[align==="right"?"right":"left"]:18,borderBottom:"none",borderRight:"none",transform:"rotate(45deg)"})};
+  return(<div style={{position:"relative",display:"inline-block"}}>
+    {children}
+    {show&&(<div onClick={e=>e.stopPropagation()} style={{position:"absolute",...(isAbove?{bottom:"calc(100% + 8px)"}:{top:"calc(100% + 8px)"}), ...(align==="right"?{right:0}:{left:0}),background:"rgba(15,23,42,0.97)",border:"1px solid rgba(59,130,246,0.3)",borderRadius:10,padding:"10px 12px",width:210,zIndex:200,boxShadow:"0 4px 20px rgba(0,0,0,0.5)"}}>
+      <div style={arrowStyle}/>
+      <div style={{fontSize:9,color:"#334155",marginBottom:3}}>Tip {myIdx+1} of {TIP_ORDER.length}</div>
+      <div style={{fontSize:11,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>{title}</div>
+      <div style={{fontSize:10,color:"#64748b",lineHeight:1.5,marginBottom:8}}>{text}</div>
+      <button onClick={dismiss} style={{fontSize:9,fontWeight:700,color:"#3b82f6",background:"none",border:"none",cursor:"pointer",padding:0}}>Got it →</button>
+    </div>)}
+  </div>);}
+
 function App(){
   const initT=(td)=>{const t={};const days=td||["Monday","Tuesday","Thursday","Friday"];DAYS.forEach(d=>{t[d]=days.includes(d)?"training":"rest";});return t;};
   const initC=()=>{const c={};DAYS.forEach(d=>{c[d]={};});return c;};
@@ -1591,10 +1633,20 @@ const [storageReady, setStorageReady] = useState(false);
   const[pI,setPI]=useState(null);
   const[sP,setSP]=useState([]);
   const[newSecN,setNSN]=useState("");
+  const[newSecAmPm,setNewSecAmPm]=useState("AM");
+  const[newSecHour,setNewSecHour]=useState(8);
+  const[newSecMin,setNewSecMin]=useState(0);
   const[prevReview,setPR]=useState(null);
 
   const[suppAlerts,setSuppAlerts]=useState({electrolyte:false,magnesium:false});
-  const[electroCountdown,setElectroCountdown]=useState(null); // minutes remaining until gym window
+  const[electroCountdown,setElectroCountdown]=useState(null);
+  const[hydrationLog,setHydrationLog]=useState([]);
+  const[showHydCustom,setShowHydCustom]=useState(false);
+  const[hydExpanded,setHydExpanded]=useState(false);
+  const[ingSearch,setIngSearch]=useState("");
+  const[ingCatTab,setIngCatTab]=useState("All");
+  const[showHydExpanded,setShowHydExpanded]=useState(false);
+  const[hydCustomVal,setHydCustomVal]=useState(""); // minutes remaining until gym window
   const[showMonWI,setShowMonWI]=useState(false); // Monday weight-in modal
   const[monWIInput,setMonWIInput]=useState(""); // raw input inside modal
   const[monWIBusy,setMonWIBusy]=useState(false); // prevents double-submit
@@ -1808,6 +1860,10 @@ const [storageReady, setStorageReady] = useState(false);
   const V_PREV="ep27"; // previous version for migration
   const V_PREV2="ep26"; // older version for migration
   const sk=`${V}:${wKey}`,ik=`${V}:ings`,ck=`${V}:cal`,pk=`${V}:presets`,mk=`${V}:mac`;
+  const hk=`${V}:hyd:${sel}`; // hydration log key per day
+  const saveHydration=async(log)=>{try{await window.storage.set(hk,JSON.stringify(log));}catch{}};
+  const loadHydration=async()=>{try{const r=await window.storage.get(hk);if(r?.value)setHydrationLog(JSON.parse(r.value));else setHydrationLog([]);}catch{setHydrationLog([]);}};
+  useEffect(()=>{loadHydration();},[sel]);
   const im={};ings.forEach(i=>{
     const c=ING_CONSTRAINTS[i.id]||{unit_type:i.unit==="piece"?"discrete":"continuous",limit_range:[i.step||5,i.maxAmt||200]};
     // Propagate limit_range[1] into maxAmt so all existing engine checks auto-inherit the constraint
@@ -2093,34 +2149,66 @@ const [storageReady, setStorageReady] = useState(false);
     dispatch({type:'SET_CM',cm:newCm});sv(types,checks,newCm,comp,newCal,newMac);fl(`Set ${newCal} kcal · P${newMac.p}% C${newMac.c}% F${newMac.f}%`);
   };
 
-  const saveNI=async()=>{const{food,unit,cals,p,c,f,defAmt,maxAmt,cat,barcode}=nI;if(!food||!cals||!defAmt)return;const id=food.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/-+$/,"");const e={id,food,unit,defAmt:+defAmt,maxAmt:+(maxAmt||defAmt*2),cat:cat||"Other"};if(unit==="piece")e.perUnit={cals:+cals,p:+(p||0),c:+(c||0),f:+(f||0)};else e.per100={cals:+cals,p:+(p||0),c:+(c||0),f:+(f||0)};const u=[...ings,e];setIngs(u);await sI(u);
-    if(barcode){try{await fbDb.collection("sharedIngredients").doc(barcode).set({...e,barcode,addedAt:firebase.firestore.FieldValue.serverTimestamp(),addedBy:window.fbUser?.displayName||window.fbUser?.email||"unknown"});}catch(err){console.warn("Share failed",err);}}
-    setNI({food:"",unit:"g",cals:"",p:"",c:"",f:"",defAmt:"",maxAmt:"",cat:"Protein",barcode:""});setNIF(false);fl("Saved: "+food);};
+  const saveNI=async()=>{const{food,unit,cals,p,c,f,defAmt,maxAmt,cat,barcode}=nI;if(!food||!cals||!defAmt)return;const id=food.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/-+$/,"");
+    // Check for duplicate
+    const existing=ings.find(x=>x.id===id||x.food.toLowerCase()===food.toLowerCase());
+    if(existing){
+      if(addSec){addIngSec(sel,addSec,existing.id,addTime?fmtTime24(addTime):"");setAS(null);setAM(null);setAddTime("");}
+      setNI({food:"",unit:"g",cals:"",p:"",c:"",f:"",defAmt:"",maxAmt:"",cat:"Protein",barcode:""});setNIF(false);
+      fl(`${food} is already in your ingredients — added to meal`);return;
+    }
+    const e={id,food,unit,defAmt:+defAmt,maxAmt:+(maxAmt||defAmt*2),cat:cat||"Other"};if(unit==="piece")e.perUnit={cals:+cals,p:+(p||0),c:+(c||0),f:+(f||0)};else e.per100={cals:+cals,p:+(p||0),c:+(c||0),f:+(f||0)};const u=[...ings,e];setIngs(u);await sI(u);
+    if(barcode){try{
+      const existing=await fbDb.collection("sharedIngredients").doc(barcode).get();
+      if(!existing.exists){
+        await fbDb.collection("sharedIngredients").doc(barcode).set({...e,barcode,addedAt:firebase.firestore.FieldValue.serverTimestamp(),addedBy:window.fbUser?.displayName||window.fbUser?.email||"unknown"});
+      }
+    }catch(err){console.warn("Share failed",err);}}
+    // If scanning was triggered from a meal section, add it directly to that meal
+    if(addSec){addIngSec(sel,addSec,id,addTime?fmtTime24(addTime):"");setAS(null);setAM(null);setAddTime("");}
+    setNI({food:"",unit:"g",cals:"",p:"",c:"",f:"",defAmt:"",maxAmt:"",cat:"Protein",barcode:""});setNIF(false);fl("✓ "+food+" added");};
   const addNewSec=(d,time)=>{if(!newSecN.trim())return;const di=DAYS.indexOf(d);if(!isEdit(di)||comp[d])return;const ms=dc(gM(d));ms.push({id:"c-"+Date.now(),name:newSecN.trim(),time:time||"",fixed:false,items:[]});const sorted=sortMealsByTime(ms);uDay(d,sorted,true);setNSN("");setAddTime("");fl("Created");};
 
   // Spread remaining weekly calories across future non-completed days
   const spreadRemaining=()=>{
     if(wRem<=10)return fl("Nothing to spread");
-    // Find future editable, non-completed days
     const futureDays=DAYS.filter((d,i)=>!isPast(i)&&!comp[d]);
     if(!futureDays.length)return fl("No editable days left");
-    const perDay=Math.floor(wRem/futureDays.length);
-    const remainder=wRem%futureDays.length;
-    if(perDay<5 && remainder===0) return fl("Too little to spread");
-    const newCm={...cm};
-    futureDays.forEach((d,i)=>{
+
+    // Calculate how much each day can actually absorb (capped at 20% of its target)
+    const dayCapacity=futureDays.map(d=>{
       const curTgt=gDT(d);
-      const extra = i < remainder ? 1 : 0;
-      // limit boost to at most 20% of the day's target to keep meals balanced
-      const maxBoost=Math.round(curTgt*0.2);
-      let boost=perDay+extra;
-      if(boost>maxBoost) boost=maxBoost;
+      return{d,curTgt,maxBoost:Math.round(curTgt*0.2)};
+    });
+    const totalCapacity=dayCapacity.reduce((s,x)=>s+x.maxBoost,0);
+
+    // Only spread up to total capacity — never go negative
+    const toSpread=Math.min(wRem,totalCapacity);
+    const leftover=wRem-toSpread;
+
+    if(toSpread<5)return fl("Days are already near their max — try reducing a meal instead");
+
+    // Distribute proportionally across days within their caps
+    let remaining=toSpread;
+    const newCm={...cm};
+    dayCapacity.forEach(({d,curTgt,maxBoost},i)=>{
+      const share=i<dayCapacity.length-1
+        ?Math.min(maxBoost,Math.floor(toSpread/futureDays.length))
+        :remaining; // give remainder to last day
+      const boost=Math.min(maxBoost,share);
+      remaining-=boost;
       const boosted=curTgt+boost;
       const ms=newCm[d]?.length>0?dc(newCm[d]):gTpl(d);
       newCm[d]=shuffleMealTiming(autoRebalance(ms,boosted,im,gDone(d),cfPref,bW),types[d],im);
     });
+
     dispatch({type:'SET_CM',cm:newCm});sv(types,checks,newCm,comp,wCal,wMacPct);
-    fl(`+${perDay}${remainder>0?` (+${remainder} extra kcal distributed)`:''} kcal spread across ${futureDays.length} days`);
+
+    if(leftover>10){
+      fl(`Spread ${toSpread} kcal across ${futureDays.length} days — ${leftover} kcal couldn't be added as days are near their balance limit. Consider adjusting a meal manually.`);
+    }else{
+      fl(`${toSpread} kcal spread across ${futureDays.length} days ✅`);
+    }
   };
 
   // Calculator
@@ -2629,9 +2717,12 @@ const [storageReady, setStorageReady] = useState(false);
             <span style={{fontSize:10,color:"#64748b",letterSpacing:".6px",textTransform:"uppercase"}}>{fmt(dates[selI])}</span>
           </div>
           <div style={{display:"flex",gap:4}}>
-            {selE&&!selCo&&<button style={{border:"none",borderRadius:8,padding:"6px 10px",fontSize:11,fontWeight:700,cursor:"pointer",background:isTrain?T.accentDark:"rgba(30,41,59,0.6)",color:isTrain?T.accentText:"#94a3b8",display:"flex",alignItems:"center",gap:4}} onClick={()=>togType(sel)}>{types[sel]==="football"?<>{IC.football(14)} Football</>:types[sel]==="training"?<>{IC.train(14)} Train</>:<>{IC.rest(14)} Rest</>}</button>}
-            {selE&&gM(sel).length>0&&!selCo&&<button style={{border:"1px solid rgba(148,163,184,0.1)",borderRadius:7,padding:"4px 8px",fontSize:11,fontWeight:600,cursor:"pointer",background:copyFrom===sel?"rgba(59,130,246,0.15)":"rgba(30,41,59,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",color:copyFrom===sel?"#93c5fd":"#94a3b8"}} onClick={()=>setCopyFrom(copyFrom===sel?null:sel)}>{IC.copy(14)}</button>}
-            {selE&&cm[sel]&&!selCo&&<button style={{border:"1px solid rgba(148,163,184,0.1)",borderRadius:7,padding:"4px 8px",fontSize:11,fontWeight:600,cursor:"pointer",background:"rgba(30,41,59,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",color:"#94a3b8"}} onClick={()=>resetDay(sel)}>{IC.reset(14)}</button>}
+            {selE&&!selCo&&(<Tip tipKey="day-type" title="Set your day type" text="Tap to cycle between 🏋️ Gym, ⚽ Football and 😴 Rest. Training days get more calories, rest days fewer." position="below" align="right">
+              <button style={{border:"none",borderRadius:8,padding:"6px 10px",fontSize:11,fontWeight:700,cursor:"pointer",background:isTrain?T.accentDark:"rgba(30,41,59,0.6)",color:isTrain?T.accentText:"#94a3b8",display:"flex",alignItems:"center",gap:4}} onClick={()=>togType(sel)}>{types[sel]==="football"?<>{IC.football(14)} Football</>:types[sel]==="training"?<>{IC.train(14)} Train</>:<>{IC.rest(14)} Rest</>}</button>
+            </Tip>)}
+            {selE&&gM(sel).length>0&&!selCo&&(<Tip tipKey="copy-day" title="Copy day" text="Copies today's meals to another day of the week — useful when you want to repeat a good day." position="below" align="right">
+              <button style={{border:"1px solid rgba(148,163,184,0.1)",borderRadius:7,padding:"4px 8px",fontSize:10,fontWeight:600,cursor:"pointer",background:copyFrom===sel?"rgba(59,130,246,0.15)":"rgba(30,41,59,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",color:copyFrom===sel?"#93c5fd":"#94a3b8",display:"flex",alignItems:"center",gap:3}} onClick={()=>setCopyFrom(copyFrom===sel?null:sel)}>{IC.copy(12)} Copy day</button>
+            </Tip>)}
           </div>
         </div>
         {/* COPY DAY PICKER */}
@@ -2670,14 +2761,97 @@ const [storageReady, setStorageReady] = useState(false);
             :<button style={{padding:"6px 14px",borderRadius:8,border:"1.5px solid #3b82f6",background:"transparent",color:"#93c5fd",fontSize:10,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}
                 onClick={()=>{setMonWIInput(profile?.weight||"");setShowMonWI(true);}}>Enter Weight</button>}
         </div>)}
-        {/* HYDRATION — compact line */}
+        {/* HYDRATION TRACKER */}
         {(()=>{
           const hasPsy=sMs.some(m=>m.items.some(it=>it.ingId==="psyllium-caps"));
-          const baseHyd=profile?Math.round((profile.weight ? parseFloat(profile.weight) : 83)*33/50)*50:2500;
+          const baseHyd=profile?Math.round((profile.weight?parseFloat(profile.weight):83)*33/50)*50:2500;
           const hydTgt=baseHyd+(isTrn(types[sel])?500:0)+(hasPsy?HYDRATION_PSYLLIUM_BONUS:0);
-          return(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 10px",borderRadius:8,background:"rgba(10,15,30,0.3)",marginBottom:4}}>
-            <span style={{fontSize:9,color:"#64748b",fontWeight:600}}>{IC.drop(12)} Hydration</span>
-            <span style={{fontSize:10,fontWeight:700,color:"#38bdf8"}}>{hydTgt}ml{hasPsy&&<span style={{fontSize:8,color:"#22d3ee",marginLeft:3}}>+{HYDRATION_PSYLLIUM_BONUS} psyllium</span>}</span>
+          const totalMl=hydrationLog.reduce((s,e)=>s+e.ml,0);
+          const pct=Math.min(100,Math.round(totalMl/hydTgt*100));
+          const barCol=pct>=100?"#4ade80":pct>=60?"#38bdf8":"#f97316";
+          const now=new Date();const hr=now.getHours();
+          const isFutureDay=!selE||sel!==DAYS[(new Date().getDay()+6)%7]||wKey!==cWk;
+          // Timed suggestion
+          const suggestion=hr<9?"Start the day with a glass of water 💧":
+            hr<11&&pct<30?"Time for a mid-morning top-up 💧":
+            hr>=11&&hr<13&&isTrn(types[sel])&&pct<50?"Drink 500ml before training 🏋️":
+            hr>=13&&hr<15&&pct<50?"Post-lunch hydration boost 💧":
+            hr>=15&&hr<18&&pct<70?"Afternoon top-up — keep going 💧":
+            hr>=18&&pct<85?"Evening push to hit your target 💧":
+            pct>=100?"🎉 Hydration target hit!":null;
+
+          const DRINKS=[
+            {label:"Water",icon:"💧",ml:250},
+            {label:"Pint",icon:"🫗",ml:568},
+            {label:"Coffee",icon:"☕",ml:180},
+            {label:"Tea",icon:"🍵",ml:240},
+            {label:"Sports",icon:"🥤",ml:500},
+          ];
+
+          const addDrink=(drink)=>{
+            if(isFutureDay)return;
+            const entry={ml:drink.ml,type:drink.label,icon:drink.icon,time:new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})};
+            const newLog=[...hydrationLog,entry];
+            setHydrationLog(newLog);saveHydration(newLog);
+          };
+          const removeLast=()=>{
+            if(!hydrationLog.length)return;
+            const newLog=hydrationLog.slice(0,-1);
+            setHydrationLog(newLog);saveHydration(newLog);
+          };
+
+          return(<div style={{background:"rgba(10,15,30,0.4)",borderRadius:12,border:"1px solid rgba(56,189,248,0.12)",padding:"10px 12px",marginBottom:4}}>
+            {/* Header row — tap to expand/collapse */}
+            <div onClick={()=>setHydExpanded(e=>!e)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",marginBottom:hydExpanded?6:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <Tip tipKey="hydration" title="Hydration tracker" text="Log your drinks throughout the day — tap to expand and add water, coffee, a pint or a custom amount. Your target is based on your body weight and goes up on training days." position="below" align="left">
+                  {IC.drop(14)}
+                </Tip>
+                <span style={{fontSize:10,fontWeight:700,color:"#38bdf8"}}>Hydration</span>
+                {hasPsy&&<span style={{fontSize:8,color:"#22d3ee"}}>+psyllium</span>}
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:11,fontWeight:700,color:barCol}}>{totalMl}ml <span style={{color:"#475569",fontWeight:400}}>/ {hydTgt}ml</span></span>
+                <span style={{fontSize:10,color:"#475569",transition:"transform .2s",display:"inline-block",transform:hydExpanded?"rotate(180deg)":"rotate(0deg)"}}>▼</span>
+              </div>
+            </div>
+            {/* Progress bar — always visible */}
+            <div onClick={()=>setHydExpanded(e=>!e)} style={{height:6,borderRadius:3,background:"rgba(30,41,59,0.6)",overflow:"hidden",marginBottom:hydExpanded?8:0,cursor:"pointer"}}>
+              <div style={{height:"100%",borderRadius:3,width:`${pct}%`,background:barCol,transition:"width .4s"}}/>
+            </div>
+            {/* Expanded content */}
+            {hydExpanded&&(<>
+              {/* Suggestion */}
+              {suggestion&&!isFutureDay&&<div style={{fontSize:9,color:"#64748b",marginBottom:8,fontStyle:"italic"}}>{suggestion}</div>}
+              {/* Quick add buttons */}
+              {!isFutureDay&&(<>
+                <div style={{display:"flex",gap:4,marginBottom:showHydCustom?6:0,flexWrap:"wrap"}}>
+                  {DRINKS.map(d=>(<button key={d.label} onClick={()=>addDrink(d)} style={{flex:1,minWidth:44,padding:"5px 2px",borderRadius:8,border:"1px solid rgba(56,189,248,0.2)",background:"rgba(15,23,42,0.5)",cursor:"pointer",textAlign:"center"}}>
+                    <div style={{fontSize:16}}>{d.icon}</div>
+                    <div style={{fontSize:7,color:"#64748b",fontWeight:600}}>{d.label}</div>
+                    <div style={{fontSize:7,color:"#38bdf8"}}>{d.ml}ml</div>
+                  </button>))}
+                  <button onClick={()=>setShowHydCustom(s=>!s)} style={{flex:1,minWidth:44,padding:"5px 2px",borderRadius:8,border:"1px solid rgba(148,163,184,0.15)",background:"rgba(15,23,42,0.5)",cursor:"pointer",textAlign:"center"}}>
+                    <div style={{fontSize:16}}>➕</div>
+                    <div style={{fontSize:7,color:"#64748b",fontWeight:600}}>Custom</div>
+                    <div style={{fontSize:7,color:"#475569"}}>ml</div>
+                  </button>
+                </div>
+                {showHydCustom&&(<div style={{display:"flex",gap:6,marginBottom:6}}>
+                  <input type="number" style={{...S.fi,flex:1,marginBottom:0}} placeholder="Amount in ml" value={hydCustomVal} onChange={e=>setHydCustomVal(e.target.value)}/>
+                  <button style={S.cb} onClick={()=>{const ml=parseInt(hydCustomVal)||0;if(ml>0){addDrink({label:"Custom",icon:"💧",ml});setHydCustomVal("");setShowHydCustom(false);}}}>Add</button>
+                  <button style={S.sb} onClick={()=>{setShowHydCustom(false);setHydCustomVal("");}}>✕</button>
+                </div>)}
+                {/* Log + undo row */}
+                {hydrationLog.length>0&&(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
+                  <div style={{display:"flex",gap:4,flexWrap:"wrap",flex:1}}>
+                    {hydrationLog.slice(-5).map((e,i)=>(<span key={i} style={{fontSize:9,color:"#475569"}}>{e.icon}{e.ml}ml{i<Math.min(4,hydrationLog.length-1)?",":""}</span>))}
+                    {hydrationLog.length>5&&<span style={{fontSize:9,color:"#334155"}}>+{hydrationLog.length-5} more</span>}
+                  </div>
+                  <button onClick={removeLast} style={{fontSize:9,color:"#475569",background:"none",border:"none",cursor:"pointer",flexShrink:0,padding:"0 4px"}}>undo</button>
+                </div>)}
+              </>)}
+            </>)}
           </div>);
         })()}
         {/* Weekly remaining calories */}
@@ -2685,7 +2859,20 @@ const [storageReady, setStorageReady] = useState(false);
           <span style={{fontSize:9,color:"#64748b",fontWeight:600}}>📅 Weekly budget</span>
           <div style={{display:"flex",alignItems:"center",gap:6}}>
             <span style={{fontSize:10,fontWeight:700,color:wRem<0?"#f87171":wRem<200?"#fbbf24":"#4ade80"}}>{wRem>=0?`${wRem} kcal left`:`${Math.abs(wRem)} kcal over`}</span>
-            {wRem>10&&<button style={{fontSize:8,padding:"1px 6px",border:"1px solid rgba(51,65,85,0.5)",borderRadius:4,background:"rgba(30,41,59,0.6)",color:"#93c5fd",fontWeight:700,cursor:"pointer"}} onClick={spreadRemaining}>Spread</button>}
+            {wRem>10&&<Tip tipKey="spread-leftover" title="Spread leftover calories" text="Distributes your remaining weekly calories evenly across future days — so nothing goes to waste." position="below" align="right">
+              <button title="Spread remaining calories evenly across future days this week" style={{fontSize:8,padding:"2px 7px",border:"1px solid rgba(51,65,85,0.5)",borderRadius:4,background:"rgba(30,41,59,0.6)",color:"#93c5fd",fontWeight:700,cursor:"pointer"}} onClick={spreadRemaining}>Spread leftover</button>
+            </Tip>}
+            <Tip tipKey="plateau-mode" title="Plateau mode" text="Reduces rest day calories by 5% to help break a weight loss plateau. Turn on if the scales haven't moved in 2+ weeks." position="below" align="right">
+              <button style={{fontSize:8,padding:"2px 7px",border:`1px solid ${stallAdj?"#dc2626":"rgba(51,65,85,0.5)"}`,borderRadius:4,background:stallAdj?"rgba(127,29,29,0.6)":"rgba(30,41,59,0.6)",color:stallAdj?"#fca5a5":"#94a3b8",fontWeight:700,cursor:"pointer"}} onClick={()=>{
+                const next=stallAdj?0:-0.05;
+                dispatch({type:'SET_STALL',stallAdj:next});
+                const newCm={...cm};
+                DAYS.forEach(d=>{const di=DAYS.indexOf(d);if(isPast(di)||comp[d])return;delete newCm[d];});
+                dispatch({type:'SET_CM',cm:newCm});
+                sv(types,checks,newCm,comp,wCal,wMacPct);
+                fl(next?`Plateau mode ON — rest days -5%`:`Plateau mode OFF`);
+              }}>{stallAdj?"🔴 Plateau mode":"Plateau mode"}</button>
+            </Tip>
           </div>
         </div>
         {/* SUPPLEMENT TIMING ALERTS */}
@@ -2780,7 +2967,7 @@ const [storageReady, setStorageReady] = useState(false);
                               :{background:"rgba(10,15,30,0.3)",borderRadius:7,padding:"5px 6px",borderLeft:"3px dashed rgba(71,85,105,0.5)",border:"1px solid rgba(148,163,184,0.06)"})}}>
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{display:"flex",alignItems:"center",gap:4}}>
-                              {!isRO&&<button onClick={()=>togLock(sel,meal.id,ii)} style={{width:20,height:20,borderRadius:4,border:"none",background:lk?"#1e3a8a":"#334155",color:lk?"#3b82f6":"#64748b",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexShrink:0,transition:"all .2s"}}>{lk?IC.lock(12):IC.lock(12)}</button>}
+                              {!isRO&&<Tip tipKey="lock-ingredient" title="Lock ingredient" text="Locks this item so it stays fixed when the app rebalances your meals. Great for your protein shake or any food you always have." position="below" align="left"><button onClick={()=>togLock(sel,meal.id,ii)} style={{width:20,height:20,borderRadius:4,border:"none",background:lk?"#1e3a8a":"#334155",color:lk?"#3b82f6":"#64748b",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexShrink:0,transition:"all .2s"}}>{lk?IC.lock(12):IC.lock(12)}</button></Tip>}
                               {isRO&&<span style={{fontSize:11,flexShrink:0}}>{lk?IC.lock(12):IC.lock(12)}</span>}
                               <span style={{fontSize:11,fontWeight:600,color:lk?"#93c5fd":"#cbd5e1"}}>{ing.food}</span>
                               {badges.map((b,bi)=>(<span key={bi} style={{fontSize:7,padding:"1px 3px",borderRadius:3,background:"rgba(51,65,85,0.4)",color:b.c,fontWeight:700,lineHeight:1}}>{b.l}</span>))}
@@ -2788,17 +2975,32 @@ const [storageReady, setStorageReady] = useState(false);
                             <div style={{display:"flex",gap:5,fontSize:9,color:"#64748b",marginTop:1,paddingLeft:24}}><span>{ic.cals}</span><span style={{color:"#3b82f6"}}>{Math.round(ic.p)}p</span><span style={{color:"#fbbf24"}}>{Math.round(ic.c)}c</span><span style={{color:"#a78bfa"}}>{Math.round(ic.f)}f</span></div></div>
                           <div style={{display:"flex",alignItems:"center",gap:2,flexShrink:0}}>
                             <input type="number" style={{...S.ai,...(!lk&&!isRO?{borderColor:"rgba(71,85,105,0.5)",background:"rgba(30,41,59,0.4)"}:{})}} disabled={isRO||lk} value={eAmt[ak]!==undefined?eAmt[ak]:it.amt}
-                              onChange={e=>{const val=e.target.value;setEA(p=>({...p,[ak]:val}));clearTimeout(window._at);window._at=setTimeout(()=>{const v=parseFloat(val);if(!isNaN(v)&&v>0)uAmtF(sel,meal.id,ii,v);setEA(p=>{const ea={...p};delete ea[ak];return ea;});},400);}}
-                              onBlur={e=>{clearTimeout(window._at);const v=parseFloat(e.target.value);if(!isNaN(v)&&v>0)uAmtF(sel,meal.id,ii,v);setEA(p=>{const ea={...p};delete ea[ak];return ea;});}}/>
+                              onChange={e=>{const val=e.target.value;setEA(p=>({...p,[ak]:val}));clearTimeout(window._at);if(val==="")return;window._at=setTimeout(()=>{const v=parseFloat(val);if(!isNaN(v)&&v>0)uAmtF(sel,meal.id,ii,v);setEA(p=>{const ea={...p};delete ea[ak];return ea;});},600);}}
+                              onBlur={e=>{clearTimeout(window._at);const val=e.target.value;if(val===""||val===null){setEA(p=>{const ea={...p};delete ea[ak];return ea;});return;}const v=parseFloat(val);if(!isNaN(v)&&v>0)uAmtF(sel,meal.id,ii,v);setEA(p=>{const ea={...p};delete ea[ak];return ea;});}}/>
                             <span style={{fontSize:10,color:"#64748b",width:12}}>{ing.unit==="piece"?"×":"g"}</span>
                             {!isRO&&!lk&&<button style={{width:22,height:22,borderRadius:4,border:"1px solid #7f1d1d",background:"rgba(69,10,10,0.45)",color:"#f87171",fontSize:10,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>rmIng(sel,meal.id,ii)}>✕</button>}
                           </div></div>);
                       })}
-                      {!isRO&&(showAI===meal.id?(<div style={{marginTop:3,padding:5,background:"rgba(10,15,30,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",borderRadius:7,border:"1px solid rgba(148,163,184,0.06)"}}>
-                        <select style={{width:"100%",padding:6,border:"1.5px solid rgba(148,163,184,0.12)",borderRadius:7,fontSize:11,fontFamily:"'DM Sans'",marginBottom:3,color:"#e2e8f0",background:"rgba(30,41,59,0.45)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)"}} defaultValue="" onChange={e=>{if(e.target.value)startAI(meal.id,e.target.value);}}>
-                          <option value="" disabled>Pick...</option>{Object.keys(catG).map(cat=>(<optgroup key={cat} label={cat}>{catG[cat].map(ing=>(<option key={ing.id} value={ing.id}>{ing.food}</option>))}</optgroup>))}</select>
-                        <button style={S.sb} onClick={()=>setSAI(null)}>Cancel</button></div>
-                      ):<button style={{width:"100%",padding:5,border:"1.5px dashed #475569",borderRadius:5,background:"transparent",color:"#64748b",fontSize:10,fontWeight:600,cursor:"pointer",marginTop:3}} onClick={()=>setSAI(meal.id)}>+ Ingredient</button>)}
+                      {!isRO&&(showAI===meal.id?(<div onClick={e=>e.stopPropagation()} style={{marginTop:3,padding:8,background:"rgba(10,15,30,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",borderRadius:7,border:"1px solid rgba(148,163,184,0.06)"}}>
+                        {(!addMode||addSec!==meal.id)&&(<div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:3}}>
+                          <button style={S.mb} onClick={e=>{e.stopPropagation();setAS(meal.id);setAM("ing");}}>{IC.meal(12)} Pick from my ingredients</button>
+                          <button style={S.mb} onClick={e=>{e.stopPropagation();if(typeof ZXing==="undefined")return fl("Scanner loading — try again");setSAI(null);setAS(meal.id);setScanning(true);}}>
+                            <svg width="12" height="12" viewBox="0 0 36 36" style={{verticalAlign:"middle",marginRight:4}}><rect x="2" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="2" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><line x1="4" y1="18" x2="32" y2="18" stroke="#f87171" strokeWidth="1.5" strokeDasharray="3,2"/></svg>
+                            Scan a barcode
+                          </button>
+                        </div>)}
+                        {addMode==="ing"&&addSec===meal.id&&(<div style={{marginBottom:3}}>
+                          <select style={{width:"100%",padding:6,border:"1.5px solid rgba(148,163,184,0.12)",borderRadius:7,fontSize:11,fontFamily:"'DM Sans'",marginBottom:3,color:"#e2e8f0",background:"rgba(30,41,59,0.45)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)"}} defaultValue="" onChange={e=>{if(e.target.value){startAI(meal.id,e.target.value);setSAI(null);setAS(null);setAM(null);}}}>
+                            <option value="" disabled>Pick...</option>{Object.keys(catG).map(cat=>(<optgroup key={cat} label={cat}>{catG[cat].map(ing=>(<option key={ing.id} value={ing.id}>{ing.food}</option>))}</optgroup>))}
+                          </select>
+                          <button style={S.sb} onClick={e=>{e.stopPropagation();setAS(null);setAM(null);}}>← Back</button>
+                        </div>)}
+                        {(!addMode||addSec!==meal.id)&&<button style={S.sb} onClick={e=>{e.stopPropagation();setSAI(null);setAS(null);setAM(null);}}>Cancel</button>}
+                      </div>
+                      ):<div style={{marginTop:3}}>
+                        <button style={{width:"100%",padding:5,border:"1.5px dashed #475569",borderRadius:5,background:"transparent",color:"#64748b",fontSize:10,fontWeight:600,cursor:"pointer"}} onClick={e=>{e.stopPropagation();setSAI(meal.id);}}>+ Add ingredient to this meal</button>
+                        <div style={{fontSize:8,color:"#334155",textAlign:"center",marginTop:2}}>e.g. add milk or sugar into your oats</div>
+                      </div>)}
                       {!isRO&&<button style={{width:"100%",padding:5,border:"none",borderRadius:5,background:"rgba(69,10,10,0.45)",color:"#f87171",fontSize:10,fontWeight:700,cursor:"pointer",marginTop:3,textAlign:"center"}} onClick={()=>delMeal(sel,meal.id)}>{IC.trash(12)}</button>}
                       {!isRO&&!meal.fixed&&meal.items.length>0&&/^[sci]-/.test(meal.id)&&!sP.find(p=>p.name===meal.name)&&(
                         <button style={{width:"100%",padding:5,border:"1.5px solid #854d0e",borderRadius:5,background:"transparent",color:"#fbbf24",fontSize:10,fontWeight:600,cursor:"pointer",marginTop:3,textAlign:"center"}} onClick={()=>savePreset(meal)}>⭐ Save preset</button>)}
@@ -2808,19 +3010,53 @@ const [storageReady, setStorageReady] = useState(false);
                 {selE&&!selCo&&!g.meals.every(m=>checks[sel]?.[m.id])&&(addSec===g.sec?(<div style={{padding:8,background:"rgba(10,15,30,0.4)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",borderRadius:10,border:"1px solid rgba(148,163,184,0.06)",marginTop:3}}>
                   <div style={{marginBottom:5}}><input type="time" style={{...S.fi,marginBottom:0,width:"auto"}} value={addTime} onChange={e=>setAddTime(e.target.value)} placeholder="Time"/></div>
                   {!addMode&&(<div style={{display:"flex",flexDirection:"column",gap:3}}>
-                    <button style={S.mb} onClick={()=>setAM("presets")}>{IC.copy(12)} Preset</button><button style={S.mb} onClick={()=>setAM("ing")}>{IC.meal(12)} Ingredient</button><button style={S.mb} onClick={()=>setAM("custom")}>{IC.edit(12)} Custom</button>
+                    <button style={S.mb} onClick={()=>setAM("presets")}>{IC.copy(12)} Saved meal template</button>
+                    <button style={S.mb} onClick={()=>setAM("ing")}>{IC.meal(12)} Pick from my ingredients</button>
+                    <button style={S.mb} onClick={()=>{
+                      if(typeof ZXing==="undefined"){fl("Scanner loading — try again in a moment");return;}
+                      setScanning(true);
+                    }}>
+                      <svg width="12" height="12" viewBox="0 0 36 36" style={{verticalAlign:"middle",marginRight:4}}><rect x="2" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="2" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><line x1="4" y1="18" x2="32" y2="18" stroke="#f87171" strokeWidth="1.5" strokeDasharray="3,2"/></svg>
+                      Scan a food barcode
+                    </button>
+                    <button style={S.mb} onClick={()=>setAM("custom")}>{IC.edit(12)} Create a new custom meal</button>
                     <button style={S.sb} onClick={()=>{setAS(null);setAM(null);setAddTime("");}}>Cancel</button></div>)}
                   {addMode==="presets"&&(<div><div style={{maxHeight:200,overflowY:"auto"}}>{[...allPr,...sP].map((t,ti)=>(<button key={ti} style={S.mb} onClick={()=>addPreset(sel,g.sec,t,addTime?fmtTime24(addTime):"")}>{gL(t.name)||gS(t.name)} <span style={{color:"#64748b",fontSize:10}}>{sm(t,im).cals}cal</span></button>))}</div><button style={{...S.sb,marginTop:4}} onClick={()=>setAM(null)}>Back</button></div>)}
                   {addMode==="ing"&&(<div><select style={{width:"100%",padding:6,border:"1.5px solid rgba(148,163,184,0.12)",borderRadius:7,fontSize:11,fontFamily:"'DM Sans'",marginBottom:3,color:"#e2e8f0",background:"rgba(30,41,59,0.45)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)"}} defaultValue="" onChange={e=>{if(e.target.value)addIngSec(sel,g.sec,e.target.value,addTime?fmtTime24(addTime):"");}}><option value="" disabled>Select...</option>{Object.keys(catG).map(cat=>(<optgroup key={cat} label={cat}>{catG[cat].map(ing=>(<option key={ing.id} value={ing.id}>{ing.food}</option>))}</optgroup>))}</select><button style={S.sb} onClick={()=>setAM(null)}>Back</button></div>)}
                   {addMode==="custom"&&(<div><input style={S.fi} placeholder="e.g. Tuna wrap" value={subN} onChange={e=>setSubN(e.target.value)}/><div style={{display:"flex",gap:5}}><button style={{...S.cb,...(!subN.trim()?S.cbOff:{})}} disabled={!subN.trim()} onClick={()=>addInSec(sel,g.sec,subN,addTime?fmtTime24(addTime):"")}>Create</button><button style={S.sb} onClick={()=>setAM(null)}>Back</button></div></div>)}
-                </div>):(<button style={{width:"100%",padding:6,border:"1.5px solid #334155",borderRadius:6,background:"transparent",color:"#64748b",fontSize:10,fontWeight:600,cursor:"pointer",marginTop:3,textAlign:"center"}} onClick={()=>{setAS(g.sec);setAM(null);}}>+ Add to {g.sec}</button>))}
+                </div>):(<div style={{marginTop:3}}>
+                  <button style={{width:"100%",padding:6,border:"1.5px solid #334155",borderRadius:6,background:"transparent",color:"#64748b",fontSize:10,fontWeight:600,cursor:"pointer",textAlign:"center"}} onClick={()=>{setAS(g.sec);setAM(null);}}>+ Add another item to {g.sec}</button>
+                  <div style={{fontSize:8,color:"#334155",textAlign:"center",marginTop:2}}>e.g. a banana, a coffee or a separate snack alongside your meal</div>
+                </div>))}
               </div></div>);
           })}
         </div>
-        {selE&&!selCo&&(<div style={{marginTop:10}}><div style={{display:"flex",gap:5,alignItems:"center"}}><input style={{...S.fi,flex:1,marginBottom:0}} placeholder="New section (e.g. Snack — Yogurt)" value={newSecN} onChange={e=>setNSN(e.target.value)}/>
-          <input type="time" style={{...S.fi,width:80,marginBottom:0}} value={addTime} onChange={e=>setAddTime(e.target.value)}/>
-          <button style={{...S.cb,...(!newSecN.trim()?S.cbOff:{})}} disabled={!newSecN.trim()} onClick={()=>addNewSec(sel,addTime?fmtTime24(addTime):"")}>+ Add</button></div></div>)}
-        {selE&&!selP&&!selCo&&(<button style={{...S.compBtn,marginTop:14,...(selAD?{}:{borderColor:"rgba(51,65,85,0.3)",background:"rgba(30,41,59,0.25)",color:"#475569",cursor:"default"})}} disabled={!selAD} onClick={()=>compDay(sel)}>{selAD?(sel==="Sunday"?`🏆 Complete Week — ${sT.cals} kcal`:`✅ Complete ${sel} — ${sT.cals} kcal`):`Complete (${sP2.done}/${sP2.total} done)`}</button>)}
+        {selE&&!selCo&&(<div style={{marginTop:10,padding:10,background:"rgba(10,15,30,0.35)",borderRadius:10,border:"1px solid rgba(148,163,184,0.06)"}}>
+          <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:6}}>Add a new meal section</div>
+          <input style={{...S.fi}} placeholder="e.g. Breakfast, Snack, Post-workout" value={newSecN} onChange={e=>setNSN(e.target.value)}/>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+            <span style={{fontSize:9,color:"#475569",fontWeight:600,width:30}}>Time</span>
+            <div style={{display:"flex",alignItems:"center",gap:4}}>
+              <select style={{...S.fi,width:52,marginBottom:0,textAlign:"center"}} value={newSecHour} onChange={e=>setNewSecHour(+e.target.value)}>
+                {[1,2,3,4,5,6,7,8,9,10,11,12].map(h=>(<option key={h} value={h}>{h}</option>))}
+              </select>
+              <span style={{color:"#475569",fontWeight:700}}>:</span>
+              <select style={{...S.fi,width:52,marginBottom:0,textAlign:"center"}} value={newSecMin} onChange={e=>setNewSecMin(+e.target.value)}>
+                {[0,15,30,45].map(m=>(<option key={m} value={m}>{String(m).padStart(2,"0")}</option>))}
+              </select>
+              <button onClick={()=>setNewSecAmPm(a=>a==="AM"?"PM":"AM")} style={{padding:"6px 10px",borderRadius:8,border:`1.5px solid ${newSecAmPm==="AM"?"rgba(59,130,246,0.5)":"rgba(249,115,22,0.5)"}`,background:newSecAmPm==="AM"?"rgba(23,37,84,0.4)":"rgba(67,20,7,0.4)",color:newSecAmPm==="AM"?"#93c5fd":"#fdba74",fontSize:12,fontWeight:700,cursor:"pointer",minWidth:44}}>{newSecAmPm}</button>
+            </div>
+          </div>
+          <button style={{...S.cb,width:"100%",...(!newSecN.trim()?S.cbOff:{})}} disabled={!newSecN.trim()} onClick={()=>{
+            let hh=newSecHour%12;if(newSecAmPm==="PM")hh+=12;
+            const timeStr=`${String(hh).padStart(2,"0")}:${String(newSecMin).padStart(2,"0")}`;
+            addNewSec(sel,timeStr);
+            setNewSecAmPm("AM");setNewSecHour(8);setNewSecMin(0);
+          }}>+ Add section</button>
+        </div>)}
+        {selE&&!selP&&!selCo&&(<Tip tipKey="complete-day" title="Complete the day" text="Mark today as done — your calories get locked in and counted toward your weekly total. You can still unlock it later if needed." position="above" align="right">
+          <button style={{...S.compBtn,marginTop:14,...(selAD?{}:{borderColor:"rgba(51,65,85,0.3)",background:"rgba(30,41,59,0.25)",color:"#475569",cursor:"default"})}} disabled={!selAD} onClick={()=>compDay(sel)}>{selAD?(sel==="Sunday"?`🏆 Complete Week — ${sT.cals} kcal`:`✅ Complete ${sel} — ${sT.cals} kcal`):`Complete (${sP2.done}/${sP2.total} done)`}</button>
+        </Tip>)}
         {selCo&&!selP&&<button style={{width:"100%",padding:10,border:"2px solid rgba(30,58,138,0.4)",borderRadius:10,background:"rgba(23,37,84,0.35)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",color:"#93c5fd",boxShadow:"0 2px 10px rgba(30,58,138,0.2)",fontSize:12,fontWeight:700,cursor:"pointer",textAlign:"center",marginTop:14}} onClick={()=>uncompDay(sel)}>🔓 Unlock {sel}</button>}
         {/* Past day: unlock to edit */}
         {selP&&!pastUnlocked[sel]&&<button style={{width:"100%",padding:10,border:"2px solid rgba(133,77,14,0.4)",borderRadius:10,background:"rgba(69,26,3,0.4)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",boxShadow:"0 2px 10px rgba(133,77,14,0.15)",color:"#fbbf24",fontSize:12,fontWeight:700,cursor:"pointer",textAlign:"center",marginTop:14}} onClick={()=>unlockPast(sel)}>🔓 Unlock {sel} to edit</button>}
@@ -3178,35 +3414,54 @@ const [storageReady, setStorageReady] = useState(false);
 
       {/* INGREDIENTS TAB */}
       {tab==="ingredients"&&(<div style={{marginTop:4}}>
-        <div style={{fontSize:12,fontWeight:700,color:"#94a3b8",marginBottom:8}}>{ings.length} ingredients</div>
-        <div style={{maxHeight:350,overflowY:"auto",marginBottom:12}}>
-          {Object.keys(catG).map(cat=>(<div key={cat}><div style={{fontSize:10,fontWeight:700,color:"#475569",textTransform:"uppercase",padding:"5px 0 2px"}}>{cat}</div>
-            {catG[cat].map(ing=>(<div key={ing.id} style={{display:"flex",justifyContent:"space-between",padding:"3px 0",borderBottom:"1px solid #1e293b",fontSize:10,color:"#cbd5e1"}}><span>{ing.food}</span><span style={{color:"#64748b"}}>{ing.unit==="piece"?`${ing.perUnit.cals}/pc`:`${ing.per100.cals}/100g`}</span></div>))}</div>))}
+        {/* Search bar */}
+        <div style={{position:"relative",marginBottom:8}}>
+          <input style={{...S.fi,marginBottom:0,paddingLeft:28}} placeholder="Search ingredients…" value={ingSearch} onChange={e=>{setIngSearch(e.target.value);setIngCatTab("All");}}/>
+          <span style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",fontSize:12,color:"#475569",pointerEvents:"none"}}>🔍</span>
+          {ingSearch&&<button onClick={()=>setIngSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"#475569",fontSize:13,cursor:"pointer",padding:0}}>✕</button>}
         </div>
-        {sharedIngs.length>0&&(<div style={{marginBottom:12}}>
-          <div style={{fontSize:10,fontWeight:700,color:"#94a3b8",marginBottom:6,display:"flex",alignItems:"center",gap:4}}>🌐 Community Ingredients <span style={{fontSize:9,color:"#475569",fontWeight:400}}>({sharedIngs.length} scanned by users)</span></div>
-          <div style={{maxHeight:200,overflowY:"auto",display:"flex",flexDirection:"column",gap:3}}>
-            {sharedIngs.map(item=>{
-              const already=!!ings.find(x=>x.id===item.id);
-              const mac=item.unit==="piece"?item.perUnit:item.per100;
-              return(<div key={item.barcode||item.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"5px 8px",borderRadius:8,background:"rgba(30,41,59,0.3)",border:"1px solid rgba(148,163,184,0.07)"}}>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:10,fontWeight:700,color:"#f1f5f9",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{item.food}</div>
-                  <div style={{fontSize:9,color:"#64748b",display:"flex",gap:5}}>
-                    <span>{mac?.cals} kcal</span>
-                    <span style={{color:"#f87171"}}>{mac?.p}P</span>
-                    <span style={{color:"#fbbf24"}}>{mac?.c}C</span>
-                    <span style={{color:"#a78bfa"}}>{mac?.f}F</span>
-                  </div>
+
+        {/* Category tabs — only show when not searching */}
+        {!ingSearch&&(()=>{
+          const cats=["All",...Object.keys(catG).filter(c=>catG[c]?.length>0)];
+          return(<div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:8,paddingBottom:2}}>
+            {cats.map(c=>(<button key={c} onClick={()=>setIngCatTab(c)} style={{padding:"4px 10px",borderRadius:20,border:`1.5px solid ${ingCatTab===c?"rgba(59,130,246,0.6)":"rgba(51,65,85,0.4)"}`,background:ingCatTab===c?"rgba(59,130,246,0.15)":"transparent",color:ingCatTab===c?"#93c5fd":"#64748b",fontSize:9,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>{c}{c!=="All"?` (${catG[c]?.length})`:` (${ings.length})`}</button>))}
+          </div>);
+        })()}
+
+        {/* Ingredient list */}
+        <div style={{maxHeight:350,overflowY:"auto",marginBottom:12}}>
+          {(()=>{
+            const filtered=ings.filter(ing=>
+              (!ingSearch||ing.food.toLowerCase().includes(ingSearch.toLowerCase())) &&
+              (ingCatTab==="All"||ing.cat===ingCatTab)
+            );
+            if(!filtered.length)return(<div style={{fontSize:10,color:"#475569",textAlign:"center",padding:"20px 0"}}>No ingredients found</div>);
+            // When searching, show flat list. When browsing by tab, group by category
+            if(ingSearch||ingCatTab!=="All"){
+              return filtered.map(ing=>(<div key={ing.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 6px",borderBottom:"1px solid #1e293b",fontSize:10,color:"#cbd5e1",borderRadius:4}}>
+                <div>
+                  <span>{ing.food}</span>
+                  {ingSearch&&ing.cat&&<span style={{fontSize:8,color:"#475569",marginLeft:6,background:"rgba(30,41,59,0.6)",padding:"1px 4px",borderRadius:3}}>{ing.cat}</span>}
                 </div>
-                <button style={{marginLeft:8,padding:"3px 8px",borderRadius:5,fontSize:9,fontWeight:700,border:`1px solid ${already?"#334155":"rgba(34,197,94,0.4)"}`,background:"transparent",color:already?"#475569":"#4ade80",cursor:already?"default":"pointer",flexShrink:0}}
-                  disabled={already} onClick={async()=>{if(already)return;const u=[...ings,item];setIngs(u);await sI(u);fl("✓ "+item.food);}}>
-                  {already?"✓ Added":"+ Add"}
-                </button>
+                <span style={{color:"#64748b"}}>{ing.unit==="piece"?`${ing.perUnit?.cals}/pc`:`${ing.per100?.cals}/100g`}</span>
+              </div>));
+            }
+            // Grouped by category
+            return Object.keys(catG).map(cat=>{
+              const items=catG[cat];
+              if(!items?.length)return null;
+              return(<div key={cat}>
+                <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1px",padding:"6px 0 2px"}}>{cat}</div>
+                {items.map(ing=>(<div key={ing.id} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #1e293b",fontSize:10,color:"#cbd5e1"}}>
+                  <span>{ing.food}</span>
+                  <span style={{color:"#64748b"}}>{ing.unit==="piece"?`${ing.perUnit?.cals}/pc`:`${ing.per100?.cals}/100g`}</span>
+                </div>))}
               </div>);
-            })}
-          </div>
-        </div>)}
+            });
+          })()}
+        </div>
+
         {nIF?(<div style={{padding:10,background:"rgba(30,41,59,0.4)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",borderRadius:12,border:"1.5px solid rgba(148,163,184,0.1)"}}>
           <input style={S.fi} placeholder="Food name" value={nI.food} onChange={e=>setNI({...nI,food:e.target.value})}/>
           <div style={{display:"flex",gap:4,marginBottom:4}}><select style={{...S.fi,flex:1}} value={nI.unit} onChange={e=>setNI({...nI,unit:e.target.value})}><option value="g">Per 100g</option><option value="piece">Per piece</option></select>
@@ -3216,20 +3471,18 @@ const [storageReady, setStorageReady] = useState(false);
           <div style={{display:"flex",gap:5}}><button style={{...S.cb,...(!(nI.food&&nI.cals&&nI.defAmt)?S.cbOff:{})}} disabled={!(nI.food&&nI.cals&&nI.defAmt)} onClick={saveNI}>Save</button><button style={S.sb} onClick={()=>setNIF(false)}>Cancel</button></div>
         </div>):(<div style={{display:"flex",gap:6}}>
           <button style={{flex:1,padding:8,border:"1.5px dashed #475569",borderRadius:8,background:"transparent",color:"#64748b",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"center"}} onClick={()=>setNIF(true)}>{IC.edit(12)} Add manual</button>
-          <button style={{flex:1,padding:8,border:"1.5px dashed rgba(59,130,246,0.4)",borderRadius:8,background:"rgba(23,37,84,0.2)",color:"#93c5fd",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"center",display:"flex",alignItems:"center",justifyContent:"center",gap:4,flexDirection:"column"}} onClick={()=>{
-            if(!("BarcodeDetector" in window))return fl("Scanner needs Android Chrome or desktop Chrome — not available on iPhone");
+          <button style={{flex:1,padding:8,border:"1.5px dashed rgba(59,130,246,0.4)",borderRadius:8,background:"rgba(23,37,84,0.2)",color:"#93c5fd",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"center",display:"flex",alignItems:"center",justifyContent:"center",gap:4}} onClick={()=>{
+            if(typeof ZXing==="undefined"){fl("Scanner loading — try again in a moment");return;}
             setScanning(true);
           }}>
-            <div style={{display:"flex",alignItems:"center",gap:4}}>
-              <svg width="14" height="14" viewBox="0 0 36 36" style={{verticalAlign:"middle"}}><rect x="2" y="2" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><rect x="24" y="2" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><rect x="2" y="24" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><rect x="24" y="24" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><line x1="4" y1="18" x2="32" y2="18" stroke="#f87171" strokeWidth="1.5" strokeDasharray="3,2"/></svg>
-              Scan barcode
-            </div>
-            {!("BarcodeDetector" in window)&&<span style={{fontSize:8,color:"#475569"}}>Android/Chrome only</span>}
+            <svg width="14" height="14" viewBox="0 0 36 36" style={{verticalAlign:"middle"}}><rect x="2" y="2" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><rect x="24" y="2" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><rect x="2" y="24" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><rect x="24" y="24" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><line x1="4" y1="18" x2="32" y2="18" stroke="#f87171" strokeWidth="1.5" strokeDasharray="3,2"/></svg>
+            Scan barcode
           </button>
         </div>)}
+      </div>)}
 
-        {/* BARCODE SCANNER MODAL */}
-        {scanning&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.92)",zIndex:999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20}}>
+      {/* BARCODE SCANNER MODAL — global, works from any tab */}
+      {scanning&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.92)",zIndex:999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20}}>
           <div style={{maxWidth:360,width:"100%",textAlign:"center"}}>
             <div style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>Scan barcode</div>
             <div style={{fontSize:9,color:"#64748b",marginBottom:10}}>Line up the barcode within the guides</div>
@@ -3237,78 +3490,66 @@ const [storageReady, setStorageReady] = useState(false);
             <div style={{position:"relative",width:"100%",borderRadius:12,overflow:"hidden",background:"#000"}}>
               <video ref={el=>{
                 if(!el||el.dataset.init)return;el.dataset.init="1";
-                let stopped=false;
-                navigator.mediaDevices.getUserMedia({video:{facingMode:"environment",width:{ideal:1280},height:{ideal:720}}}).then(stream=>{
-                  el.srcObject=stream;
-                  el.__stream=stream;
-                  if(!("BarcodeDetector" in window)){stream.getTracks().forEach(t=>t.stop());setScanStatus("✗ Scanner not supported on iPhone. Use Android or desktop Chrome");return;}
-                  const det=new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e"]});
-                  let retries=0;
-                  const scan=async()=>{
-                    if(stopped||!el.srcObject)return;
-                    try{const codes=await det.detect(el);
-                      if(codes.length>0){
-                        stopped=true;stream.getTracks().forEach(t=>t.stop());
-                        const code=codes[0].rawValue;
-                        setScanStatus("🔍 Looking up product…");
-                        try{
-                          const resp=await fetch("https://world.openfoodfacts.org/api/v2/product/"+code+".json");
-                          const data=await resp.json();
-                          if(data.status===1&&data.product){
-                            const p=data.product;const n=p.nutriments||{};
-                            const name=(p.product_name||p.product_name_en||"Unknown").slice(0,50);
-                            const cal=Math.round(n["energy-kcal_100g"]||n["energy-kcal"]||0);
-                            const pr=Math.round((n.proteins_100g||0)*10)/10;
-                            const ca=Math.round((n.carbohydrates_100g||0)*10)/10;
-                            const fa=Math.round((n.fat_100g||0)*10)/10;
-                            const{cat,defAmt,maxAmt}=autoCat(cal,pr,ca,fa);
-                            setNI({food:name,unit:"g",cals:String(cal),p:String(pr),c:String(ca),f:String(fa),defAmt:String(defAmt),maxAmt:String(maxAmt),cat,barcode:code});
-                            setNIF(true);setScanning(false);setScanStatus("");
-                            fl("Scanned: "+name);
-                          }else{
-                            setScanStatus("✗ Product not found — try manual entry");
-                            setTimeout(()=>{setScanning(false);setScanStatus("");},2000);
-                          }
-                        }catch(e){setScanStatus("✗ Lookup failed — tap retry");stopped=false;retries++;}
-                        return;
-                      }else{retries=0;}
-                    }catch{}
-                    requestAnimationFrame(scan);
-                  };
-                  el.onloadedmetadata=()=>scan();
-                }).catch(()=>setScanStatus("✗ Camera access denied"));
+                if(typeof ZXing==="undefined"){setScanStatus("✗ Scanner not ready — please close and try again");return;}
+                try{
+                  const hints=new Map();
+                  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[
+                    ZXing.BarcodeFormat.EAN_13,ZXing.BarcodeFormat.EAN_8,
+                    ZXing.BarcodeFormat.UPC_A,ZXing.BarcodeFormat.UPC_E,
+                    ZXing.BarcodeFormat.CODE_128,
+                  ]);
+                  const reader=new ZXing.BrowserMultiFormatReader(hints);
+                  el.__zxing=reader;
+                  reader.decodeFromVideoDevice(null,el,async(result,err)=>{
+                    if(!result)return;
+                    reader.reset();
+                    const code=result.getText();
+                    setScanStatus("🔍 Looking up product…");
+                    try{
+                      const resp=await fetch("https://world.openfoodfacts.org/api/v2/product/"+code+".json");
+                      const data=await resp.json();
+                      if(data.status===1&&data.product){
+                        const p=data.product;const n=p.nutriments||{};
+                        const name=(p.product_name||p.product_name_en||"Unknown").slice(0,50);
+                        const cal=Math.round(n["energy-kcal_100g"]||n["energy-kcal"]||0);
+                        const pr=Math.round((n.proteins_100g||0)*10)/10;
+                        const ca=Math.round((n.carbohydrates_100g||0)*10)/10;
+                        const fa=Math.round((n.fat_100g||0)*10)/10;
+                        const{cat,defAmt,maxAmt}=autoCat(cal,pr,ca,fa);
+                        setNI({food:name,unit:"g",cals:String(cal),p:String(pr),c:String(ca),f:String(fa),defAmt:String(defAmt),maxAmt:String(maxAmt),cat,barcode:code});
+                        setNIF(true);setScanning(false);setScanStatus("");
+                        fl("Scanned: "+name);
+                      }else{
+                        setScanStatus("✗ Product not found — try manual entry");
+                        setTimeout(()=>{setScanning(false);setScanStatus("");},2000);
+                      }
+                    }catch(e){setScanStatus("✗ Lookup failed — try again");setTimeout(()=>setScanStatus(""),2000);}
+                  });
+                }catch(e){setScanStatus("✗ Camera error: "+e.message);}
               }} style={{width:"100%",maxHeight:220,objectFit:"cover",display:"block"}} autoPlay playsInline muted/>
-
-              {/* Aiming overlay — purely visual, doesn't affect scanning */}
+              {/* Aiming overlay */}
               <div style={{position:"absolute",inset:0,pointerEvents:"none"}}>
-                {/* Dark overlay top */}
                 <div style={{position:"absolute",top:0,left:0,right:0,height:"25%",background:"rgba(0,0,0,0.45)"}}/>
-                {/* Dark overlay bottom */}
                 <div style={{position:"absolute",bottom:0,left:0,right:0,height:"25%",background:"rgba(0,0,0,0.45)"}}/>
-                {/* Dark overlay left */}
                 <div style={{position:"absolute",top:"25%",bottom:"25%",left:0,width:"8%",background:"rgba(0,0,0,0.45)"}}/>
-                {/* Dark overlay right */}
                 <div style={{position:"absolute",top:"25%",bottom:"25%",right:0,width:"8%",background:"rgba(0,0,0,0.45)"}}/>
-                {/* Corner brackets */}
                 {[{t:"25%",l:"8%",bt:"2px solid #3b82f6",bl:"2px solid #3b82f6",br:"none",bb:"none"},
                   {t:"25%",r:"8%",bt:"2px solid #3b82f6",br:"2px solid #3b82f6",bl:"none",bb:"none"},
                   {b:"25%",l:"8%",bb:"2px solid #3b82f6",bl:"2px solid #3b82f6",br:"none",bt:"none"},
                   {b:"25%",r:"8%",bb:"2px solid #3b82f6",br:"2px solid #3b82f6",bl:"none",bt:"none"},
                 ].map((s,i)=>(<div key={i} style={{position:"absolute",width:20,height:20,...s}}/>))}
-                {/* Horizontal scan line */}
                 <div style={{position:"absolute",top:"50%",left:"8%",right:"8%",height:1.5,background:"rgba(59,130,246,0.7)",boxShadow:"0 0 6px rgba(59,130,246,0.8)",animation:"scanLine 1.8s ease-in-out infinite"}}/>
                 <style>{`@keyframes scanLine{0%,100%{top:30%}50%{top:70%}}`}</style>
               </div>
             </div>
-
             {scanStatus&&<div style={{fontSize:11,color:scanStatus.startsWith("✗")?"#f87171":"#4ade80",marginTop:8,fontWeight:600,minHeight:18}}>{scanStatus}</div>}
             <button style={{marginTop:10,padding:"10px 24px",border:"none",borderRadius:8,background:"rgba(51,65,85,0.6)",color:"#94a3b8",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={()=>{
               setScanning(false);setScanStatus("");
-              const vids=document.querySelectorAll("video");vids.forEach(v=>{if(v.__stream)v.__stream.getTracks().forEach(t=>t.stop());});
+              const vids=document.querySelectorAll("video");
+              vids.forEach(v=>{if(v.__zxing)v.__zxing.reset();if(v.__stream)v.__stream.getTracks().forEach(t=>t.stop());});
             }}>Cancel</button>
           </div>
         </div>)}
-      </div>)}
 
       {/* PROFILE TAB */}
       {tab==="profile"&&(<div style={{marginTop:4}}>
