@@ -23,7 +23,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
-<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js" async></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -1137,18 +1137,18 @@ const DM_MEALS=[
 const DM_WEIGHTS=[84.0,83.6,83.4,83.1,82.8,82.5,82.3,82.1,81.9,81.7,81.5,81.4,81.2,81.0];
 const DM_DAYS_DONE=[true,true,true,true,true,true,false];
 const DM_BENEFITS=[
-  {e:"🎯",t:"Personalised Calorie Targets",d:"Your daily calories are calculated from your weight, height, age, activity level and goal — not a generic number."},
-  {e:"⚖️",t:"Training vs Rest Day Splitting",d:"Training days automatically get more calories and carbs. Rest days are lower. Your weekly total stays on budget."},
-  {e:"🔄",t:"Adaptive TDEE Learning",d:"The app learns your actual metabolism from weekly weigh-ins and adjusts your targets automatically over time."},
-  {e:"📊",t:"Macro Tracking (P / C / F)",d:"Track protein, carbs and fat against your targets with visual progress rings updated in real time as you log meals."},
-  {e:"🍽️",t:"Auto Meal Planning",d:"Your meals are automatically built and balanced each week using your ingredient list. Adjust portions or swap items freely."},
-  {e:"🔒",t:"Lock Ingredients",d:"Lock any ingredient (like your protein shake) so the app works around it when rebalancing the rest of your meals."},
-  {e:"📱",t:"Barcode Scanner",d:"Scan any food barcode to instantly add it to your ingredient library with full nutritional data pulled automatically. Works on Android Chrome and desktop Chrome — iPhone users can add ingredients manually."},
-  {e:"🌐",t:"Community Ingredients",d:"Scanned items are shared across all users — so the more people use it, the bigger the shared ingredient database grows."},
-  {e:"📈",t:"Weight Progress Tracking",d:"Log your weight each week and see a clear chart of your progress. The app flags if you're losing too fast or too slow."},
-  {e:"📅",t:"Weekly Adherence Stats",d:"See what percentage of meals you completed each week and track your consistency over time in the stats tab."},
-  {e:"💧",t:"Hydration Targets",d:"Daily water targets are calculated from your body weight and increase on training days to keep you performing well."},
-  {e:"🏋️",t:"Football & Training Modes",d:"Set individual days as Training, Rest or Football — each gets different calorie and macro splits automatically."},
+  {e:"🎯",t:"Targets built around you",d:"Your calories are calculated from your weight, height, age, goal and activity level — not a generic number copied from the internet."},
+  {e:"🏋️",t:"Train days vs rest days",d:"Gym days get more calories and carbs, rest days fewer. The split happens automatically — you just mark the day type."},
+  {e:"🍽️",t:"Your meals, planned for you",d:"SlimRoute builds and balances your meals each week from your own ingredient list. Adjust portions, swap items or lock anything you always eat."},
+  {e:"📷",t:"Free barcode scanner — on every device",d:"Scan any food packaging to instantly add it with full nutritional data. Works on iPhone, Android and desktop — no extra subscription required, unlike some apps."},
+  {e:"🌐",t:"Community ingredient library",d:"Every barcode scan is shared across all users. The more people use SlimRoute, the richer the shared food database gets for everyone."},
+  {e:"📊",t:"Real-time macro tracking",d:"See your protein, carbs and fat against your targets the moment you log a meal. Visual rings update instantly as you go through the day."},
+  {e:"🔄",t:"Adapts to your metabolism",d:"Log your weight each week and SlimRoute recalculates your targets based on what actually happened — not a textbook formula."},
+  {e:"💧",t:"Hydration tracker",d:"Your water target is calculated from your body weight and goes up on training days. Log drinks in one tap — water, coffee, sports drinks or a custom amount."},
+  {e:"📈",t:"Progress you can actually see",d:"Weight chart, weekly adherence %, average calories and macro breakdowns — all in one place so you can spot what's working and what isn't."},
+  {e:"📅",t:"Spread calories across the week",d:"Got spare calories? Spread them evenly across future days with one tap so your weekly budget always adds up perfectly."},
+  {e:"🔒",t:"Lock what matters",d:"Lock any ingredient — like your protein shake or morning oats — so the app always works around it when adjusting the rest of your plan."},
+  {e:"💰",t:"£4.99 a year. That's it.",d:"No monthly fees. No upsells. No ads. One flat price for everything — including all future features as the app grows."},
 ];
 
 function PaywallScreen({onRedeem,trialExpired,stripeUrl}){
@@ -1195,10 +1195,11 @@ function PaywallScreen({onRedeem,trialExpired,stripeUrl}){
     {/* Info modal */}
     {showInfo&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",zIndex:1000,display:"flex",alignItems:"flex-end",justifyContent:"center",padding:16}}>
       <div style={{background:"rgba(15,23,42,0.98)",border:"1px solid rgba(148,163,184,0.15)",borderRadius:20,padding:20,width:"100%",maxWidth:600,maxHeight:"80vh",overflowY:"auto"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-          <div style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"#f1f5f9"}}>What you get with SlimRoute</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"#f1f5f9"}}>Everything included</div>
           <button onClick={()=>setShowInfo(false)} style={{width:28,height:28,borderRadius:8,border:"1px solid rgba(148,163,184,0.2)",background:"rgba(30,41,59,0.5)",color:"#94a3b8",fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
         </div>
+        <div style={{fontSize:10,color:"#64748b",marginBottom:14}}>One price. No monthly fees. No hidden extras.</div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {DM_BENEFITS.map((b,i)=>(<div key={i} style={{display:"flex",gap:12,padding:"10px 12px",borderRadius:10,background:"rgba(30,41,59,0.35)",border:"1px solid rgba(148,163,184,0.07)"}}>
             <span style={{fontSize:22,flexShrink:0}}>{b.e}</span>
@@ -1533,6 +1534,27 @@ function autoCat(cals,p,c,f){
   return{cat:"Other",defAmt:100,maxAmt:300};
 }
 
+
+function Tip({tipKey,title,text,position="below",align="right",children}){
+  const sk="ept:tip:"+tipKey;
+  const[show,setShow]=useState(()=>!localStorage.getItem(sk));
+  const dismiss=()=>{localStorage.setItem(sk,"1");setShow(false);};
+  useEffect(()=>{if(show){const t=setTimeout(dismiss,7000);return()=>clearTimeout(t);}},[show]);
+  const isAbove=position==="above";
+  const arrowStyle={position:"absolute",width:10,height:10,background:"rgba(15,23,42,0.97)",border:"1px solid rgba(59,130,246,0.3)",
+    ...(isAbove
+      ?{bottom:-6,[align==="right"?"right":"left"]:18,borderTop:"none",borderLeft:"none",transform:"rotate(45deg)"}
+      :{top:-6,[align==="right"?"right":"left"]:18,borderBottom:"none",borderRight:"none",transform:"rotate(45deg)"})};
+  return(<div style={{position:"relative",display:"inline-block"}}>
+    {children}
+    {show&&(<div onClick={e=>e.stopPropagation()} style={{position:"absolute",...(isAbove?{bottom:"calc(100% + 8px)"}:{top:"calc(100% + 8px)"}), ...(align==="right"?{right:0}:{left:0}),background:"rgba(15,23,42,0.97)",border:"1px solid rgba(59,130,246,0.3)",borderRadius:10,padding:"10px 12px",width:210,zIndex:200,boxShadow:"0 4px 20px rgba(0,0,0,0.5)"}}>
+      <div style={arrowStyle}/>
+      <div style={{fontSize:11,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>{title}</div>
+      <div style={{fontSize:10,color:"#64748b",lineHeight:1.5,marginBottom:8}}>{text}</div>
+      <button onClick={dismiss} style={{fontSize:9,fontWeight:700,color:"#3b82f6",background:"none",border:"none",cursor:"pointer",padding:0}}>Got it →</button>
+    </div>)}
+  </div>);}
+
 function App(){
   const initT=(td)=>{const t={};const days=td||["Monday","Tuesday","Thursday","Friday"];DAYS.forEach(d=>{t[d]=days.includes(d)?"training":"rest";});return t;};
   const initC=()=>{const c={};DAYS.forEach(d=>{c[d]={};});return c;};
@@ -1596,8 +1618,10 @@ const [storageReady, setStorageReady] = useState(false);
 
   const[suppAlerts,setSuppAlerts]=useState({electrolyte:false,magnesium:false});
   const[electroCountdown,setElectroCountdown]=useState(null);
-  const[hydrationLog,setHydrationLog]=useState([]); // [{ml, type, time}]
+  const[hydrationLog,setHydrationLog]=useState([]);
   const[showHydCustom,setShowHydCustom]=useState(false);
+  const[hydExpanded,setHydExpanded]=useState(false);
+  const[showHydExpanded,setShowHydExpanded]=useState(false);
   const[hydCustomVal,setHydCustomVal]=useState(""); // minutes remaining until gym window
   const[showMonWI,setShowMonWI]=useState(false); // Monday weight-in modal
   const[monWIInput,setMonWIInput]=useState(""); // raw input inside modal
@@ -2111,26 +2135,43 @@ const [storageReady, setStorageReady] = useState(false);
   // Spread remaining weekly calories across future non-completed days
   const spreadRemaining=()=>{
     if(wRem<=10)return fl("Nothing to spread");
-    // Find future editable, non-completed days
     const futureDays=DAYS.filter((d,i)=>!isPast(i)&&!comp[d]);
     if(!futureDays.length)return fl("No editable days left");
-    const perDay=Math.floor(wRem/futureDays.length);
-    const remainder=wRem%futureDays.length;
-    if(perDay<5 && remainder===0) return fl("Too little to spread");
-    const newCm={...cm};
-    futureDays.forEach((d,i)=>{
+
+    // Calculate how much each day can actually absorb (capped at 20% of its target)
+    const dayCapacity=futureDays.map(d=>{
       const curTgt=gDT(d);
-      const extra = i < remainder ? 1 : 0;
-      // limit boost to at most 20% of the day's target to keep meals balanced
-      const maxBoost=Math.round(curTgt*0.2);
-      let boost=perDay+extra;
-      if(boost>maxBoost) boost=maxBoost;
+      return{d,curTgt,maxBoost:Math.round(curTgt*0.2)};
+    });
+    const totalCapacity=dayCapacity.reduce((s,x)=>s+x.maxBoost,0);
+
+    // Only spread up to total capacity — never go negative
+    const toSpread=Math.min(wRem,totalCapacity);
+    const leftover=wRem-toSpread;
+
+    if(toSpread<5)return fl("Days are already near their max — try reducing a meal instead");
+
+    // Distribute proportionally across days within their caps
+    let remaining=toSpread;
+    const newCm={...cm};
+    dayCapacity.forEach(({d,curTgt,maxBoost},i)=>{
+      const share=i<dayCapacity.length-1
+        ?Math.min(maxBoost,Math.floor(toSpread/futureDays.length))
+        :remaining; // give remainder to last day
+      const boost=Math.min(maxBoost,share);
+      remaining-=boost;
       const boosted=curTgt+boost;
       const ms=newCm[d]?.length>0?dc(newCm[d]):gTpl(d);
       newCm[d]=shuffleMealTiming(autoRebalance(ms,boosted,im,gDone(d),cfPref,bW),types[d],im);
     });
+
     dispatch({type:'SET_CM',cm:newCm});sv(types,checks,newCm,comp,wCal,wMacPct);
-    fl(`+${perDay}${remainder>0?` (+${remainder} extra kcal distributed)`:''} kcal spread across ${futureDays.length} days`);
+
+    if(leftover>10){
+      fl(`Spread ${toSpread} kcal across ${futureDays.length} days — ${leftover} kcal couldn't be added as days are near their balance limit. Consider adjusting a meal manually.`);
+    }else{
+      fl(`${toSpread} kcal spread across ${futureDays.length} days ✅`);
+    }
   };
 
   // Calculator
@@ -2639,9 +2680,12 @@ const [storageReady, setStorageReady] = useState(false);
             <span style={{fontSize:10,color:"#64748b",letterSpacing:".6px",textTransform:"uppercase"}}>{fmt(dates[selI])}</span>
           </div>
           <div style={{display:"flex",gap:4}}>
-            {selE&&!selCo&&<button style={{border:"none",borderRadius:8,padding:"6px 10px",fontSize:11,fontWeight:700,cursor:"pointer",background:isTrain?T.accentDark:"rgba(30,41,59,0.6)",color:isTrain?T.accentText:"#94a3b8",display:"flex",alignItems:"center",gap:4}} onClick={()=>togType(sel)}>{types[sel]==="football"?<>{IC.football(14)} Football</>:types[sel]==="training"?<>{IC.train(14)} Train</>:<>{IC.rest(14)} Rest</>}</button>}
-            {selE&&gM(sel).length>0&&!selCo&&<button style={{border:"1px solid rgba(148,163,184,0.1)",borderRadius:7,padding:"4px 8px",fontSize:10,fontWeight:600,cursor:"pointer",background:copyFrom===sel?"rgba(59,130,246,0.15)":"rgba(30,41,59,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",color:copyFrom===sel?"#93c5fd":"#94a3b8",display:"flex",alignItems:"center",gap:3}} onClick={()=>setCopyFrom(copyFrom===sel?null:sel)}>{IC.copy(12)} Copy day</button>}
-            {selE&&cm[sel]&&!selCo&&<button style={{border:"1px solid rgba(148,163,184,0.1)",borderRadius:7,padding:"4px 8px",fontSize:10,fontWeight:600,cursor:"pointer",background:"rgba(30,41,59,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",color:"#94a3b8",display:"flex",alignItems:"center",gap:3}} onClick={()=>resetDay(sel)}>{IC.reset(12)} Rebuild</button>}
+            {selE&&!selCo&&(<Tip tipKey="day-type" title="Set your day type" text="Tap to cycle between 🏋️ Gym, ⚽ Football and 😴 Rest. Training days get more calories, rest days fewer." position="below" align="right">
+              <button style={{border:"none",borderRadius:8,padding:"6px 10px",fontSize:11,fontWeight:700,cursor:"pointer",background:isTrain?T.accentDark:"rgba(30,41,59,0.6)",color:isTrain?T.accentText:"#94a3b8",display:"flex",alignItems:"center",gap:4}} onClick={()=>togType(sel)}>{types[sel]==="football"?<>{IC.football(14)} Football</>:types[sel]==="training"?<>{IC.train(14)} Train</>:<>{IC.rest(14)} Rest</>}</button>
+            </Tip>)}
+            {selE&&gM(sel).length>0&&!selCo&&(<Tip tipKey="copy-day" title="Copy day" text="Copies today's meals to another day of the week — useful when you want to repeat a good day." position="below" align="right">
+              <button style={{border:"1px solid rgba(148,163,184,0.1)",borderRadius:7,padding:"4px 8px",fontSize:10,fontWeight:600,cursor:"pointer",background:copyFrom===sel?"rgba(59,130,246,0.15)":"rgba(30,41,59,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",color:copyFrom===sel?"#93c5fd":"#94a3b8",display:"flex",alignItems:"center",gap:3}} onClick={()=>setCopyFrom(copyFrom===sel?null:sel)}>{IC.copy(12)} Copy day</button>
+            </Tip>)}
           </div>
         </div>
         {/* COPY DAY PICKER */}
@@ -2720,48 +2764,54 @@ const [storageReady, setStorageReady] = useState(false);
           };
 
           return(<div style={{background:"rgba(10,15,30,0.4)",borderRadius:12,border:"1px solid rgba(56,189,248,0.12)",padding:"10px 12px",marginBottom:4}}>
-            {/* Header row */}
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            {/* Header row — tap to expand/collapse */}
+            <div onClick={()=>setHydExpanded(e=>!e)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",marginBottom:hydExpanded?6:0}}>
               <div style={{display:"flex",alignItems:"center",gap:6}}>
                 {IC.drop(14)}
                 <span style={{fontSize:10,fontWeight:700,color:"#38bdf8"}}>Hydration</span>
                 {hasPsy&&<span style={{fontSize:8,color:"#22d3ee"}}>+psyllium</span>}
               </div>
-              <span style={{fontSize:11,fontWeight:700,color:barCol}}>{totalMl}ml <span style={{color:"#475569",fontWeight:400}}>/ {hydTgt}ml</span></span>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:11,fontWeight:700,color:barCol}}>{totalMl}ml <span style={{color:"#475569",fontWeight:400}}>/ {hydTgt}ml</span></span>
+                <span style={{fontSize:10,color:"#475569",transition:"transform .2s",display:"inline-block",transform:hydExpanded?"rotate(180deg)":"rotate(0deg)"}}>▼</span>
+              </div>
             </div>
-            {/* Progress bar */}
-            <div style={{height:6,borderRadius:3,background:"rgba(30,41,59,0.6)",overflow:"hidden",marginBottom:8}}>
+            {/* Progress bar — always visible */}
+            <div onClick={()=>setHydExpanded(e=>!e)} style={{height:6,borderRadius:3,background:"rgba(30,41,59,0.6)",overflow:"hidden",marginBottom:hydExpanded?8:0,cursor:"pointer"}}>
               <div style={{height:"100%",borderRadius:3,width:`${pct}%`,background:barCol,transition:"width .4s"}}/>
             </div>
-            {/* Suggestion */}
-            {suggestion&&!isFutureDay&&<div style={{fontSize:9,color:"#64748b",marginBottom:8,fontStyle:"italic"}}>{suggestion}</div>}
-            {/* Quick add buttons */}
-            {!isFutureDay&&(<>
-              <div style={{display:"flex",gap:4,marginBottom:showHydCustom?6:0,flexWrap:"wrap"}}>
-                {DRINKS.map(d=>(<button key={d.label} onClick={()=>addDrink(d)} style={{flex:1,minWidth:44,padding:"5px 2px",borderRadius:8,border:"1px solid rgba(56,189,248,0.2)",background:"rgba(15,23,42,0.5)",cursor:"pointer",textAlign:"center"}}>
-                  <div style={{fontSize:16}}>{d.icon}</div>
-                  <div style={{fontSize:7,color:"#64748b",fontWeight:600}}>{d.label}</div>
-                  <div style={{fontSize:7,color:"#38bdf8"}}>{d.ml}ml</div>
-                </button>))}
-                <button onClick={()=>setShowHydCustom(s=>!s)} style={{flex:1,minWidth:44,padding:"5px 2px",borderRadius:8,border:"1px solid rgba(148,163,184,0.15)",background:"rgba(15,23,42,0.5)",cursor:"pointer",textAlign:"center"}}>
-                  <div style={{fontSize:16}}>➕</div>
-                  <div style={{fontSize:7,color:"#64748b",fontWeight:600}}>Custom</div>
-                  <div style={{fontSize:7,color:"#475569"}}>ml</div>
-                </button>
-              </div>
-              {showHydCustom&&(<div style={{display:"flex",gap:6,marginBottom:6}}>
-                <input type="number" style={{...S.fi,flex:1,marginBottom:0}} placeholder="Amount in ml" value={hydCustomVal} onChange={e=>setHydCustomVal(e.target.value)}/>
-                <button style={S.cb} onClick={()=>{const ml=parseInt(hydCustomVal)||0;if(ml>0){addDrink({label:"Custom",icon:"💧",ml});setHydCustomVal("");setShowHydCustom(false);}}}>Add</button>
-                <button style={S.sb} onClick={()=>{setShowHydCustom(false);setHydCustomVal("");}}>✕</button>
-              </div>)}
-              {/* Log + undo row */}
-              {hydrationLog.length>0&&(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
-                <div style={{display:"flex",gap:4,flexWrap:"wrap",flex:1}}>
-                  {hydrationLog.slice(-5).map((e,i)=>(<span key={i} style={{fontSize:9,color:"#475569"}}>{e.icon}{e.ml}ml{i<Math.min(4,hydrationLog.length-1)?",":""}</span>))}
-                  {hydrationLog.length>5&&<span style={{fontSize:9,color:"#334155"}}>+{hydrationLog.length-5} more</span>}
+            {/* Expanded content */}
+            {hydExpanded&&(<>
+              {/* Suggestion */}
+              {suggestion&&!isFutureDay&&<div style={{fontSize:9,color:"#64748b",marginBottom:8,fontStyle:"italic"}}>{suggestion}</div>}
+              {/* Quick add buttons */}
+              {!isFutureDay&&(<>
+                <div style={{display:"flex",gap:4,marginBottom:showHydCustom?6:0,flexWrap:"wrap"}}>
+                  {DRINKS.map(d=>(<button key={d.label} onClick={()=>addDrink(d)} style={{flex:1,minWidth:44,padding:"5px 2px",borderRadius:8,border:"1px solid rgba(56,189,248,0.2)",background:"rgba(15,23,42,0.5)",cursor:"pointer",textAlign:"center"}}>
+                    <div style={{fontSize:16}}>{d.icon}</div>
+                    <div style={{fontSize:7,color:"#64748b",fontWeight:600}}>{d.label}</div>
+                    <div style={{fontSize:7,color:"#38bdf8"}}>{d.ml}ml</div>
+                  </button>))}
+                  <button onClick={()=>setShowHydCustom(s=>!s)} style={{flex:1,minWidth:44,padding:"5px 2px",borderRadius:8,border:"1px solid rgba(148,163,184,0.15)",background:"rgba(15,23,42,0.5)",cursor:"pointer",textAlign:"center"}}>
+                    <div style={{fontSize:16}}>➕</div>
+                    <div style={{fontSize:7,color:"#64748b",fontWeight:600}}>Custom</div>
+                    <div style={{fontSize:7,color:"#475569"}}>ml</div>
+                  </button>
                 </div>
-                <button onClick={removeLast} style={{fontSize:9,color:"#475569",background:"none",border:"none",cursor:"pointer",flexShrink:0,padding:"0 4px"}}>undo</button>
-              </div>)}
+                {showHydCustom&&(<div style={{display:"flex",gap:6,marginBottom:6}}>
+                  <input type="number" style={{...S.fi,flex:1,marginBottom:0}} placeholder="Amount in ml" value={hydCustomVal} onChange={e=>setHydCustomVal(e.target.value)}/>
+                  <button style={S.cb} onClick={()=>{const ml=parseInt(hydCustomVal)||0;if(ml>0){addDrink({label:"Custom",icon:"💧",ml});setHydCustomVal("");setShowHydCustom(false);}}}>Add</button>
+                  <button style={S.sb} onClick={()=>{setShowHydCustom(false);setHydCustomVal("");}}>✕</button>
+                </div>)}
+                {/* Log + undo row */}
+                {hydrationLog.length>0&&(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
+                  <div style={{display:"flex",gap:4,flexWrap:"wrap",flex:1}}>
+                    {hydrationLog.slice(-5).map((e,i)=>(<span key={i} style={{fontSize:9,color:"#475569"}}>{e.icon}{e.ml}ml{i<Math.min(4,hydrationLog.length-1)?",":""}</span>))}
+                    {hydrationLog.length>5&&<span style={{fontSize:9,color:"#334155"}}>+{hydrationLog.length-5} more</span>}
+                  </div>
+                  <button onClick={removeLast} style={{fontSize:9,color:"#475569",background:"none",border:"none",cursor:"pointer",flexShrink:0,padding:"0 4px"}}>undo</button>
+                </div>)}
+              </>)}
             </>)}
           </div>);
         })()}
@@ -2770,16 +2820,20 @@ const [storageReady, setStorageReady] = useState(false);
           <span style={{fontSize:9,color:"#64748b",fontWeight:600}}>📅 Weekly budget</span>
           <div style={{display:"flex",alignItems:"center",gap:6}}>
             <span style={{fontSize:10,fontWeight:700,color:wRem<0?"#f87171":wRem<200?"#fbbf24":"#4ade80"}}>{wRem>=0?`${wRem} kcal left`:`${Math.abs(wRem)} kcal over`}</span>
-            {wRem>10&&<button title="Spread remaining calories evenly across future days this week" style={{fontSize:8,padding:"2px 7px",border:"1px solid rgba(51,65,85,0.5)",borderRadius:4,background:"rgba(30,41,59,0.6)",color:"#93c5fd",fontWeight:700,cursor:"pointer"}} onClick={spreadRemaining}>Spread leftover</button>}
-            <button title={stallAdj?"Weight stall mode is ON — rest day calories reduced by 5% to break a plateau. Tap to turn off":"Turn on stall mode to reduce rest day calories by 5% — helps break a weight loss plateau"} style={{fontSize:8,padding:"2px 7px",border:`1px solid ${stallAdj?"#dc2626":"rgba(51,65,85,0.5)"}`,borderRadius:4,background:stallAdj?"rgba(127,29,29,0.6)":"rgba(30,41,59,0.6)",color:stallAdj?"#fca5a5":"#94a3b8",fontWeight:700,cursor:"pointer"}} onClick={()=>{
-              const next=stallAdj?0:-0.05;
-              dispatch({type:'SET_STALL',stallAdj:next});
-              const newCm={...cm};
-              DAYS.forEach(d=>{const di=DAYS.indexOf(d);if(isPast(di)||comp[d])return;delete newCm[d];});
-              dispatch({type:'SET_CM',cm:newCm});
-              sv(types,checks,newCm,comp,wCal,wMacPct);
-              fl(next?`Plateau mode ON — rest days -5%`:`Plateau mode OFF`);
-            }}>{stallAdj?"🔴 Plateau mode":"Plateau mode"}</button>
+            {wRem>10&&<Tip tipKey="spread-leftover" title="Spread leftover calories" text="Distributes your remaining weekly calories evenly across future days — so nothing goes to waste." position="below" align="right">
+              <button title="Spread remaining calories evenly across future days this week" style={{fontSize:8,padding:"2px 7px",border:"1px solid rgba(51,65,85,0.5)",borderRadius:4,background:"rgba(30,41,59,0.6)",color:"#93c5fd",fontWeight:700,cursor:"pointer"}} onClick={spreadRemaining}>Spread leftover</button>
+            </Tip>}
+            <Tip tipKey="plateau-mode" title="Plateau mode" text="Reduces rest day calories by 5% to help break a weight loss plateau. Turn on if the scales haven't moved in 2+ weeks." position="below" align="right">
+              <button style={{fontSize:8,padding:"2px 7px",border:`1px solid ${stallAdj?"#dc2626":"rgba(51,65,85,0.5)"}`,borderRadius:4,background:stallAdj?"rgba(127,29,29,0.6)":"rgba(30,41,59,0.6)",color:stallAdj?"#fca5a5":"#94a3b8",fontWeight:700,cursor:"pointer"}} onClick={()=>{
+                const next=stallAdj?0:-0.05;
+                dispatch({type:'SET_STALL',stallAdj:next});
+                const newCm={...cm};
+                DAYS.forEach(d=>{const di=DAYS.indexOf(d);if(isPast(di)||comp[d])return;delete newCm[d];});
+                dispatch({type:'SET_CM',cm:newCm});
+                sv(types,checks,newCm,comp,wCal,wMacPct);
+                fl(next?`Plateau mode ON — rest days -5%`:`Plateau mode OFF`);
+              }}>{stallAdj?"🔴 Plateau mode":"Plateau mode"}</button>
+            </Tip>
           </div>
         </div>
         {/* SUPPLEMENT TIMING ALERTS */}
@@ -2874,7 +2928,7 @@ const [storageReady, setStorageReady] = useState(false);
                               :{background:"rgba(10,15,30,0.3)",borderRadius:7,padding:"5px 6px",borderLeft:"3px dashed rgba(71,85,105,0.5)",border:"1px solid rgba(148,163,184,0.06)"})}}>
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{display:"flex",alignItems:"center",gap:4}}>
-                              {!isRO&&<button onClick={()=>togLock(sel,meal.id,ii)} style={{width:20,height:20,borderRadius:4,border:"none",background:lk?"#1e3a8a":"#334155",color:lk?"#3b82f6":"#64748b",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexShrink:0,transition:"all .2s"}}>{lk?IC.lock(12):IC.lock(12)}</button>}
+                              {!isRO&&<Tip tipKey="lock-ingredient" title="Lock ingredient" text="Locks this item so it stays fixed when the app rebalances your meals. Great for your protein shake or any food you always have." position="below" align="left"><button onClick={()=>togLock(sel,meal.id,ii)} style={{width:20,height:20,borderRadius:4,border:"none",background:lk?"#1e3a8a":"#334155",color:lk?"#3b82f6":"#64748b",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexShrink:0,transition:"all .2s"}}>{lk?IC.lock(12):IC.lock(12)}</button></Tip>}
                               {isRO&&<span style={{fontSize:11,flexShrink:0}}>{lk?IC.lock(12):IC.lock(12)}</span>}
                               <span style={{fontSize:11,fontWeight:600,color:lk?"#93c5fd":"#cbd5e1"}}>{ing.food}</span>
                               {badges.map((b,bi)=>(<span key={bi} style={{fontSize:7,padding:"1px 3px",borderRadius:3,background:"rgba(51,65,85,0.4)",color:b.c,fontWeight:700,lineHeight:1}}>{b.l}</span>))}
@@ -2913,7 +2967,10 @@ const [storageReady, setStorageReady] = useState(false);
                   {addMode==="scan"&&(<div>
                     <div style={{fontSize:9,color:"#64748b",marginBottom:6}}>Scanned item will be added to your ingredients and this meal</div>
                     <div style={{display:"flex",gap:5}}>
-                      <button style={S.cb} onClick={()=>{setAM(null);setScanning(true);}}>Open scanner</button>
+                      <button style={S.cb} onClick={()=>{
+                        if(typeof ZXing==="undefined"){fl("Scanner loading — try again in a moment");return;}
+                        setAM(null);setScanning(true);
+                      }}>Open scanner</button>
                       <button style={S.sb} onClick={()=>setAM(null)}>Back</button>
                     </div>
                   </div>)}
@@ -2927,7 +2984,9 @@ const [storageReady, setStorageReady] = useState(false);
         {selE&&!selCo&&(<div style={{marginTop:10}}><div style={{display:"flex",gap:5,alignItems:"center"}}><input style={{...S.fi,flex:1,marginBottom:0}} placeholder="New section (e.g. Snack — Yogurt)" value={newSecN} onChange={e=>setNSN(e.target.value)}/>
           <input type="time" style={{...S.fi,width:80,marginBottom:0}} value={addTime} onChange={e=>setAddTime(e.target.value)}/>
           <button style={{...S.cb,...(!newSecN.trim()?S.cbOff:{})}} disabled={!newSecN.trim()} onClick={()=>addNewSec(sel,addTime?fmtTime24(addTime):"")}>+ Add</button></div></div>)}
-        {selE&&!selP&&!selCo&&(<button style={{...S.compBtn,marginTop:14,...(selAD?{}:{borderColor:"rgba(51,65,85,0.3)",background:"rgba(30,41,59,0.25)",color:"#475569",cursor:"default"})}} disabled={!selAD} onClick={()=>compDay(sel)}>{selAD?(sel==="Sunday"?`🏆 Complete Week — ${sT.cals} kcal`:`✅ Complete ${sel} — ${sT.cals} kcal`):`Complete (${sP2.done}/${sP2.total} done)`}</button>)}
+        {selE&&!selP&&!selCo&&(<Tip tipKey="complete-day" title="Complete the day" text="Mark today as done — your calories get locked in and counted toward your weekly total. You can still unlock it later if needed." position="above" align="right">
+          <button style={{...S.compBtn,marginTop:14,...(selAD?{}:{borderColor:"rgba(51,65,85,0.3)",background:"rgba(30,41,59,0.25)",color:"#475569",cursor:"default"})}} disabled={!selAD} onClick={()=>compDay(sel)}>{selAD?(sel==="Sunday"?`🏆 Complete Week — ${sT.cals} kcal`:`✅ Complete ${sel} — ${sT.cals} kcal`):`Complete (${sP2.done}/${sP2.total} done)`}</button>
+        </Tip>)}
         {selCo&&!selP&&<button style={{width:"100%",padding:10,border:"2px solid rgba(30,58,138,0.4)",borderRadius:10,background:"rgba(23,37,84,0.35)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",color:"#93c5fd",boxShadow:"0 2px 10px rgba(30,58,138,0.2)",fontSize:12,fontWeight:700,cursor:"pointer",textAlign:"center",marginTop:14}} onClick={()=>uncompDay(sel)}>🔓 Unlock {sel}</button>}
         {/* Past day: unlock to edit */}
         {selP&&!pastUnlocked[sel]&&<button style={{width:"100%",padding:10,border:"2px solid rgba(133,77,14,0.4)",borderRadius:10,background:"rgba(69,26,3,0.4)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",boxShadow:"0 2px 10px rgba(133,77,14,0.15)",color:"#fbbf24",fontSize:12,fontWeight:700,cursor:"pointer",textAlign:"center",marginTop:14}} onClick={()=>unlockPast(sel)}>🔓 Unlock {sel} to edit</button>}
@@ -3324,6 +3383,7 @@ const [storageReady, setStorageReady] = useState(false);
         </div>):(<div style={{display:"flex",gap:6}}>
           <button style={{flex:1,padding:8,border:"1.5px dashed #475569",borderRadius:8,background:"transparent",color:"#64748b",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"center"}} onClick={()=>setNIF(true)}>{IC.edit(12)} Add manual</button>
           <button style={{flex:1,padding:8,border:"1.5px dashed rgba(59,130,246,0.4)",borderRadius:8,background:"rgba(23,37,84,0.2)",color:"#93c5fd",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"center",display:"flex",alignItems:"center",justifyContent:"center",gap:4}} onClick={()=>{
+            if(typeof ZXing==="undefined"){fl("Scanner loading — try again in a moment");return;}
             setScanning(true);
           }}>
             <svg width="14" height="14" viewBox="0 0 36 36" style={{verticalAlign:"middle"}}><rect x="2" y="2" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><rect x="24" y="2" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><rect x="2" y="24" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><rect x="24" y="24" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><line x1="4" y1="18" x2="32" y2="18" stroke="#f87171" strokeWidth="1.5" strokeDasharray="3,2"/></svg>
@@ -3340,6 +3400,7 @@ const [storageReady, setStorageReady] = useState(false);
             <div style={{position:"relative",width:"100%",borderRadius:12,overflow:"hidden",background:"#000"}}>
               <video ref={el=>{
                 if(!el||el.dataset.init)return;el.dataset.init="1";
+                if(typeof ZXing==="undefined"){setScanStatus("✗ Scanner not ready — please close and try again");return;}
                 try{
                   const hints=new Map();
                   hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[
