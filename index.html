@@ -1141,7 +1141,7 @@ const [storageReady, setStorageReady] = useState(false);
     }catch(e){console.warn("sharedIngredients listener failed",e);}
     return()=>unsub();
   },[]);
-  const swipeX=useRef(null);
+  const swipeX={current:null};
   const onTouchStart=useCallback(e=>{swipeX.current=e.touches[0].clientX;},[]);
   const onTouchEnd=useCallback(e=>{
     if(swipeX.current===null)return;
