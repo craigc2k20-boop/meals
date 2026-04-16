@@ -1484,8 +1484,11 @@ const [storageReady, setStorageReady] = useState(false);
   const[trialExpired,setTrialExpired]=useState(false);
   const[isAdmin,setIsAdmin]=useState(false);
   const[adminCodes,setAdminCodes]=useState([]);
+  const[adminUsedCodes,setAdminUsedCodes]=useState([]);
   const[adminNewCode,setAdminNewCode]=useState("");
   const[adminBusy,setAdminBusy]=useState(false);
+  const[adminMaxUses,setAdminMaxUses]=useState(1);
+  const[adminReqEmail,setAdminReqEmail]=useState("");
   const[adminExpDate,setAdminExpDate]=useState("");
   const[adminExpHour,setAdminExpHour]=useState(11);
   const[adminExpMin,setAdminExpMin]=useState(59);
@@ -1571,18 +1574,31 @@ const [storageReady, setStorageReady] = useState(false);
       const ref=fbDb.collection("discountCodes").doc(code);
       const doc=await ref.get();
       if(!doc.exists||!doc.data().active)return"Code not found or already used";
-      if(doc.data().expiryAt&&doc.data().expiryAt.toDate()<new Date())return"This code has expired";
-      const trialEnd=doc.data().expiryAt?doc.data().expiryAt.toDate():(()=>{const d=new Date();d.setDate(d.getDate()+7);return d;})();
+      const data=doc.data();
+      if(data.requiredEmail&&data.requiredEmail.trim()){
+        if((window.fbUser?.email||"").toLowerCase()!==data.requiredEmail.trim().toLowerCase())
+          return"This code is not valid for your account";
+      }
+      if(data.expiryAt&&data.expiryAt.toDate()<new Date())return"This code has expired";
+      const usesCount=(data.usesCount||0)+1;
+      const maxUses=data.maxUses||1;
+      const nowUsed=maxUses>0&&usesCount>=maxUses;
+      const trialEnd=data.expiryAt?data.expiryAt.toDate():(()=>{const d=new Date();d.setDate(d.getDate()+7);return d;})();
+      const daysLeft=Math.max(1,Math.ceil((trialEnd-new Date())/86400000));
       await fbDb.collection("users").doc(window.fbUser.uid).set({trialEnd:firebase.firestore.Timestamp.fromDate(trialEnd),trialCode:code},{merge:true});
-      await ref.delete();
-      const minsLeft=Math.ceil((trialEnd-new Date())/60000);
-      setTrialDaysLeft(minsLeft);setAccessState("trial");
+      await ref.update({usesCount,...(nowUsed?{active:false,used:true}:{}),lastUsedBy:window.fbUser?.email||"unknown",lastUsedAt:firebase.firestore.FieldValue.serverTimestamp()});
+      setTrialDaysLeft(daysLeft);setAccessState("trial");
       return true;
     }catch(e){return"Error redeeming code";}
   };
 
   const loadAdminCodes=async()=>{
-    try{const snap=await fbDb.collection("discountCodes").get();setAdminCodes(snap.docs.map(d=>({id:d.id,...d.data()})));}catch{}
+    try{
+      const snap=await fbDb.collection("discountCodes").get();
+      const all=snap.docs.map(d=>({id:d.id,...d.data()}));
+      setAdminCodes(all.filter(c=>c.active!==false));
+      setAdminUsedCodes(all.filter(c=>c.active===false||c.used===true));
+    }catch{}
   };
 
   const createCode=async()=>{
@@ -1595,10 +1611,11 @@ const [storageReady, setStorageReady] = useState(false);
         const d=new Date(`${adminExpDate}T${String(hh).padStart(2,"0")}:${String(adminExpMin).padStart(2,"0")}:00`);
         expiryAt=firebase.firestore.Timestamp.fromDate(d);
       }
-      const payload={code,active:true,createdBy:window.fbUser.email,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+      const payload={code,active:true,used:false,usesCount:0,maxUses:adminMaxUses,createdBy:window.fbUser.email,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
       if(expiryAt)payload.expiryAt=expiryAt;
+      if(adminReqEmail.trim())payload.requiredEmail=adminReqEmail.trim().toLowerCase();
       await fbDb.collection("discountCodes").doc(code).set(payload);
-      setAdminNewCode("");setAdminExpDate("");setAdminExpHour(11);setAdminExpMin(59);setAdminExpAmPm("PM");
+      setAdminNewCode("");setAdminMaxUses(1);setAdminReqEmail("");setAdminExpDate("");setAdminExpHour(11);setAdminExpMin(59);setAdminExpAmPm("PM");
       await loadAdminCodes();fl("Code created: "+code);
     }catch{fl("Error creating code");}
     setAdminBusy(false);
@@ -3534,56 +3551,88 @@ const [storageReady, setStorageReady] = useState(false);
         {/* Create code */}
         <div style={{background:"rgba(30,41,59,0.35)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",padding:14,marginBottom:12}}>
           <div style={{fontSize:10,fontWeight:700,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:10}}>Generate Access Code</div>
+          {/* Code name */}
           <div style={{display:"flex",gap:6,marginBottom:10}}>
-            <input style={{...S.fi,flex:1,marginBottom:0,letterSpacing:"2px",textTransform:"uppercase"}} placeholder="Custom code (optional)" value={adminNewCode} onChange={e=>setAdminNewCode(e.target.value.toUpperCase())} maxLength={12}/>
-            <button style={{...S.cb,whiteSpace:"nowrap"}} disabled={adminBusy} onClick={createCode}>{adminBusy?"…":"Generate"}</button>
+            <input style={{...S.fi,flex:1,marginBottom:0,letterSpacing:"2px",textTransform:"uppercase"}} placeholder="Custom code (optional — leave blank to auto-generate)" value={adminNewCode} onChange={e=>setAdminNewCode(e.target.value.toUpperCase())} maxLength={12}/>
+          </div>
+          {/* Max uses */}
+          <div style={{marginBottom:10}}>
+            <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:6}}>Max Uses</div>
+            <div style={{display:"flex",gap:4}}>
+              {[1,2,5,10,0].map(n=>(<button key={n} onClick={()=>setAdminMaxUses(n)} style={{flex:1,padding:"6px 4px",borderRadius:7,border:`1.5px solid ${adminMaxUses===n?"rgba(59,130,246,0.6)":"rgba(51,65,85,0.4)"}`,background:adminMaxUses===n?"rgba(59,130,246,0.15)":"transparent",color:adminMaxUses===n?"#93c5fd":"#64748b",fontSize:12,fontWeight:700,cursor:"pointer"}}>{n===0?"∞":n}</button>))}
+            </div>
+          </div>
+          {/* Required email */}
+          <div style={{marginBottom:10}}>
+            <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:6}}>Personal — Restrict to Google Email <span style={{color:"#334155",fontWeight:400,textTransform:"none",letterSpacing:0}}>· leave blank for anyone</span></div>
+            <input style={{...S.fi,marginBottom:0}} placeholder="e.g. friend@gmail.com (optional)" value={adminReqEmail} onChange={e=>setAdminReqEmail(e.target.value.toLowerCase())}/>
           </div>
           {/* Expiry date + time */}
-          <div style={{marginBottom:8}}>
+          <div style={{marginBottom:10}}>
             <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:6}}>Trial ends at (optional) — UK Time <span style={{color:"#334155",fontWeight:400,textTransform:"none",letterSpacing:0}}>· leave blank for 7 days from redemption</span></div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
-              {/* Date picker */}
               <input type="date" style={{...S.fi,flex:1,marginBottom:0,colorScheme:"dark"}} value={adminExpDate} onChange={e=>setAdminExpDate(e.target.value)} min={new Date().toISOString().slice(0,10)}/>
-              {/* Hour */}
               <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
                 <button onClick={()=>setAdminExpHour(h=>(h%12)+1)} style={{width:22,height:18,borderRadius:4,border:"1px solid rgba(148,163,184,0.15)",background:"rgba(30,41,59,0.5)",color:"#94a3b8",fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>▲</button>
                 <div style={{fontSize:16,fontWeight:700,color:"#f1f5f9",width:24,textAlign:"center"}}>{String(adminExpHour).padStart(2,"0")}</div>
                 <button onClick={()=>setAdminExpHour(h=>((h-2+12)%12)+1)} style={{width:22,height:18,borderRadius:4,border:"1px solid rgba(148,163,184,0.15)",background:"rgba(30,41,59,0.5)",color:"#94a3b8",fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>▼</button>
               </div>
               <span style={{fontSize:18,fontWeight:700,color:"#475569"}}>:</span>
-              {/* Minute */}
               <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
                 <button onClick={()=>setAdminExpMin(m=>(m+5)%60)} style={{width:22,height:18,borderRadius:4,border:"1px solid rgba(148,163,184,0.15)",background:"rgba(30,41,59,0.5)",color:"#94a3b8",fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>▲</button>
                 <div style={{fontSize:16,fontWeight:700,color:"#f1f5f9",width:24,textAlign:"center"}}>{String(adminExpMin).padStart(2,"0")}</div>
                 <button onClick={()=>setAdminExpMin(m=>(m-5+60)%60)} style={{width:22,height:18,borderRadius:4,border:"1px solid rgba(148,163,184,0.15)",background:"rgba(30,41,59,0.5)",color:"#94a3b8",fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>▼</button>
               </div>
-              {/* AM/PM */}
               <button onClick={()=>setAdminExpAmPm(a=>a==="AM"?"PM":"AM")} style={{padding:"6px 10px",borderRadius:8,border:`1.5px solid ${adminExpAmPm==="AM"?"rgba(59,130,246,0.5)":"rgba(249,115,22,0.5)"}`,background:adminExpAmPm==="AM"?"rgba(23,37,84,0.4)":"rgba(67,20,7,0.4)",color:adminExpAmPm==="AM"?"#93c5fd":"#fdba74",fontSize:13,fontWeight:700,cursor:"pointer",minWidth:44,textAlign:"center"}}>{adminExpAmPm}</button>
               {adminExpDate&&<button onClick={()=>setAdminExpDate("")} style={{fontSize:9,color:"#64748b",background:"none",border:"none",cursor:"pointer",padding:2,whiteSpace:"nowrap"}}>Clear</button>}
             </div>
             {adminExpDate&&<div style={{fontSize:9,color:"#fbbf24",marginTop:4}}>⏰ Trial ends: {new Date(`${adminExpDate}T${String((adminExpHour%12)+(adminExpAmPm==="PM"?12:0)).padStart(2,"0")}:${String(adminExpMin).padStart(2,"0")}:00`).toLocaleString("en-GB",{timeZone:"Europe/London",day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})} UK time</div>}
           </div>
-          <div style={{fontSize:9,color:"#475569"}}>Leave code blank to auto-generate. Single-use — self-destructs on redemption. Gives 7 days free access.</div>
+          <button style={{...S.cb,width:"100%"}} disabled={adminBusy} onClick={createCode}>{adminBusy?"…":"Generate Code"}</button>
         </div>
 
-        {/* Active codes */}
-        <div style={{background:"rgba(30,41,59,0.35)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",padding:14}}>
+        {/* Unused / active codes */}
+        <div style={{background:"rgba(30,41,59,0.35)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",padding:14,marginBottom:10}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-            <div style={{fontSize:10,fontWeight:700,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"1.2px"}}>Active Codes ({adminCodes.length})</div>
+            <div style={{fontSize:10,fontWeight:700,color:"#4ade80",textTransform:"uppercase",letterSpacing:"1.2px"}}>Unused Codes ({adminCodes.length})</div>
             <button style={S.sb} onClick={loadAdminCodes}>Refresh</button>
           </div>
-          {adminCodes.length===0&&<div style={{fontSize:10,color:"#475569",textAlign:"center",padding:"12px 0"}}>No active codes — generate one above</div>}
+          {adminCodes.length===0&&<div style={{fontSize:10,color:"#475569",textAlign:"center",padding:"8px 0"}}>No unused codes</div>}
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {adminCodes.map(c=>{
               const exp=c.expiryAt?.toDate?.();
               const expired=exp&&exp<new Date();
-              return(<div key={c.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",borderRadius:8,background:"rgba(15,23,42,0.4)",border:`1px solid ${expired?"rgba(239,68,68,0.2)":"rgba(148,163,184,0.07)"}`}}>
-                <div>
-                  <div style={{fontSize:14,fontWeight:700,color:expired?"#64748b":"#f1f5f9",letterSpacing:"3px",textDecoration:expired?"line-through":"none"}}>{c.code}</div>
-                  <div style={{fontSize:9,color:"#475569"}}>Created by {c.createdBy||"admin"}</div>
-                  {exp&&<div style={{fontSize:9,color:expired?"#f87171":"#fbbf24"}}>⏰ {expired?"Expired":"Expires"}: {exp.toLocaleString("en-GB",{timeZone:"Europe/London",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div>}
+              return(<div key={c.id} style={{padding:"8px 10px",borderRadius:8,background:"rgba(15,23,42,0.4)",border:`1px solid ${expired?"rgba(239,68,68,0.2)":"rgba(34,197,94,0.15)"}`}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+                  <div style={{fontSize:15,fontWeight:700,color:expired?"#64748b":"#f1f5f9",letterSpacing:"3px",textDecoration:expired?"line-through":"none"}}>{c.code}</div>
+                  <button onClick={()=>deleteCode(c.code)} style={{padding:"3px 8px",borderRadius:5,border:"1px solid rgba(239,68,68,0.3)",background:"rgba(69,10,10,0.3)",color:"#f87171",fontSize:9,fontWeight:700,cursor:"pointer",flexShrink:0}}>Delete</button>
                 </div>
-                <button onClick={()=>deleteCode(c.code)} style={{padding:"4px 10px",borderRadius:6,border:"1px solid rgba(239,68,68,0.3)",background:"rgba(69,10,10,0.3)",color:"#f87171",fontSize:10,fontWeight:700,cursor:"pointer",flexShrink:0}}>Delete</button>
+                <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                  <span style={{fontSize:9,color:"#475569"}}>Uses: {c.usesCount||0}/{c.maxUses===0?"∞":c.maxUses||1}</span>
+                  {c.requiredEmail&&<span style={{fontSize:9,color:"#93c5fd"}}>🔒 {c.requiredEmail}</span>}
+                  {exp&&<span style={{fontSize:9,color:expired?"#f87171":"#fbbf24"}}>⏰ {expired?"Expired":"Ends"}: {exp.toLocaleString("en-GB",{timeZone:"Europe/London",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</span>}
+                </div>
+              </div>);
+            })}
+          </div>
+        </div>
+
+        {/* Used codes */}
+        <div style={{background:"rgba(30,41,59,0.35)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",padding:14}}>
+          <div style={{fontSize:10,fontWeight:700,color:"#f87171",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:10}}>Used Codes ({adminUsedCodes.length})</div>
+          {adminUsedCodes.length===0&&<div style={{fontSize:10,color:"#475569",textAlign:"center",padding:"8px 0"}}>No used codes yet</div>}
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {adminUsedCodes.map(c=>{
+              const usedAt=c.lastUsedAt?.toDate?.();
+              return(<div key={c.id} style={{padding:"8px 10px",borderRadius:8,background:"rgba(15,23,42,0.4)",border:"1px solid rgba(239,68,68,0.1)"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+                  <div style={{fontSize:15,fontWeight:700,color:"#475569",letterSpacing:"3px",textDecoration:"line-through"}}>{c.code}</div>
+                  <button onClick={()=>deleteCode(c.code)} style={{padding:"3px 8px",borderRadius:5,border:"1px solid rgba(239,68,68,0.2)",background:"rgba(69,10,10,0.2)",color:"#64748b",fontSize:9,fontWeight:700,cursor:"pointer",flexShrink:0}}>Delete</button>
+                </div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                  <span style={{fontSize:9,color:"#4ade80"}}>✓ Used {c.usesCount||1}× by {c.lastUsedBy||"unknown"}</span>
+                  {usedAt&&<span style={{fontSize:9,color:"#475569"}}>{usedAt.toLocaleString("en-GB",{timeZone:"Europe/London",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</span>}
+                </div>
               </div>);
             })}
           </div>
