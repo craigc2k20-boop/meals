@@ -2969,7 +2969,7 @@ const [storageReady, setStorageReady] = useState(false);
                       {!isRO&&(showAI===meal.id?(<div onClick={e=>e.stopPropagation()} style={{marginTop:3,padding:8,background:"rgba(10,15,30,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",borderRadius:7,border:"1px solid rgba(148,163,184,0.06)"}}>
                         {(!addMode||addSec!==meal.id)&&(<div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:3}}>
                           <button style={S.mb} onClick={e=>{e.stopPropagation();setAS(meal.id);setAM("ing");}}>{IC.meal(12)} Pick from my ingredients</button>
-                          <button style={S.mb} onClick={e=>{e.stopPropagation();setAS(meal.id);setAM("scan");}}>
+                          <button style={S.mb} onClick={e=>{e.stopPropagation();if(typeof ZXing==="undefined")return fl("Scanner loading — try again");setSAI(null);setAS(meal.id);setScanning(true);}}>
                             <svg width="12" height="12" viewBox="0 0 36 36" style={{verticalAlign:"middle",marginRight:4}}><rect x="2" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="2" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><line x1="4" y1="18" x2="32" y2="18" stroke="#f87171" strokeWidth="1.5" strokeDasharray="3,2"/></svg>
                             Scan a barcode
                           </button>
@@ -2980,13 +2980,12 @@ const [storageReady, setStorageReady] = useState(false);
                           </select>
                           <button style={S.sb} onClick={e=>{e.stopPropagation();setAS(null);setAM(null);}}>← Back</button>
                         </div>)}
-                        {addMode==="scan"&&addSec===meal.id&&(<div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:3}}>
-                          <button style={S.cb} onClick={e=>{e.stopPropagation();if(typeof ZXing==="undefined")return fl("Scanner loading — try again");setSAI(null);setAS(meal.id);setScanning(true);}}>Open scanner</button>
-                          <button style={S.sb} onClick={e=>{e.stopPropagation();setAS(null);setAM(null);}}>← Back</button>
-                        </div>)}
                         {(!addMode||addSec!==meal.id)&&<button style={S.sb} onClick={e=>{e.stopPropagation();setSAI(null);setAS(null);setAM(null);}}>Cancel</button>}
                       </div>
-                      ):<button style={{width:"100%",padding:5,border:"1.5px dashed #475569",borderRadius:5,background:"transparent",color:"#64748b",fontSize:10,fontWeight:600,cursor:"pointer",marginTop:3}} onClick={e=>{e.stopPropagation();setSAI(meal.id);}}>+ Add ingredient</button>)}
+                      ):<div style={{marginTop:3}}>
+                        <button style={{width:"100%",padding:5,border:"1.5px dashed #475569",borderRadius:5,background:"transparent",color:"#64748b",fontSize:10,fontWeight:600,cursor:"pointer"}} onClick={e=>{e.stopPropagation();setSAI(meal.id);}}>+ Add ingredient to this meal</button>
+                        <div style={{fontSize:8,color:"#334155",textAlign:"center",marginTop:2}}>e.g. add milk or sugar into your oats</div>
+                      </div>)}
                       {!isRO&&<button style={{width:"100%",padding:5,border:"none",borderRadius:5,background:"rgba(69,10,10,0.45)",color:"#f87171",fontSize:10,fontWeight:700,cursor:"pointer",marginTop:3,textAlign:"center"}} onClick={()=>delMeal(sel,meal.id)}>{IC.trash(12)}</button>}
                       {!isRO&&!meal.fixed&&meal.items.length>0&&/^[sci]-/.test(meal.id)&&!sP.find(p=>p.name===meal.name)&&(
                         <button style={{width:"100%",padding:5,border:"1.5px solid #854d0e",borderRadius:5,background:"transparent",color:"#fbbf24",fontSize:10,fontWeight:600,cursor:"pointer",marginTop:3,textAlign:"center"}} onClick={()=>savePreset(meal)}>⭐ Save preset</button>)}
@@ -2998,26 +2997,22 @@ const [storageReady, setStorageReady] = useState(false);
                   {!addMode&&(<div style={{display:"flex",flexDirection:"column",gap:3}}>
                     <button style={S.mb} onClick={()=>setAM("presets")}>{IC.copy(12)} Saved meal template</button>
                     <button style={S.mb} onClick={()=>setAM("ing")}>{IC.meal(12)} Pick from my ingredients</button>
-                    <button style={S.mb} onClick={()=>setAM("scan")}>
+                    <button style={S.mb} onClick={()=>{
+                      if(typeof ZXing==="undefined"){fl("Scanner loading — try again in a moment");return;}
+                      setScanning(true);
+                    }}>
                       <svg width="12" height="12" viewBox="0 0 36 36" style={{verticalAlign:"middle",marginRight:4}}><rect x="2" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="2" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><line x1="4" y1="18" x2="32" y2="18" stroke="#f87171" strokeWidth="1.5" strokeDasharray="3,2"/></svg>
                       Scan a food barcode
                     </button>
                     <button style={S.mb} onClick={()=>setAM("custom")}>{IC.edit(12)} Create a new custom meal</button>
                     <button style={S.sb} onClick={()=>{setAS(null);setAM(null);setAddTime("");}}>Cancel</button></div>)}
-                  {addMode==="scan"&&(<div>
-                    <div style={{fontSize:9,color:"#64748b",marginBottom:6}}>Scanned item will be added to your ingredients and this meal</div>
-                    <div style={{display:"flex",gap:5}}>
-                      <button style={S.cb} onClick={()=>{
-                        if(typeof ZXing==="undefined"){fl("Scanner loading — try again in a moment");return;}
-                        setAM(null);setScanning(true);
-                      }}>Open scanner</button>
-                      <button style={S.sb} onClick={()=>setAM(null)}>Back</button>
-                    </div>
-                  </div>)}
                   {addMode==="presets"&&(<div><div style={{maxHeight:200,overflowY:"auto"}}>{[...allPr,...sP].map((t,ti)=>(<button key={ti} style={S.mb} onClick={()=>addPreset(sel,g.sec,t,addTime?fmtTime24(addTime):"")}>{gL(t.name)||gS(t.name)} <span style={{color:"#64748b",fontSize:10}}>{sm(t,im).cals}cal</span></button>))}</div><button style={{...S.sb,marginTop:4}} onClick={()=>setAM(null)}>Back</button></div>)}
                   {addMode==="ing"&&(<div><select style={{width:"100%",padding:6,border:"1.5px solid rgba(148,163,184,0.12)",borderRadius:7,fontSize:11,fontFamily:"'DM Sans'",marginBottom:3,color:"#e2e8f0",background:"rgba(30,41,59,0.45)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)"}} defaultValue="" onChange={e=>{if(e.target.value)addIngSec(sel,g.sec,e.target.value,addTime?fmtTime24(addTime):"");}}><option value="" disabled>Select...</option>{Object.keys(catG).map(cat=>(<optgroup key={cat} label={cat}>{catG[cat].map(ing=>(<option key={ing.id} value={ing.id}>{ing.food}</option>))}</optgroup>))}</select><button style={S.sb} onClick={()=>setAM(null)}>Back</button></div>)}
                   {addMode==="custom"&&(<div><input style={S.fi} placeholder="e.g. Tuna wrap" value={subN} onChange={e=>setSubN(e.target.value)}/><div style={{display:"flex",gap:5}}><button style={{...S.cb,...(!subN.trim()?S.cbOff:{})}} disabled={!subN.trim()} onClick={()=>addInSec(sel,g.sec,subN,addTime?fmtTime24(addTime):"")}>Create</button><button style={S.sb} onClick={()=>setAM(null)}>Back</button></div></div>)}
-                </div>):(<button style={{width:"100%",padding:6,border:"1.5px solid #334155",borderRadius:6,background:"transparent",color:"#64748b",fontSize:10,fontWeight:600,cursor:"pointer",marginTop:3,textAlign:"center"}} onClick={()=>{setAS(g.sec);setAM(null);}}>+ Add to {g.sec}</button>))}
+                </div>):(<div style={{marginTop:3}}>
+                  <button style={{width:"100%",padding:6,border:"1.5px solid #334155",borderRadius:6,background:"transparent",color:"#64748b",fontSize:10,fontWeight:600,cursor:"pointer",textAlign:"center"}} onClick={()=>{setAS(g.sec);setAM(null);}}>+ Add another item to {g.sec}</button>
+                  <div style={{fontSize:8,color:"#334155",textAlign:"center",marginTop:2}}>e.g. a banana, a coffee or a separate snack alongside your meal</div>
+                </div>))}
               </div></div>);
           })}
         </div>
@@ -3451,8 +3446,10 @@ const [storageReady, setStorageReady] = useState(false);
           </button>
         </div>)}
 
-        {/* BARCODE SCANNER MODAL */}
-        {scanning&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.92)",zIndex:999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20}}>
+      </div>)}
+
+      {/* BARCODE SCANNER MODAL — global, works from any tab */}
+      {scanning&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.92)",zIndex:999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20}}>
           <div style={{maxWidth:360,width:"100%",textAlign:"center"}}>
             <div style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>Scan barcode</div>
             <div style={{fontSize:9,color:"#64748b",marginBottom:10}}>Line up the barcode within the guides</div>
@@ -3497,29 +3494,21 @@ const [storageReady, setStorageReady] = useState(false);
                   });
                 }catch(e){setScanStatus("✗ Camera error: "+e.message);}
               }} style={{width:"100%",maxHeight:220,objectFit:"cover",display:"block"}} autoPlay playsInline muted/>
-
-              {/* Aiming overlay — purely visual, doesn't affect scanning */}
+              {/* Aiming overlay */}
               <div style={{position:"absolute",inset:0,pointerEvents:"none"}}>
-                {/* Dark overlay top */}
                 <div style={{position:"absolute",top:0,left:0,right:0,height:"25%",background:"rgba(0,0,0,0.45)"}}/>
-                {/* Dark overlay bottom */}
                 <div style={{position:"absolute",bottom:0,left:0,right:0,height:"25%",background:"rgba(0,0,0,0.45)"}}/>
-                {/* Dark overlay left */}
                 <div style={{position:"absolute",top:"25%",bottom:"25%",left:0,width:"8%",background:"rgba(0,0,0,0.45)"}}/>
-                {/* Dark overlay right */}
                 <div style={{position:"absolute",top:"25%",bottom:"25%",right:0,width:"8%",background:"rgba(0,0,0,0.45)"}}/>
-                {/* Corner brackets */}
                 {[{t:"25%",l:"8%",bt:"2px solid #3b82f6",bl:"2px solid #3b82f6",br:"none",bb:"none"},
                   {t:"25%",r:"8%",bt:"2px solid #3b82f6",br:"2px solid #3b82f6",bl:"none",bb:"none"},
                   {b:"25%",l:"8%",bb:"2px solid #3b82f6",bl:"2px solid #3b82f6",br:"none",bt:"none"},
                   {b:"25%",r:"8%",bb:"2px solid #3b82f6",br:"2px solid #3b82f6",bl:"none",bt:"none"},
                 ].map((s,i)=>(<div key={i} style={{position:"absolute",width:20,height:20,...s}}/>))}
-                {/* Horizontal scan line */}
                 <div style={{position:"absolute",top:"50%",left:"8%",right:"8%",height:1.5,background:"rgba(59,130,246,0.7)",boxShadow:"0 0 6px rgba(59,130,246,0.8)",animation:"scanLine 1.8s ease-in-out infinite"}}/>
                 <style>{`@keyframes scanLine{0%,100%{top:30%}50%{top:70%}}`}</style>
               </div>
             </div>
-
             {scanStatus&&<div style={{fontSize:11,color:scanStatus.startsWith("✗")?"#f87171":"#4ade80",marginTop:8,fontWeight:600,minHeight:18}}>{scanStatus}</div>}
             <button style={{marginTop:10,padding:"10px 24px",border:"none",borderRadius:8,background:"rgba(51,65,85,0.6)",color:"#94a3b8",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={()=>{
               setScanning(false);setScanStatus("");
@@ -3528,7 +3517,6 @@ const [storageReady, setStorageReady] = useState(false);
             }}>Cancel</button>
           </div>
         </div>)}
-      </div>)}
 
       {/* PROFILE TAB */}
       {tab==="profile"&&(<div style={{marginTop:4}}>
