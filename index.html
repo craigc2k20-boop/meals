@@ -1875,9 +1875,7 @@ const [storageReady, setStorageReady] = useState(false);
       {/* DAY STRIP */}
       <div style={S.strip}>{DAYS.map((d,i)=>{const p=prog(d);const isT2=i===todayI;const isS=sel===d;const tr=isTrn(types[d]);const past=isPast(i);
         const tCol=isTrn(types[d])?T.accent:"#475569";
-        const activeBg=isTrn(types[d])?"rgba(154,52,18,0.85)":"rgba(8,145,178,0.82)";
-        const activeGlow=isTrn(types[d])?"0 0 0 3px rgba(249,115,22,0.4), 0 6px 18px rgba(249,115,22,0.25)":"0 0 0 3px rgba(6,182,212,0.4), 0 6px 18px rgba(6,182,212,0.25)";
-        const bs=isS?{...S.db,borderColor:T.accent,background:activeBg,boxShadow:activeGlow,transform:"scale(1.09)",zIndex:2}
+        const bs=isS?{...S.db,borderColor:T.accent,background:T.accentDark,boxShadow:`0 0 0 3px ${T.accentBorder}`,transform:"scale(1.05)",zIndex:2}
           :{...S.db,borderColor:"#1e293b",background:"rgba(15,23,42,0.9)",boxShadow:"none"};
         return(<button key={d} style={{...bs,...(isT2&&!isS?{borderColor:"#334155"}:{}),...(past&&!pastUnlocked[d]?{opacity:.35}:{}),borderTopColor:tCol}} onClick={()=>{setSel(d);setExp(null);if(d!=="Monday"||!isFut)setTab("meals");}}>
           <span style={{fontSize:8,fontWeight:700,color:isS?T.accentText:"#64748b",textTransform:"uppercase",letterSpacing:"1px"}}>{DS[i]}</span><span style={{fontFamily:"'Fraunces',serif",fontSize:15,fontWeight:700,color:isS?"#fff":"#94a3b8",textShadow:isS?"0 1px 4px rgba(0,0,0,0.3)":"none"}}>{dates[i].getDate()}</span>
@@ -2044,10 +2042,9 @@ const [storageReady, setStorageReady] = useState(false);
                   const cardGlow=done?{}:hasSynergy?{borderColor:"rgba(74,222,128,0.4)",boxShadow:"0 0 8px rgba(74,222,128,0.15)"}:hasInhibitor?{borderColor:"rgba(251,191,36,0.4)",boxShadow:"0 0 8px rgba(251,191,36,0.12)"}:{};
                   // Z-axis depth: expanded = primary (full opacity), collapsed = secondary (dimmed)
                   const isPrimary=isE;const isSecondary=!isE&&!done;
-                  const isEmpty=meal.items.length===0;
                   const depthStyle=done?{borderColor:"rgba(22,101,52,0.5)",background:"rgba(5,46,22,0.3)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)"}
                     :isPrimary?{...cardGlow,background:"rgba(30,41,59,0.5)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderWidth:2,borderColor:cardGlow.borderColor||T.accentBorder,boxShadow:(cardGlow.boxShadow||"")+", 0 4px 20px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05)",transform:"scale(1.01)"}
-                    :isSecondary?{...cardGlow,background:isEmpty?"rgba(10,15,30,0.18)":"rgba(30,41,59,0.2)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",opacity:.85,...(isEmpty?{border:"1.5px dashed rgba(71,85,105,0.38)"}:{})}:{};
+                    :isSecondary?{...cardGlow,background:"rgba(30,41,59,0.2)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",opacity:.85}:{};
                   return(<div key={meal.id} style={{...S.card,...depthStyle}}>
                     <div style={{display:"flex",alignItems:"center",padding:"7px 10px",cursor:"pointer",gap:6}} onClick={()=>{setExp(isE?null:`${sel}-${meal.id}`);setSAI(null);}}>
                       <div style={{flex:1,minWidth:0}}>
@@ -2116,12 +2113,6 @@ const [storageReady, setStorageReady] = useState(false);
                             {!isRO&&!lk&&<button style={{width:22,height:22,borderRadius:4,border:"1px solid #7f1d1d",background:"rgba(69,10,10,0.45)",color:"#f87171",fontSize:10,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>rmIng(sel,meal.id,ii)}>✕</button>}
                           </div></div>);
                       })}
-                      {isEmpty&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"14px 0 10px",gap:4,pointerEvents:"none"}}>
-                        <div style={{width:36,height:36,borderRadius:"50%",border:"1.5px dashed rgba(71,85,105,0.45)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:2}}>
-                          <span style={{fontSize:18,color:"rgba(71,85,105,0.55)",lineHeight:1,marginTop:-1}}>＋</span></div>
-                        <span style={{fontSize:11,fontWeight:600,color:"#334155",letterSpacing:".2px"}}>No ingredients yet</span>
-                        <span style={{fontSize:9,color:"rgba(71,85,105,0.6)"}}>Use the button below to get started</span>
-                      </div>}
                       {!isRO&&(showAI===meal.id?(<div style={{marginTop:3,padding:5,background:"rgba(10,15,30,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",borderRadius:7,border:"1px solid rgba(148,163,184,0.06)"}}>
                         <select style={{width:"100%",padding:6,border:"1.5px solid rgba(148,163,184,0.12)",borderRadius:7,fontSize:11,fontFamily:"'DM Sans'",marginBottom:3,color:"#e2e8f0",background:"rgba(30,41,59,0.45)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)"}} defaultValue="" onChange={e=>{if(e.target.value)startAI(meal.id,e.target.value);}}>
                           <option value="" disabled>Pick...</option>{Object.keys(catG).map(cat=>(<optgroup key={cat} label={cat}>{catG[cat].map(ing=>(<option key={ing.id} value={ing.id}>{ing.food}</option>))}</optgroup>))}</select>
