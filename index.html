@@ -1536,7 +1536,7 @@ function autoCat(cals,p,c,f){
 
 
 // Sequential tip system — shows one at a time in order, no auto-dismiss
-const TIP_ORDER=["day-type","copy-day","lock-ingredient","spread-leftover","plateau-mode","complete-day"];
+const TIP_ORDER=["day-type","copy-day","hydration","lock-ingredient","spread-leftover","plateau-mode","complete-day"];
 
 function Tip({tipKey,title,text,position="below",align="right",children}){
   const idxKey="ept:tipIdx";
@@ -1633,6 +1633,9 @@ const [storageReady, setStorageReady] = useState(false);
   const[pI,setPI]=useState(null);
   const[sP,setSP]=useState([]);
   const[newSecN,setNSN]=useState("");
+  const[newSecAmPm,setNewSecAmPm]=useState("AM");
+  const[newSecHour,setNewSecHour]=useState(8);
+  const[newSecMin,setNewSecMin]=useState(0);
   const[prevReview,setPR]=useState(null);
 
   const[suppAlerts,setSuppAlerts]=useState({electrolyte:false,magnesium:false});
@@ -2786,7 +2789,9 @@ const [storageReady, setStorageReady] = useState(false);
             {/* Header row — tap to expand/collapse */}
             <div onClick={()=>setHydExpanded(e=>!e)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",marginBottom:hydExpanded?6:0}}>
               <div style={{display:"flex",alignItems:"center",gap:6}}>
-                {IC.drop(14)}
+                <Tip tipKey="hydration" title="Hydration tracker" text="Log your drinks throughout the day — tap to expand and add water, coffee, a pint or a custom amount. Your target is based on your body weight and goes up on training days." position="below" align="left">
+                  {IC.drop(14)}
+                </Tip>
                 <span style={{fontSize:10,fontWeight:700,color:"#38bdf8"}}>Hydration</span>
                 {hasPsy&&<span style={{fontSize:8,color:"#22d3ee"}}>+psyllium</span>}
               </div>
@@ -2961,11 +2966,22 @@ const [storageReady, setStorageReady] = useState(false);
                             {!isRO&&!lk&&<button style={{width:22,height:22,borderRadius:4,border:"1px solid #7f1d1d",background:"rgba(69,10,10,0.45)",color:"#f87171",fontSize:10,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>rmIng(sel,meal.id,ii)}>✕</button>}
                           </div></div>);
                       })}
-                      {!isRO&&(showAI===meal.id?(<div style={{marginTop:3,padding:5,background:"rgba(10,15,30,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",borderRadius:7,border:"1px solid rgba(148,163,184,0.06)"}}>
-                        <select style={{width:"100%",padding:6,border:"1.5px solid rgba(148,163,184,0.12)",borderRadius:7,fontSize:11,fontFamily:"'DM Sans'",marginBottom:3,color:"#e2e8f0",background:"rgba(30,41,59,0.45)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)"}} defaultValue="" onChange={e=>{if(e.target.value)startAI(meal.id,e.target.value);}}>
-                          <option value="" disabled>Pick...</option>{Object.keys(catG).map(cat=>(<optgroup key={cat} label={cat}>{catG[cat].map(ing=>(<option key={ing.id} value={ing.id}>{ing.food}</option>))}</optgroup>))}</select>
-                        <button style={S.sb} onClick={()=>setSAI(null)}>Cancel</button></div>
-                      ):<button style={{width:"100%",padding:5,border:"1.5px dashed #475569",borderRadius:5,background:"transparent",color:"#64748b",fontSize:10,fontWeight:600,cursor:"pointer",marginTop:3}} onClick={()=>setSAI(meal.id)}>+ Ingredient</button>)}
+                      {!isRO&&(showAI===meal.id?(<div style={{marginTop:3,padding:8,background:"rgba(10,15,30,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",borderRadius:7,border:"1px solid rgba(148,163,184,0.06)"}}>
+                        <div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:3}}>
+                          <button style={S.mb} onClick={()=>{setSAI(null);setAS(meal.id);setAM("ing");}}>{IC.meal(12)} Pick from my ingredients</button>
+                          <button style={S.mb} onClick={()=>{setSAI(null);setAS(meal.id);setAM("scan");}}>
+                            <svg width="12" height="12" viewBox="0 0 36 36" style={{verticalAlign:"middle",marginRight:4}}><rect x="2" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="2" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><line x1="4" y1="18" x2="32" y2="18" stroke="#f87171" strokeWidth="1.5" strokeDasharray="3,2"/></svg>
+                            Scan a barcode
+                          </button>
+                        </div>
+                        {addMode==="ing"&&addSec===meal.id&&(<div style={{marginBottom:3}}><select style={{width:"100%",padding:6,border:"1.5px solid rgba(148,163,184,0.12)",borderRadius:7,fontSize:11,fontFamily:"'DM Sans'",marginBottom:3,color:"#e2e8f0",background:"rgba(30,41,59,0.45)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)"}} defaultValue="" onChange={e=>{if(e.target.value){startAI(meal.id,e.target.value);setSAI(null);setAS(null);setAM(null);}}}>
+                          <option value="" disabled>Pick...</option>{Object.keys(catG).map(cat=>(<optgroup key={cat} label={cat}>{catG[cat].map(ing=>(<option key={ing.id} value={ing.id}>{ing.food}</option>))}</optgroup>))}</select></div>)}
+                        {addMode==="scan"&&addSec===meal.id&&(<div style={{display:"flex",gap:5,marginBottom:3}}>
+                          <button style={S.cb} onClick={()=>{if(typeof ZXing==="undefined")return fl("Scanner loading — try again");setSAI(null);setAS(meal.id);setScanning(true);}}>Open scanner</button>
+                        </div>)}
+                        <button style={S.sb} onClick={()=>{setSAI(null);setAS(null);setAM(null);}}>Cancel</button>
+                      </div>
+                      ):<button style={{width:"100%",padding:5,border:"1.5px dashed #475569",borderRadius:5,background:"transparent",color:"#64748b",fontSize:10,fontWeight:600,cursor:"pointer",marginTop:3}} onClick={()=>setSAI(meal.id)}>+ Add ingredient</button>)}
                       {!isRO&&<button style={{width:"100%",padding:5,border:"none",borderRadius:5,background:"rgba(69,10,10,0.45)",color:"#f87171",fontSize:10,fontWeight:700,cursor:"pointer",marginTop:3,textAlign:"center"}} onClick={()=>delMeal(sel,meal.id)}>{IC.trash(12)}</button>}
                       {!isRO&&!meal.fixed&&meal.items.length>0&&/^[sci]-/.test(meal.id)&&!sP.find(p=>p.name===meal.name)&&(
                         <button style={{width:"100%",padding:5,border:"1.5px solid #854d0e",borderRadius:5,background:"transparent",color:"#fbbf24",fontSize:10,fontWeight:600,cursor:"pointer",marginTop:3,textAlign:"center"}} onClick={()=>savePreset(meal)}>⭐ Save preset</button>)}
@@ -3000,9 +3016,29 @@ const [storageReady, setStorageReady] = useState(false);
               </div></div>);
           })}
         </div>
-        {selE&&!selCo&&(<div style={{marginTop:10}}><div style={{display:"flex",gap:5,alignItems:"center"}}><input style={{...S.fi,flex:1,marginBottom:0}} placeholder="New section (e.g. Snack — Yogurt)" value={newSecN} onChange={e=>setNSN(e.target.value)}/>
-          <input type="time" style={{...S.fi,width:80,marginBottom:0}} value={addTime} onChange={e=>setAddTime(e.target.value)}/>
-          <button style={{...S.cb,...(!newSecN.trim()?S.cbOff:{})}} disabled={!newSecN.trim()} onClick={()=>addNewSec(sel,addTime?fmtTime24(addTime):"")}>+ Add</button></div></div>)}
+        {selE&&!selCo&&(<div style={{marginTop:10,padding:10,background:"rgba(10,15,30,0.35)",borderRadius:10,border:"1px solid rgba(148,163,184,0.06)"}}>
+          <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:6}}>Add a new meal section</div>
+          <input style={{...S.fi}} placeholder="e.g. Breakfast, Snack, Post-workout" value={newSecN} onChange={e=>setNSN(e.target.value)}/>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+            <span style={{fontSize:9,color:"#475569",fontWeight:600,width:30}}>Time</span>
+            <div style={{display:"flex",alignItems:"center",gap:4}}>
+              <select style={{...S.fi,width:52,marginBottom:0,textAlign:"center"}} value={newSecHour} onChange={e=>setNewSecHour(+e.target.value)}>
+                {[1,2,3,4,5,6,7,8,9,10,11,12].map(h=>(<option key={h} value={h}>{h}</option>))}
+              </select>
+              <span style={{color:"#475569",fontWeight:700}}>:</span>
+              <select style={{...S.fi,width:52,marginBottom:0,textAlign:"center"}} value={newSecMin} onChange={e=>setNewSecMin(+e.target.value)}>
+                {[0,15,30,45].map(m=>(<option key={m} value={m}>{String(m).padStart(2,"0")}</option>))}
+              </select>
+              <button onClick={()=>setNewSecAmPm(a=>a==="AM"?"PM":"AM")} style={{padding:"6px 10px",borderRadius:8,border:`1.5px solid ${newSecAmPm==="AM"?"rgba(59,130,246,0.5)":"rgba(249,115,22,0.5)"}`,background:newSecAmPm==="AM"?"rgba(23,37,84,0.4)":"rgba(67,20,7,0.4)",color:newSecAmPm==="AM"?"#93c5fd":"#fdba74",fontSize:12,fontWeight:700,cursor:"pointer",minWidth:44}}>{newSecAmPm}</button>
+            </div>
+          </div>
+          <button style={{...S.cb,width:"100%",...(!newSecN.trim()?S.cbOff:{})}} disabled={!newSecN.trim()} onClick={()=>{
+            let hh=newSecHour%12;if(newSecAmPm==="PM")hh+=12;
+            const timeStr=`${String(hh).padStart(2,"0")}:${String(newSecMin).padStart(2,"0")}`;
+            addNewSec(sel,timeStr);
+            setNewSecAmPm("AM");setNewSecHour(8);setNewSecMin(0);
+          }}>+ Add section</button>
+        </div>)}
         {selE&&!selP&&!selCo&&(<Tip tipKey="complete-day" title="Complete the day" text="Mark today as done — your calories get locked in and counted toward your weekly total. You can still unlock it later if needed." position="above" align="right">
           <button style={{...S.compBtn,marginTop:14,...(selAD?{}:{borderColor:"rgba(51,65,85,0.3)",background:"rgba(30,41,59,0.25)",color:"#475569",cursor:"default"})}} disabled={!selAD} onClick={()=>compDay(sel)}>{selAD?(sel==="Sunday"?`🏆 Complete Week — ${sT.cals} kcal`:`✅ Complete ${sel} — ${sT.cals} kcal`):`Complete (${sP2.done}/${sP2.total} done)`}</button>
         </Tip>)}
