@@ -1106,7 +1106,8 @@ const [storageReady, setStorageReady] = useState(false);
   const[eAmt,setEA]=useState({});
   const[tab,setTab]=useState("meals");
   const[nIF,setNIF]=useState(false);
-  const[nI,setNI]=useState({food:"",unit:"g",cals:"",p:"",c:"",f:"",defAmt:"",maxAmt:"",cat:"Protein"});
+  const[nI,setNI]=useState({food:"",unit:"g",cals:"",p:"",c:"",f:"",defAmt:"",maxAmt:"",cat:"Protein",barcode:""});
+  const[sharedIngs,setSharedIngs]=useState([]);
   const[scanning,setScanning]=useState(false);
   const[scanStatus,setScanStatus]=useState("");
   const[pI,setPI]=useState(null);
@@ -1131,6 +1132,16 @@ const [storageReady, setStorageReady] = useState(false);
   const[copyFrom,setCopyFrom]=useState(null); // day name when copy picker is open
   const[scrolled,setScrolled]=useState(false);
   useEffect(()=>{const onScroll=()=>setScrolled(window.scrollY>60);window.addEventListener("scroll",onScroll,{passive:true});return()=>window.removeEventListener("scroll",onScroll);},[]);
+  useEffect(()=>{
+    let unsub=()=>{};
+    try{
+      unsub=fbDb.collection("sharedIngredients").limit(200).onSnapshot(snap=>{
+        const items=snap.docs.map(d=>d.data()).sort((a,b)=>(b.addedAt?.seconds||0)-(a.addedAt?.seconds||0));
+        setSharedIngs(items);
+      },()=>{});
+    }catch(e){console.warn("sharedIngredients listener failed",e);}
+    return()=>unsub();
+  },[]);
   const swipeX={current:null};
   const onTouchStart=useCallback(e=>{swipeX.current=e.touches[0].clientX;},[]);
   const onTouchEnd=useCallback(e=>{
@@ -1443,7 +1454,9 @@ const [storageReady, setStorageReady] = useState(false);
     dispatch({type:'SET_CM',cm:newCm});sv(types,checks,newCm,comp,newCal,newMac);fl(`Set ${newCal} kcal · P${newMac.p}% C${newMac.c}% F${newMac.f}%`);
   };
 
-  const saveNI=async()=>{const{food,unit,cals,p,c,f,defAmt,maxAmt,cat}=nI;if(!food||!cals||!defAmt)return;const id=food.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/-+$/,"");const e={id,food,unit,defAmt:+defAmt,maxAmt:+(maxAmt||defAmt*2),cat:cat||"Other"};if(unit==="piece")e.perUnit={cals:+cals,p:+(p||0),c:+(c||0),f:+(f||0)};else e.per100={cals:+cals,p:+(p||0),c:+(c||0),f:+(f||0)};const u=[...ings,e];setIngs(u);await sI(u);setNI({food:"",unit:"g",cals:"",p:"",c:"",f:"",defAmt:"",maxAmt:"",cat:"Protein"});setNIF(false);fl("Saved: "+food);};
+  const saveNI=async()=>{const{food,unit,cals,p,c,f,defAmt,maxAmt,cat,barcode}=nI;if(!food||!cals||!defAmt)return;const id=food.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/-+$/,"");const e={id,food,unit,defAmt:+defAmt,maxAmt:+(maxAmt||defAmt*2),cat:cat||"Other"};if(unit==="piece")e.perUnit={cals:+cals,p:+(p||0),c:+(c||0),f:+(f||0)};else e.per100={cals:+cals,p:+(p||0),c:+(c||0),f:+(f||0)};const u=[...ings,e];setIngs(u);await sI(u);
+    if(barcode){try{await fbDb.collection("sharedIngredients").doc(barcode).set({...e,barcode,addedAt:firebase.firestore.FieldValue.serverTimestamp(),addedBy:window.fbUser?.displayName||window.fbUser?.email||"unknown"});}catch(err){console.warn("Share failed",err);}}
+    setNI({food:"",unit:"g",cals:"",p:"",c:"",f:"",defAmt:"",maxAmt:"",cat:"Protein",barcode:""});setNIF(false);fl("Saved: "+food);};
   const addNewSec=(d,time)=>{if(!newSecN.trim())return;const di=DAYS.indexOf(d);if(!isEdit(di)||comp[d])return;const ms=dc(gM(d));ms.push({id:"c-"+Date.now(),name:newSecN.trim(),time:time||"",fixed:false,items:[]});const sorted=sortMealsByTime(ms);uDay(d,sorted,true);setNSN("");setAddTime("");fl("Created");};
 
   // Spread remaining weekly calories across future non-completed days
@@ -2493,6 +2506,30 @@ const [storageReady, setStorageReady] = useState(false);
           {Object.keys(catG).map(cat=>(<div key={cat}><div style={{fontSize:10,fontWeight:700,color:"#475569",textTransform:"uppercase",padding:"5px 0 2px"}}>{cat}</div>
             {catG[cat].map(ing=>(<div key={ing.id} style={{display:"flex",justifyContent:"space-between",padding:"3px 0",borderBottom:"1px solid #1e293b",fontSize:10,color:"#cbd5e1"}}><span>{ing.food}</span><span style={{color:"#64748b"}}>{ing.unit==="piece"?`${ing.perUnit.cals}/pc`:`${ing.per100.cals}/100g`}</span></div>))}</div>))}
         </div>
+        {sharedIngs.length>0&&(<div style={{marginBottom:12}}>
+          <div style={{fontSize:10,fontWeight:700,color:"#94a3b8",marginBottom:6,display:"flex",alignItems:"center",gap:4}}>🌐 Community Ingredients <span style={{fontSize:9,color:"#475569",fontWeight:400}}>({sharedIngs.length} scanned by users)</span></div>
+          <div style={{maxHeight:200,overflowY:"auto",display:"flex",flexDirection:"column",gap:3}}>
+            {sharedIngs.map(item=>{
+              const already=!!ings.find(x=>x.id===item.id);
+              const mac=item.unit==="piece"?item.perUnit:item.per100;
+              return(<div key={item.barcode||item.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"5px 8px",borderRadius:8,background:"rgba(30,41,59,0.3)",border:"1px solid rgba(148,163,184,0.07)"}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:10,fontWeight:700,color:"#f1f5f9",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{item.food}</div>
+                  <div style={{fontSize:9,color:"#64748b",display:"flex",gap:5}}>
+                    <span>{mac?.cals} kcal</span>
+                    <span style={{color:"#f87171"}}>{mac?.p}P</span>
+                    <span style={{color:"#fbbf24"}}>{mac?.c}C</span>
+                    <span style={{color:"#a78bfa"}}>{mac?.f}F</span>
+                  </div>
+                </div>
+                <button style={{marginLeft:8,padding:"3px 8px",borderRadius:5,fontSize:9,fontWeight:700,border:`1px solid ${already?"#334155":"rgba(34,197,94,0.4)"}`,background:"transparent",color:already?"#475569":"#4ade80",cursor:already?"default":"pointer",flexShrink:0}}
+                  disabled={already} onClick={async()=>{if(already)return;const u=[...ings,item];setIngs(u);await sI(u);fl("✓ "+item.food);}}>
+                  {already?"✓ Added":"+ Add"}
+                </button>
+              </div>);
+            })}
+          </div>
+        </div>)}
         {nIF?(<div style={{padding:10,background:"rgba(30,41,59,0.4)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",borderRadius:12,border:"1.5px solid rgba(148,163,184,0.1)"}}>
           <input style={S.fi} placeholder="Food name" value={nI.food} onChange={e=>setNI({...nI,food:e.target.value})}/>
           <div style={{display:"flex",gap:4,marginBottom:4}}><select style={{...S.fi,flex:1}} value={nI.unit} onChange={e=>setNI({...nI,unit:e.target.value})}><option value="g">Per 100g</option><option value="piece">Per piece</option></select>
@@ -2541,7 +2578,7 @@ const [storageReady, setStorageReady] = useState(false);
                           const pr=Math.round((n.proteins_100g||0)*10)/10;
                           const ca=Math.round((n.carbohydrates_100g||0)*10)/10;
                           const fa=Math.round((n.fat_100g||0)*10)/10;
-                          setNI({food:name,unit:"g",cals:String(cal),p:String(pr),c:String(ca),f:String(fa),defAmt:"100",maxAmt:"300",cat:"Other"});
+                          setNI({food:name,unit:"g",cals:String(cal),p:String(pr),c:String(ca),f:String(fa),defAmt:"100",maxAmt:"300",cat:"Other",barcode:code});
                           setNIF(true);setScanning(false);setScanStatus("");
                           fl("Scanned: "+name);
                         }else{setScanStatus("✗ Product not found — try manual entry");setTimeout(()=>{setScanning(false);setScanStatus("");},2000);}
