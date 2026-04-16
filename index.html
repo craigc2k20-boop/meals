@@ -1349,8 +1349,9 @@ const [storageReady, setStorageReady] = useState(false);
     try{await fbDb.collection("discountCodes").doc(code).delete();await loadAdminCodes();fl("Deleted");}catch{}
   };
 
-  useEffect(()=>{if(isAdmin)loadAdminCodes();},[isAdmin]);
+  useEffect(()=>{if(isAdmin&&tab==="admin")loadAdminCodes();},[isAdmin,tab]);
   useEffect(()=>{
+    if(accessState==="checking")return;
     let unsub=()=>{};
     try{
       unsub=fbDb.collection("sharedIngredients").limit(200).onSnapshot(snap=>{
@@ -1359,7 +1360,7 @@ const [storageReady, setStorageReady] = useState(false);
       },()=>{});
     }catch(e){console.warn("sharedIngredients listener failed",e);}
     return()=>unsub();
-  },[]);
+  },[accessState]);
   const swipeX={current:null};
   const onTouchStart=useCallback(e=>{swipeX.current=e.touches[0].clientX;},[]);
   const onTouchEnd=useCallback(e=>{
@@ -3306,9 +3307,11 @@ document.getElementById("google-signin-btn").addEventListener("click", function(
 });
 fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 fbAuth.getRedirectResult().catch(function(e){ console.warn("Redirect result:", e); });
+let hasSignedIn = false;
 fbAuth.onAuthStateChanged(async function(user) {
   window.fbUser = user;
   if (user) {
+    hasSignedIn = true;
     hideSignIn();
     await syncFromCloud();
     if (!appMounted) {
@@ -3317,7 +3320,9 @@ fbAuth.onAuthStateChanged(async function(user) {
       root.render(React.createElement(App));
     }
   } else {
-    showSignIn();
+    // Only show login screen if user has never signed in this session
+    // Prevents flickering when auth state briefly fires null during Google popup
+    if (!hasSignedIn) showSignIn();
   }
 });
 </script>
