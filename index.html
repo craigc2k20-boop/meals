@@ -1886,88 +1886,6 @@ const [storageReady, setStorageReady] = useState(false);
           <span style={{fontSize:10}}>{pastUnlocked[d]?IC.edit(12):past?IC.check(12):types[d]==="football"?IC.football(12):tr?IC.train(12):IC.rest(12)}</span>
           <div style={{width:"80%",height:3,background:isS?T.accentDark:"#1e293b",borderRadius:2,overflow:"hidden",marginTop:1}}><div style={{height:"100%",borderRadius:2,width:`${p.total?(p.done/p.total)*100:0}%`,background:past?T.accent:"#22c55e"}}/></div></button>);})}</div>
 
-      {/* STICKY HEADER */}
-      <div style={{...S.sticky,borderBottomColor:T.accentBorder}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:4}}>
-          <div><div style={{fontFamily:"'Fraunces',serif",fontSize:24,fontWeight:700,color:"#f1f5f9",lineHeight:1,textShadow:"0 2px 8px rgba(0,0,0,0.3), 0 0 20px rgba(148,163,184,0.08)"}}>{sel}{pastUnlocked[sel]?" ✏️":(selP||selCo)?<span style={{marginLeft:4}}>{IC.check(18)}</span>:""}</div>
-            <span style={{fontSize:10,color:"#64748b",letterSpacing:".6px",textTransform:"uppercase"}}>{fmt(dates[selI])}</span>
-          </div>
-          <div style={{display:"flex",gap:4}}>
-            {selE&&!selCo&&<button style={{border:"none",borderRadius:8,padding:"6px 10px",fontSize:11,fontWeight:700,cursor:"pointer",background:isTrain?T.accentDark:"rgba(30,41,59,0.6)",color:isTrain?T.accentText:"#94a3b8",display:"flex",alignItems:"center",gap:4}} onClick={()=>togType(sel)}>{types[sel]==="football"?<>{IC.football(14)} Football</>:types[sel]==="training"?<>{IC.train(14)} Train</>:<>{IC.rest(14)} Rest</>}</button>}
-            {selE&&gM(sel).length>0&&!selCo&&<button style={{border:"1px solid rgba(148,163,184,0.1)",borderRadius:7,padding:"4px 8px",fontSize:11,fontWeight:600,cursor:"pointer",background:copyFrom===sel?"rgba(59,130,246,0.15)":"rgba(30,41,59,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",color:copyFrom===sel?"#93c5fd":"#94a3b8"}} onClick={()=>setCopyFrom(copyFrom===sel?null:sel)}>{IC.copy(14)}</button>}
-            {selE&&cm[sel]&&!selCo&&<button style={{border:"1px solid rgba(148,163,184,0.1)",borderRadius:7,padding:"4px 8px",fontSize:11,fontWeight:600,cursor:"pointer",background:"rgba(30,41,59,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",color:"#94a3b8"}} onClick={()=>resetDay(sel)}>{IC.reset(14)}</button>}
-          </div>
-        </div>
-        {/* COPY DAY PICKER */}
-        {copyFrom&&(<div style={{padding:"8px 0 4px",display:"flex",flexDirection:"column",gap:6}}>
-          <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.2px"}}>Copy {copyFrom}'s meals to:</div>
-          <div style={{display:"flex",gap:3}}>
-            {DAYS.filter(d=>d!==copyFrom).map(d=>{
-              const di=DAYS.indexOf(d);const canCopy=isEdit(di)&&!comp[d];
-              return(<button key={d} onClick={()=>canCopy&&copyDayTo(copyFrom,d)} style={{flex:1,padding:"6px 2px",borderRadius:7,border:`1.5px solid ${canCopy?"rgba(59,130,246,0.3)":"rgba(51,65,85,0.2)"}`,background:canCopy?"rgba(59,130,246,0.08)":"transparent",color:canCopy?"#93c5fd":"#334155",fontSize:9,fontWeight:700,cursor:canCopy?"pointer":"default",opacity:canCopy?1:0.4,transition:"all .15s"}}>{DS[DAYS.indexOf(d)]}</button>);
-            })}
-          </div>
-          <button style={{fontSize:9,color:"#64748b",background:"none",border:"none",cursor:"pointer",textAlign:"center",padding:2}} onClick={()=>setCopyFrom(null)}>Cancel</button>
-        </div>)}
-        {/* MACRO RINGS — concentric progress rings — hidden when scrolled */}
-        {!scrolled&&(()=>{const dTgt=gDT(sel);
-          const tP=Math.round(dTgt*effMac.p/100/4);const tC=Math.round(dTgt*effMac.c/100/4);const tF=Math.round(dTgt*effMac.f/100/9);
-          const aP=Math.round(sT.p);const aC=Math.round(sT.c);const aF=Math.round(sT.f);
-          const calOver=sT.cals>dTgt;const calGap=dTgt-sT.cals;
-          const rings=[
-            {l:"P",g:aP,t:tP,r:42,sw:5,col:T.accent,over:aP>tP*1.15,under:aP<tP*0.7},
-            {l:"C",g:aC,t:tC,r:33,sw:5,col:"#fbbf24",over:aC>tC*1.15,under:aC<tC*0.7},
-            {l:"F",g:aF,t:tF,r:24,sw:4,col:"#a78bfa",over:aF>tF*1.2,under:aF<tF*0.6}
-          ];
-          return(<div style={{margin:"6px 0 2px",display:"flex",flexDirection:"column",alignItems:"center"}}>
-            {/* SVG Rings — centered */}
-            <svg width="110" height="110" viewBox="0 0 100 100">
-              {rings.map(m=>{const circ=2*Math.PI*m.r;const pct=m.t>0?Math.min(1.15,m.g/m.t):0;const fill=circ*pct;
-                const ringCol=m.over?"#f87171":m.under?"#fbbf24":m.col;
-                const glow=m.over?`drop-shadow(0 0 3px ${m.col}80)`:"none";
-                return(<g key={m.l} style={{filter:glow}}>
-                  <circle cx="50" cy="50" r={m.r} fill="none" stroke="rgba(30,41,59,0.6)" strokeWidth={m.sw}/>
-                  <circle cx="50" cy="50" r={m.r} fill="none" stroke={ringCol} strokeWidth={m.sw}
-                    strokeDasharray={`${fill} ${circ}`} strokeLinecap="round"
-                    transform="rotate(-90 50 50)" style={{transition:"stroke-dasharray .4s"}}/>
-                </g>);
-              })}
-              <text x="50" y="48" textAnchor="middle" fill={calOver?"#f87171":"#e2e8f0"} fontSize={sT.cals>=10000?"10":sT.cals>=1000?"12":"14"} fontWeight="700" fontFamily="'DM Sans',sans-serif">{sT.cals}</text>
-              <text x="50" y="57" textAnchor="middle" fill="#475569" fontSize="7" fontFamily="'DM Sans',sans-serif">/ {dTgt}</text>
-            </svg>
-            {/* Macro legend + weekly — centered row below rings */}
-            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginTop:2}}>
-              {rings.map(m=>{const ringCol=m.over?"#f87171":m.under?"#fbbf24":m.col;
-                return(<div key={m.l} style={{display:"flex",alignItems:"center",gap:3}}>
-                  <div style={{width:7,height:7,borderRadius:4,background:ringCol}}/>
-                  <span style={{fontSize:10,fontWeight:700,color:ringCol}}>{m.l}</span>
-                  <span style={{fontSize:10,color:m.over?"#f87171":m.under?"#fbbf24":"#cbd5e1"}}>{m.g}<span style={{color:"#475569",fontWeight:400}}>/{m.t}g</span></span>
-                </div>);})}
-            </div>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginTop:3}}>
-              <span style={{fontSize:7,color:"#475569",letterSpacing:".8px",textTransform:"uppercase",display:"inline-flex",alignItems:"center",gap:2}}>{profile?({aggressive:"Cut",lose:"Cutting",maintain:"Maintain",gain:"Bulk",bulk:"Bulking"}[profile.goal]||"")+" · ":""}{types[sel]==="football"?IC.football(10):isTrn(types[sel])?IC.train(10):IC.rest(10)}</span>
-              <span style={{fontSize:10,fontWeight:700,color:wRem<0?"#f87171":wRem<200?"#fbbf24":"#4ade80"}}>{wRem>=0?`${wRem} wk`:`-${Math.abs(wRem)}`}</span>
-              {wRem>10&&<button style={{fontSize:7,padding:"1px 5px",border:"1px solid rgba(51,65,85,0.5)",borderRadius:3,background:"rgba(30,41,59,0.6)",color:"#93c5fd",fontWeight:700,cursor:"pointer"}} onClick={spreadRemaining}>Spread</button>}
-              <button style={{fontSize:7,padding:"1px 5px",border:`1px solid ${stallAdj?"#dc2626":"rgba(51,65,85,0.5)"}`,borderRadius:3,background:stallAdj?"rgba(127,29,29,0.6)":"rgba(30,41,59,0.6)",color:stallAdj?"#fca5a5":"#94a3b8",fontWeight:700,cursor:"pointer"}} onClick={()=>{
-                const next=stallAdj?0:-0.05;
-                dispatch({type:'SET_STALL',stallAdj:next});
-                // Rebalance non-completed days with new multiplier
-                const newCm={...cm};
-                DAYS.forEach(d=>{const di=DAYS.indexOf(d);if(isPast(di)||comp[d])return;delete newCm[d];});
-                dispatch({type:'SET_CM',cm:newCm});
-                sv(types,checks,newCm,comp,wCal,wMacPct);
-                fl(next?`Stall mode ON — rest days -5%`:`Stall mode OFF`);
-              }}>{stallAdj?"Stall ON":"Stall adj"}</button>
-            </div>
-          </div>);
-        })()}
-        {/* RED ZONE — low fat warning */}
-        {Math.round(sT.f)<Math.round(bW*0.6)&&<div style={{marginTop:4,padding:"4px 8px",borderRadius:6,background:"rgba(69,10,10,0.4)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",border:"1px solid rgba(127,29,29,0.4)",display:"flex",alignItems:"center",gap:6}}>
-          <span style={{fontSize:12}}>🔴</span>
-          <div><div style={{fontSize:9,fontWeight:700,color:"#fca5a5"}}>Fat too low: {Math.round(sT.f)}g (min {Math.round(bW*0.6)}g)</div>
-          <div style={{fontSize:8,color:"#94a3b8"}}>Below 0.6g/kg risks hormonal disruption.</div></div>
-        </div>}
-      </div>
 
       {/* TABS */}
       <div style={S.tabBar}>
@@ -1980,6 +1898,33 @@ const [storageReady, setStorageReady] = useState(false);
 
       {/* MEALS TAB */}
       {tab==="meals"&&(<>
+        {/* Day header — name + controls */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:4,marginBottom:10}}>
+          <div>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:700,color:"#f1f5f9",lineHeight:1}}>{sel}{pastUnlocked[sel]?" ✏️":(selP||selCo)?<span style={{marginLeft:4}}>{IC.check(16)}</span>:""}</div>
+            <span style={{fontSize:10,color:"#64748b",letterSpacing:".6px",textTransform:"uppercase"}}>{fmt(dates[selI])}</span>
+          </div>
+          <div style={{display:"flex",gap:4}}>
+            {selE&&!selCo&&<button style={{border:"none",borderRadius:8,padding:"6px 10px",fontSize:11,fontWeight:700,cursor:"pointer",background:isTrain?T.accentDark:"rgba(30,41,59,0.6)",color:isTrain?T.accentText:"#94a3b8",display:"flex",alignItems:"center",gap:4}} onClick={()=>togType(sel)}>{types[sel]==="football"?<>{IC.football(14)} Football</>:types[sel]==="training"?<>{IC.train(14)} Train</>:<>{IC.rest(14)} Rest</>}</button>}
+            {selE&&gM(sel).length>0&&!selCo&&<button style={{border:"1px solid rgba(148,163,184,0.1)",borderRadius:7,padding:"4px 8px",fontSize:11,fontWeight:600,cursor:"pointer",background:copyFrom===sel?"rgba(59,130,246,0.15)":"rgba(30,41,59,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",color:copyFrom===sel?"#93c5fd":"#94a3b8"}} onClick={()=>setCopyFrom(copyFrom===sel?null:sel)}>{IC.copy(14)}</button>}
+            {selE&&cm[sel]&&!selCo&&<button style={{border:"1px solid rgba(148,163,184,0.1)",borderRadius:7,padding:"4px 8px",fontSize:11,fontWeight:600,cursor:"pointer",background:"rgba(30,41,59,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",color:"#94a3b8"}} onClick={()=>resetDay(sel)}>{IC.reset(14)}</button>}
+          </div>
+        </div>
+        {/* COPY DAY PICKER */}
+        {copyFrom&&(<div style={{padding:"8px 0 4px",display:"flex",flexDirection:"column",gap:6,marginBottom:8}}>
+          <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.2px"}}>Copy {copyFrom}'s meals to:</div>
+          <div style={{display:"flex",gap:3}}>
+            {DAYS.filter(d=>d!==copyFrom).map(d=>{const di=DAYS.indexOf(d);const canCopy=isEdit(di)&&!comp[d];
+              return(<button key={d} onClick={()=>canCopy&&copyDayTo(copyFrom,d)} style={{flex:1,padding:"6px 2px",borderRadius:7,border:`1.5px solid ${canCopy?"rgba(59,130,246,0.3)":"rgba(51,65,85,0.2)"}`,background:canCopy?"rgba(59,130,246,0.08)":"transparent",color:canCopy?"#93c5fd":"#334155",fontSize:9,fontWeight:700,cursor:canCopy?"pointer":"default",opacity:canCopy?1:0.4,transition:"all .15s"}}>{DS[DAYS.indexOf(d)]}</button>);})}
+          </div>
+          <button style={{fontSize:9,color:"#64748b",background:"none",border:"none",cursor:"pointer",textAlign:"center",padding:2}} onClick={()=>setCopyFrom(null)}>Cancel</button>
+        </div>)}
+        {/* RED ZONE — low fat warning */}
+        {Math.round(sT.f)<Math.round(bW*0.6)&&<div style={{marginBottom:8,padding:"4px 8px",borderRadius:6,background:"rgba(69,10,10,0.4)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",border:"1px solid rgba(127,29,29,0.4)",display:"flex",alignItems:"center",gap:6}}>
+          <span style={{fontSize:12}}>🔴</span>
+          <div><div style={{fontSize:9,fontWeight:700,color:"#fca5a5"}}>Fat too low: {Math.round(sT.f)}g (min {Math.round(bW*0.6)}g)</div>
+          <div style={{fontSize:8,color:"#94a3b8"}}>Below 0.6g/kg risks hormonal disruption.</div></div>
+        </div>}
         {/* Auto weight prompt when week is done */}
         {DAYS.every(d=>!!comp[d])&&!weekWeight.end&&(<div style={{background:"rgba(23,37,84,0.4)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",borderRadius:12,border:"1.5px solid rgba(30,58,138,0.35)",boxShadow:"0 2px 12px rgba(0,0,0,0.15)",padding:12,marginBottom:10}}>
           <div style={{fontFamily:"'Fraunces',serif",fontSize:14,fontWeight:700,color:"#93c5fd",marginBottom:6,textShadow:"0 1px 6px rgba(59,130,246,0.2)"}}>⚖️ Week complete! Time to weigh in</div>
@@ -2618,17 +2563,44 @@ const [storageReady, setStorageReady] = useState(false);
           </div>);
 
           return(<div>
-            {/* Target card — always visible */}
-            <div style={{background:"rgba(30,41,59,0.35)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",boxShadow:"0 2px 12px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.03)",padding:14,marginBottom:10,textAlign:"center"}}>
-              <div style={{fontSize:8,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:4}}>Daily Target</div>
-              <div style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:700,color:"#fbbf24",textShadow:"0 2px 10px rgba(251,191,36,0.2)"}}>{p?p.tdee:"—"} <span style={{fontSize:12,fontWeight:600}}>kcal</span></div>
-              {p&&<div style={{fontSize:10,fontWeight:700,marginTop:4}}>
-                <span style={{color:"#f87171"}}>P{p.p}%</span>{" · "}
-                <span style={{color:"#fbbf24"}}>C{p.c}%</span>{" · "}
-                <span style={{color:"#a78bfa"}}>F{p.f}%</span>
-                <span style={{color:"#475569",fontWeight:400}}>{" · "}{p.pG}g protein</span>
-              </div>}
-            </div>
+            {/* Macro rings — today's progress */}
+            {(()=>{const dTgt=gDT(sel);
+              const tP=Math.round(dTgt*effMac.p/100/4);const tC=Math.round(dTgt*effMac.c/100/4);const tF=Math.round(dTgt*effMac.f/100/9);
+              const aP=Math.round(sT.p);const aC=Math.round(sT.c);const aF=Math.round(sT.f);
+              const calOver=sT.cals>dTgt;
+              const rings=[
+                {l:"P",g:aP,t:tP,r:42,sw:5,col:T.accent,over:aP>tP*1.15,under:aP<tP*0.7},
+                {l:"C",g:aC,t:tC,r:33,sw:5,col:"#fbbf24",over:aC>tC*1.15,under:aC<tC*0.7},
+                {l:"F",g:aF,t:tF,r:24,sw:4,col:"#a78bfa",over:aF>tF*1.2,under:aF<tF*0.6}
+              ];
+              return(<div style={{background:"rgba(30,41,59,0.35)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",padding:14,marginBottom:10,display:"flex",flexDirection:"column",alignItems:"center"}}>
+                <div style={{fontSize:8,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:6}}>Today's Progress — {sel}</div>
+                <svg width="120" height="120" viewBox="0 0 100 100">
+                  {rings.map(m=>{const circ=2*Math.PI*m.r;const pct=m.t>0?Math.min(1.15,m.g/m.t):0;const fill=circ*pct;
+                    const ringCol=m.over?"#f87171":m.under?"#fbbf24":m.col;
+                    return(<g key={m.l}>
+                      <circle cx="50" cy="50" r={m.r} fill="none" stroke="rgba(30,41,59,0.6)" strokeWidth={m.sw}/>
+                      <circle cx="50" cy="50" r={m.r} fill="none" stroke={ringCol} strokeWidth={m.sw}
+                        strokeDasharray={`${fill} ${circ}`} strokeLinecap="round"
+                        transform="rotate(-90 50 50)" style={{transition:"stroke-dasharray .4s"}}/>
+                    </g>);})}
+                  <text x="50" y="48" textAnchor="middle" fill={calOver?"#f87171":"#e2e8f0"} fontSize={sT.cals>=1000?"12":"14"} fontWeight="700" fontFamily="'DM Sans',sans-serif">{sT.cals}</text>
+                  <text x="50" y="57" textAnchor="middle" fill="#475569" fontSize="7" fontFamily="'DM Sans',sans-serif">/ {dTgt}</text>
+                </svg>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginTop:4}}>
+                  {rings.map(m=>{const ringCol=m.over?"#f87171":m.under?"#fbbf24":m.col;
+                    return(<div key={m.l} style={{display:"flex",alignItems:"center",gap:3}}>
+                      <div style={{width:7,height:7,borderRadius:4,background:ringCol}}/>
+                      <span style={{fontSize:10,fontWeight:700,color:ringCol}}>{m.l}</span>
+                      <span style={{fontSize:10,color:"#cbd5e1"}}>{m.g}<span style={{color:"#475569",fontWeight:400}}>/{m.t}g</span></span>
+                    </div>);})}
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6}}>
+                  <span style={{fontSize:10,fontWeight:700,color:wRem<0?"#f87171":wRem<200?"#fbbf24":"#4ade80"}}>{wRem>=0?`${wRem} kcal left this week`:`${Math.abs(wRem)} kcal over`}</span>
+                  {wRem>10&&<button style={{fontSize:9,padding:"2px 7px",border:"1px solid rgba(51,65,85,0.5)",borderRadius:4,background:"rgba(30,41,59,0.6)",color:"#93c5fd",fontWeight:700,cursor:"pointer"}} onClick={spreadRemaining}>Spread</button>}
+                </div>
+              </div>);
+            })()}
 
             {/* Sub-tabs */}
             <div style={{...S.tabBar,marginBottom:10}}>
