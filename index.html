@@ -9,7 +9,7 @@
 <title>SlimRoute</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='28' fill='%230f172a'/%3E%3Cline x1='38' y1='12' x2='26' y2='80' stroke='%233b82f6' stroke-width='7' stroke-linecap='round' opacity='.6'/%3E%3Cline x1='90' y1='12' x2='102' y2='80' stroke='%233b82f6' stroke-width='7' stroke-linecap='round' opacity='.6'/%3E%3Crect x='28' y='42' width='72' height='24' rx='6' fill='%231e3a8a'/%3E%3Crect x='40' y='46' width='28' height='16' rx='4' fill='%233b82f6'/%3E%3Ccircle cx='54' cy='54' r='4' fill='%231e3a8a'/%3E%3Cline x1='68' y1='54' x2='90' y2='54' stroke='%2393c5fd' stroke-width='3' stroke-linecap='round'/%3E%3Cpolygon points='88,49 95,54 88,59' fill='%2393c5fd'/%3E%3C/svg%3E"/>
 <meta name="theme-color" content="#0f172a"/>
-<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiRWF0aW5nIFBsYW4iLCJzaG9ydF9uYW1lIjoiTWVhbHMiLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzBmMTcyYSIsInRoZW1lX2NvbG9yIjoiIzBmMTcyYSJ9"/>
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiU2xpbVJvdXRlIiwic2hvcnRfbmFtZSI6IlNsaW1Sb3V0ZSIsInN0YXJ0X3VybCI6Ii4iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjMGYxNzJhIiwidGhlbWVfY29sb3IiOiIjMGYxNzJhIn0="/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Fraunces:wght@600;700&display=swap" rel="stylesheet"/>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
@@ -27,7 +27,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <script>
-// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyAY5W_cqcJP6XMQb9HkeTkSbH-UO3J0Ovc",
   authDomain: "eating-plan-a8952.firebaseapp.com",
@@ -44,7 +43,6 @@ window.fbUser = null;
 window.fbSyncStatus = "";
 window.fbSignOut = () => fbAuth.signOut().then(() => window.location.reload());
 
-// Debounced cloud sync — saves all localStorage to Firestore
 let _syncTimer = null;
 function syncToCloud() {
   if (!window.fbUser) return;
@@ -70,7 +68,6 @@ function debounceSyncToCloud() {
   _syncTimer = setTimeout(syncToCloud, 2000);
 }
 
-// Pull cloud data into localStorage
 async function syncFromCloud() {
   if (!window.fbUser) return;
   try {
@@ -87,7 +84,6 @@ async function syncFromCloud() {
   }
 }
 
-// Storage shim — writes to localStorage + queues cloud sync
 window.storage = {
   async get(key) {
     const val = localStorage.getItem("ept:" + key);
@@ -126,7 +122,7 @@ window.storage = {
     </div>
     <div style="display:flex;align-items:flex-start;justify-content:center;gap:2px;margin-bottom:28px">
       <div style="font-family:'Fraunces',serif;font-size:34px;font-weight:700;color:#3b82f6;letter-spacing:3px;text-shadow:0 2px 8px rgba(59,130,246,0.2)">ROUTE</div>
-      <span style="font-size:9px;color:#64748b;margin-top:6px">\u2122</span>
+      <span style="font-size:9px;color:#64748b;margin-top:6px">&#8482;</span>
     </div>
     <div style="font-size:12px;color:#64748b;margin-bottom:28px">Sign in to sync across devices</div>
     <button id="google-signin-btn" style="display:inline-flex;align-items:center;gap:10px;padding:12px 28px;border:1.5px solid rgba(59,130,246,0.4);border-radius:12px;background:rgba(23,37,84,0.4);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);color:#93c5fd;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;box-shadow:0 4px 20px rgba(0,0,0,0.3);transition:all .15s">
@@ -136,8 +132,7 @@ window.storage = {
     <div style="font-size:9px;color:#334155;margin-top:20px">Your data is private and stored securely</div>
   </div>
 </div>
-<script type="text/babel" data-type="module">
-const { useState, useEffect, useCallback, useReducer } = React;
+<script type="text/babel">
 // ------------------------------------------------------------
 // Centralised constants (embedded directly – no separate file)
 // ------------------------------------------------------------
@@ -937,45 +932,6 @@ function shuffleMealTiming(meals,dayType,im){
 // Maps Tesco GHS API v2 OR Open Food Facts JSON → app schema.
 // Resulting item is pushed into INGS as cat:"Pantry".
 // ═══════════════════════════════════════════════════════════
-function normalizeTescoProduct(raw){
-  if(!raw)return null;
-  // --- Name ---
-  // Tesco GHS: raw.name | OFF: raw.product_name_en || raw.product_name
-  const name=(raw.product_name_en||raw.product_name||raw.name||"").trim();
-  if(!name)return null;
-
-  // --- Nutrients ---
-  // OFF uses raw.nutriments with keys like "energy-kcal_100g"
-  // Tesco GHS uses raw.calcNutrition.calcNutrients array
-  const nut=raw.nutriments||{};
-  const tArr=raw.calcNutrition?.calcNutrients||[];
-  const tVal=label=>{
-    const n=tArr.find(x=>(x.name||"").toLowerCase().includes(label.toLowerCase()));
-    return n?parseFloat(String(n.valuePer100||"0").replace(/[^0-9.]/g,""))||0:0;
-  };
-  const offVal=(...keys)=>{for(const k of keys){const v=nut[k+"_100g"]??nut[k+"_value"]??nut[k];if(v!=null&&v!=="")return parseFloat(v)||0;}return 0;};
-
-  // Energy — prefer kcal; convert kJ if needed
-  let cals=offVal("energy-kcal","energy_kcal")||tVal("energy");
-  if(!cals){const kj=offVal("energy-kj","energy_kj","energy")||tVal("kj");if(kj>0)cals=Math.round(kj/4.184);}
-  const p  =offVal("proteins","protein")||tVal("protein");
-  const c  =offVal("carbohydrates","carbohydrate")||tVal("carbohydrate");
-  const f  =offVal("fat")||tVal("fat");
-  const tf =offVal("fiber","fibers","fibre","fibres")||tVal("fibre");
-  // Fiber split: use specific fields if present, else estimate 35/65 soluble/insoluble
-  const sf =offVal("fiber-soluble","soluble-fiber")||+(tf*0.35).toFixed(1);
-  const inf=offVal("fiber-insoluble","insoluble-fiber")||+(tf*0.65).toFixed(1);
-
-  if(!cals&&!p&&!c&&!f)return null; // skip entries with no macro data
-
-  const id="pantry-"+name.toLowerCase().replace(/[^a-z0-9]+/g,"-").slice(0,40).replace(/-$/,"");
-  return{
-    id,food:name.slice(0,60),unit:"g",
-    per100:{cals:Math.round(cals),p:+p.toFixed(1),c:+c.toFixed(1),f:+f.toFixed(1)},
-    defAmt:100,maxAmt:300,step:10,cat:"Pantry",
-    sol_fiber:+sf.toFixed(1),insol_fiber:+inf.toFixed(1),
-  };
-}
 
 function groupSec(meals){const g=[],m={};meals.forEach(ml=>{const s=gS(ml.name);if(!m[s]){m[s]={sec:s,time:ml.time,meals:[]};g.push(m[s]);}m[s].meals.push(ml);});return g;}
 
@@ -1149,17 +1105,15 @@ const [storageReady, setStorageReady] = useState(false);
   const[eAmt,setEA]=useState({});
   const[tab,setTab]=useState("meals");
   const[nIF,setNIF]=useState(false);
-  const[nI,setNI]=useState({food:"",unit:"g",cals:"",p:"",c:"",f:"",defAmt:"",maxAmt:"",cat:"Protein"});
+  const[nI,setNI]=useState({food:"",unit:"g",cals:"",p:"",c:"",f:"",defAmt:"",maxAmt:"",cat:"Protein",barcode:""});
+  const[sharedIngs,setSharedIngs]=useState([]);
   const[scanning,setScanning]=useState(false);
   const[scanStatus,setScanStatus]=useState("");
   const[pI,setPI]=useState(null);
   const[sP,setSP]=useState([]);
   const[newSecN,setNSN]=useState("");
   const[prevReview,setPR]=useState(null);
-  const[pantryQ,setPantryQ]=useState("");
-  const[pantryRes,setPantryRes]=useState([]);
-  const[pantryBusy,setPantryBusy]=useState(false);
-  const[pantryErr,setPantryErr]=useState(null);
+
   const[suppAlerts,setSuppAlerts]=useState({electrolyte:false,magnesium:false});
   const[electroCountdown,setElectroCountdown]=useState(null); // minutes remaining until gym window
   const[showMonWI,setShowMonWI]=useState(false); // Monday weight-in modal
@@ -1173,10 +1127,30 @@ const [storageReady, setStorageReady] = useState(false);
   const[showProfile,setShowProfile]=useState(false);
   const[showReset,setShowReset]=useState(false);
   const[onboardStep,setOB]=useState(1); // 1=goal, 2=training, 3=stats, 4=meals
-  const[obMeals,setObMeals]=useState([{name:"Lunch",time:"12:00"}]); // onboarding meal slots
+  const[obMeals,setObMeals]=useState([{name:"Breakfast",time:"08:00"},{name:"Lunch",time:"12:30"},{name:"Dinner",time:"18:00"},{name:"Snack",time:"15:30"}]); // onboarding meal slots
   const[copyFrom,setCopyFrom]=useState(null); // day name when copy picker is open
+  const[scrolled,setScrolled]=useState(false);
+  useEffect(()=>{const onScroll=()=>setScrolled(window.scrollY>60);window.addEventListener("scroll",onScroll,{passive:true});return()=>window.removeEventListener("scroll",onScroll);},[]);
+  useEffect(()=>{
+    const unsub=fbDb.collection("sharedIngredients").orderBy("addedAt","desc").limit(200).onSnapshot(snap=>{
+      const items=snap.docs.map(d=>d.data());
+      setSharedIngs(items);
+    },()=>{});
+    return()=>unsub();
+  },[]);
+  const swipeX=useRef(null);
+  const onTouchStart=useCallback(e=>{swipeX.current=e.touches[0].clientX;},[]);
+  const onTouchEnd=useCallback(e=>{
+    if(swipeX.current===null)return;
+    const dx=e.changedTouches[0].clientX-swipeX.current;
+    swipeX.current=null;
+    if(Math.abs(dx)<50)return;
+    const i=DAYS.indexOf(sel);
+    if(dx<0&&i<6){setSel(DAYS[i+1]);setExp(null);}
+    else if(dx>0&&i>0){setSel(DAYS[i-1]);setExp(null);}
+  },[sel]);
   const[profTab,setProfTab]=useState("overview"); // profile sub-tab
-  const[profForm,setPF]=useState({weight:"83.0",height:"6.1",age:"40",gender:"male",activity:"active",bodyFat:"",waist:"",sleep:"good",stress:"moderate",job:"desk",goal:"lose",carbFatPref:"balanced",trainingCount:4,trainingDays:["Monday","Tuesday","Thursday","Friday"],weightUnit:"kg",heightUnit:"ftin",waistUnit:"in"});
+  const[profForm,setPF]=useState({weight:"",height:"",age:"",gender:"male",activity:"moderate",bodyFat:"",waist:"",sleep:"good",stress:"moderate",job:"desk",goal:"lose",carbFatPref:"balanced",trainingCount:0,trainingDays:[],weightUnit:"kg",heightUnit:"ftin",waistUnit:"in"});
   const cfPref=profile?.carbFatPref||"balanced";
   const bW=profile?.weight ? parseFloat(profile.weight) : 83; // body weight for fat floor
   // Weight tracking
@@ -1428,30 +1402,7 @@ const [storageReady, setStorageReady] = useState(false);
   const addIngSec=(d,sec,ingId,time)=>{const di=DAYS.indexOf(d);if(!isEdit(di)||comp[d])return;const ing=im[ingId];if(!ing)return;const ms=dc(gM(d));ms.push({id:"i-"+Date.now(),name:`${sec} — ${ing.food}`,time:time||"",fixed:false,items:[{ingId,amt:ing.defAmt}]});const sorted=sortMealsByTime(ms);uDay(d,sorted);setAS(null);setAM(null);setAddTime("");fl("+"+ing.food);};
   const savePreset=meal=>{if(sP.find(p=>p.name===meal.name))return;const u=[...sP,dc(meal)];setSP(u);sPr(u);fl("Preset saved");};
   // Pantry Injection Engine
-  const searchPantry=async()=>{
-    if(!pantryQ.trim())return;
-    setPantryBusy(true);setPantryErr(null);setPantryRes([]);
-    try{
-      // Open Food Facts — free public API, no key required, contains all Tesco products.
-      // To use Tesco GHS API v2 instead, replace the fetch URL and pass your
-      // Ocp-Apim-Subscription-Key header (window.TESCO_API_KEY).
-      const q=encodeURIComponent(pantryQ.trim());
-      const r=await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${q}&search_simple=1&action=process&json=1&page_size=8&fields=product_name,product_name_en,nutriments`);
-      if(!r.ok)throw new Error(`Search failed (${r.status})`);
-      const data=await r.json();
-      const items=(data?.products||[]).map(normalizeTescoProduct).filter(Boolean);
-      setPantryRes(items);
-      if(!items.length)setPantryErr("No nutritional data found — try a more specific name");
-    }catch(e){setPantryErr(e.message||"Search failed");}
-    finally{setPantryBusy(false);}
-  };
-  const addToPantry=async item=>{
-    if(ings.find(i=>i.id===item.id))return fl("Already in pantry");
-    const updated=[...ings,item];setIngs(updated);await sI(updated);
-    // Register fiber data in the live FIBER_DATA map for fiberCheck engine
-    FIBER_DATA[item.id]={sol:item.sol_fiber||0,insol:item.insol_fiber||0};
-    fl(`✓ ${item.food}`);
-  };
+
   const scaleGroup=(day,mealId,role,direction)=>{const di=DAYS.indexOf(day);if(!isEdit(di)||comp[day])return;const updated=scaleRecipeGroup(gM(day),mealId,role,direction,im);uDay(day,updated,true);};
 
   const allDone=d=>{const ms=gM(d);const c=checks[d]||{};return ms.length>0&&ms.every(m=>c[m.id]);};
@@ -1499,7 +1450,9 @@ const [storageReady, setStorageReady] = useState(false);
     dispatch({type:'SET_CM',cm:newCm});sv(types,checks,newCm,comp,newCal,newMac);fl(`Set ${newCal} kcal · P${newMac.p}% C${newMac.c}% F${newMac.f}%`);
   };
 
-  const saveNI=async()=>{const{food,unit,cals,p,c,f,defAmt,maxAmt,cat}=nI;if(!food||!cals||!defAmt)return;const id=food.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/-+$/,"");const e={id,food,unit,defAmt:+defAmt,maxAmt:+(maxAmt||defAmt*2),cat:cat||"Other"};if(unit==="piece")e.perUnit={cals:+cals,p:+(p||0),c:+(c||0),f:+(f||0)};else e.per100={cals:+cals,p:+(p||0),c:+(c||0),f:+(f||0)};const u=[...ings,e];setIngs(u);await sI(u);setNI({food:"",unit:"g",cals:"",p:"",c:"",f:"",defAmt:"",maxAmt:"",cat:"Protein"});setNIF(false);fl("Saved: "+food);};
+  const saveNI=async()=>{const{food,unit,cals,p,c,f,defAmt,maxAmt,cat,barcode}=nI;if(!food||!cals||!defAmt)return;const id=food.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/-+$/,"");const e={id,food,unit,defAmt:+defAmt,maxAmt:+(maxAmt||defAmt*2),cat:cat||"Other"};if(unit==="piece")e.perUnit={cals:+cals,p:+(p||0),c:+(c||0),f:+(f||0)};else e.per100={cals:+cals,p:+(p||0),c:+(c||0),f:+(f||0)};const u=[...ings,e];setIngs(u);await sI(u);
+    if(barcode){try{await fbDb.collection("sharedIngredients").doc(barcode).set({...e,barcode,addedAt:firebase.firestore.FieldValue.serverTimestamp(),addedBy:window.fbUser?.displayName||window.fbUser?.email||"unknown"});}catch(err){console.warn("Share failed",err);}}
+    setNI({food:"",unit:"g",cals:"",p:"",c:"",f:"",defAmt:"",maxAmt:"",cat:"Protein",barcode:""});setNIF(false);fl("Saved: "+food);};
   const addNewSec=(d,time)=>{if(!newSecN.trim())return;const di=DAYS.indexOf(d);if(!isEdit(di)||comp[d])return;const ms=dc(gM(d));ms.push({id:"c-"+Date.now(),name:newSecN.trim(),time:time||"",fixed:false,items:[]});const sorted=sortMealsByTime(ms);uDay(d,sorted,true);setNSN("");setAddTime("");fl("Created");};
 
   // Spread remaining weekly calories across future non-completed days
@@ -1578,7 +1531,7 @@ const [storageReady, setStorageReady] = useState(false);
   };
 
   return (
-    <div style={{...S.wrap,boxShadow:T.wrapGlow,transition:"box-shadow .5s"}}>
+    <div style={{...S.wrap,boxShadow:T.wrapGlow,transition:"box-shadow .5s"}} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet"/>
       <style>{`*:focus,*:focus-visible,*:-moz-focusring{outline:none!important;-moz-outline:none!important;}button{-moz-appearance:none!important;}
 @keyframes breathe{0%,100%{border-color:rgba(51,65,85,0.5)}50%{border-color:rgba(71,85,105,0.7)}}
@@ -1763,12 +1716,12 @@ const [storageReady, setStorageReady] = useState(false);
           </div>
           {profForm.trainingCount>0&&(<div style={{marginBottom:12}}>
             <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:8}}>Which days?</div>
-            <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4, 1fr)",gap:6}}>
               {DAYS.map(d=>{const active=(profForm.trainingDays||[]).includes(d);const full=(profForm.trainingDays||[]).length>=profForm.trainingCount&&!active;
                 return(<button key={d} onClick={()=>{if(active)setPF({...profForm,trainingDays:(profForm.trainingDays||[]).filter(x=>x!==d)});
                   else if(!full)setPF({...profForm,trainingDays:[...(profForm.trainingDays||[]),d]});
-                }} style={{padding:"8px 12px",borderRadius:8,border:`1.5px solid ${active?T.accent:full?"rgba(51,65,85,0.2)":"rgba(51,65,85,0.4)"}`,background:active?"rgba(59,130,246,0.15)":"transparent",color:active?"#f1f5f9":full?"#334155":"#94a3b8",fontSize:11,fontWeight:700,cursor:full?"default":"pointer",transition:"all .15s",opacity:full?0.4:1}}>
-                  <>{active?IC.train(11):null} {d}</>
+                }} style={{padding:"8px 4px",borderRadius:8,border:`1.5px solid ${active?T.accent:full?"rgba(51,65,85,0.2)":"rgba(51,65,85,0.4)"}`,background:active?"rgba(59,130,246,0.15)":"transparent",color:active?"#f1f5f9":full?"#334155":"#94a3b8",fontSize:11,fontWeight:700,cursor:full?"default":"pointer",transition:"all .15s",opacity:full?0.4:1,textAlign:"center"}}>
+                  <>{active?IC.train(11):null} {d.slice(0,3)}</>
                 </button>);})}
             </div>
             {(profForm.trainingDays||[]).length<profForm.trainingCount&&<div style={{fontSize:9,color:"#fbbf24",fontWeight:600,marginTop:6}}>Pick {profForm.trainingCount-(profForm.trainingDays||[]).length} more</div>}
@@ -1829,18 +1782,44 @@ const [storageReady, setStorageReady] = useState(false);
         </div>)}
 
         {/* STEP 4 — Build your meals */}
-        {onboardStep===4&&(<div>
-          <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:700,color:"#f1f5f9",marginBottom:4,textAlign:"center",textShadow:"0 2px 8px rgba(0,0,0,0.3)"}}>Build your meals</div>
-          <div style={{fontSize:10,color:"#475569",marginBottom:16,textAlign:"center"}}>Add your daily meal slots — you can fill in ingredients after setup</div>
-          <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:12}}>
-            {obMeals.map((m,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 10px",borderRadius:10,background:"rgba(30,41,59,0.35)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",border:"1px solid rgba(148,163,184,0.08)"}}>
-              <span style={{fontSize:12,fontWeight:700,color:T.accent,width:20,textAlign:"center"}}>{i+1}</span>
-              <input style={{...S.fi,flex:1,marginBottom:0}} placeholder="Meal name (e.g. Breakfast)" value={m.name} onChange={e=>{const u=[...obMeals];u[i]={...u[i],name:e.target.value};setObMeals(u);}}/>
-              <input type="time" style={{...S.fi,width:90,marginBottom:0}} value={m.time} onChange={e=>{const u=[...obMeals];u[i]={...u[i],time:e.target.value};setObMeals(u);}}/>
-              {obMeals.length>1&&<button style={{width:24,height:24,borderRadius:6,border:"1px solid rgba(239,68,68,0.3)",background:"rgba(69,10,10,0.3)",color:"#f87171",fontSize:10,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}} onClick={()=>setObMeals(obMeals.filter((_,j)=>j!==i))}>✕</button>}
-            </div>))}
+        {onboardStep===4&&(()=>{
+          const parseT=t=>{if(!t)return{h:8,min:0,ampm:"AM"};const[hh,mm]=t.split(":").map(Number);const ampm=hh<12?"AM":"PM";const h=hh%12||12;return{h,min:mm,ampm};};
+          const fmtT=(h,min,ampm)=>{let hh=h%12;if(ampm==="PM")hh+=12;return`${String(hh).padStart(2,"0")}:${String(min).padStart(2,"0")}`;};
+          const sortOb=meals=>[...meals].sort((a,b)=>{const[ah,am]=a.time.split(":").map(Number);const[bh,bm]=b.time.split(":").map(Number);return(ah*60+am)-(bh*60+bm);});
+          const adjH=(i,d)=>{const{h,min,ampm}=parseT(obMeals[i].time);const nh=((h-1+d+12)%12)||12;const u=[...obMeals];u[i]={...u[i],time:fmtT(nh,min,ampm)};setObMeals(sortOb(u));};
+          const adjM=(i,d)=>{const{h,min,ampm}=parseT(obMeals[i].time);const nm=(min+d*5+60)%60;const u=[...obMeals];u[i]={...u[i],time:fmtT(h,nm,ampm)};setObMeals(sortOb(u));};
+          const togAP=(i)=>{const{h,min,ampm}=parseT(obMeals[i].time);const u=[...obMeals];u[i]={...u[i],time:fmtT(h,min,ampm==="AM"?"PM":"AM")};setObMeals(sortOb(u));};
+          const nbS={width:22,height:22,borderRadius:5,border:"1px solid rgba(148,163,184,0.15)",background:"rgba(30,41,59,0.5)",color:"#94a3b8",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0};
+          return(<div>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:700,color:"#f1f5f9",marginBottom:4,textAlign:"center",textShadow:"0 2px 8px rgba(0,0,0,0.3)"}}>Your meal times</div>
+          <div style={{fontSize:10,color:"#475569",marginBottom:14,textAlign:"center"}}>Rename or delete meals you don't need — you can add ingredients after setup</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
+            {obMeals.map((m,i)=>{const{h,min,ampm}=parseT(m.time);return(<div key={i} style={{padding:"10px 12px",borderRadius:12,background:"rgba(30,41,59,0.35)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",border:"1px solid rgba(148,163,184,0.08)"}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+                <span style={{fontSize:12,fontWeight:700,color:T.accent,width:18,textAlign:"center",flexShrink:0}}>{i+1}</span>
+                <input style={{...S.fi,flex:1,marginBottom:0,fontSize:13,fontWeight:600}} placeholder="Meal name" value={m.name} onChange={e=>{const u=[...obMeals];u[i]={...u[i],name:e.target.value};setObMeals(u);}}/>
+                {obMeals.length>1&&<button style={{width:24,height:24,borderRadius:6,border:"1px solid rgba(239,68,68,0.3)",background:"rgba(69,10,10,0.3)",color:"#f87171",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexShrink:0}} onClick={()=>setObMeals(obMeals.filter((_,j)=>j!==i))}>✕</button>}
+              </div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                {/* Hour picker */}
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                  <button style={nbS} onClick={()=>adjH(i,1)}>▲</button>
+                  <div style={{fontSize:20,fontWeight:700,color:"#f1f5f9",width:32,textAlign:"center",lineHeight:1.2}}>{String(h).padStart(2,"0")}</div>
+                  <button style={nbS} onClick={()=>adjH(i,-1)}>▼</button>
+                </div>
+                <span style={{fontSize:20,fontWeight:700,color:"#475569",marginBottom:2}}>:</span>
+                {/* Minute picker */}
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                  <button style={nbS} onClick={()=>adjM(i,1)}>▲</button>
+                  <div style={{fontSize:20,fontWeight:700,color:"#f1f5f9",width:32,textAlign:"center",lineHeight:1.2}}>{String(min).padStart(2,"0")}</div>
+                  <button style={nbS} onClick={()=>adjM(i,-1)}>▼</button>
+                </div>
+                {/* AM/PM toggle */}
+                <button onClick={()=>togAP(i)} style={{marginLeft:4,padding:"6px 10px",borderRadius:8,border:`1.5px solid ${ampm==="AM"?"rgba(59,130,246,0.5)":"rgba(249,115,22,0.5)"}`,background:ampm==="AM"?"rgba(23,37,84,0.4)":"rgba(67,20,7,0.4)",color:ampm==="AM"?"#93c5fd":"#fdba74",fontSize:13,fontWeight:700,cursor:"pointer",minWidth:48,textAlign:"center"}}>{ampm}</button>
+              </div>
+            </div>);})}
           </div>
-          <button style={{width:"100%",padding:8,border:"1.5px dashed rgba(148,163,184,0.3)",borderRadius:8,background:"transparent",color:"#94a3b8",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"center",marginBottom:14}} onClick={()=>setObMeals([...obMeals,{name:"",time:""}])}>+ Add another meal</button>
+          <button style={{width:"100%",padding:8,border:"1.5px dashed rgba(148,163,184,0.3)",borderRadius:8,background:"transparent",color:"#94a3b8",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"center",marginBottom:14}} onClick={()=>setObMeals(sortOb([...obMeals,{name:"",time:"12:00"}]))}>+ Add another meal</button>
           {obMeals.some(m=>!m.name.trim())&&<div style={{fontSize:9,color:"#fbbf24",fontWeight:600,marginBottom:8}}>Give each meal a name</div>}
           {(()=>{const p=profileTDEE(normPF(profForm));if(!p)return null;
             return(<div style={{background:"rgba(10,15,30,0.4)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",borderRadius:10,border:"1px solid rgba(148,163,184,0.06)",padding:10,marginBottom:10}}>
@@ -1855,13 +1834,12 @@ const [storageReady, setStorageReady] = useState(false);
               await saveProfile({...normPF(profForm),weightUnit:profForm.weightUnit,heightUnit:profForm.heightUnit,waistUnit:profForm.waistUnit});
               const newTypes={};DAYS.forEach(d=>{newTypes[d]=td.includes(d)?"training":"rest";});
               dispatch({type:'APPLY',wCal:p.tdee,wMacPct:{p:p.p,c:p.c,f:p.f}});setCalIn(String(p.tdee));
-              // Build empty meal structure from user's slots
               const newCm={};
               DAYS.forEach(d=>{
                 newCm[d]=obMeals.filter(m=>m.name.trim()).map((m,i)=>({
                   id:"ob-"+Date.now()+"-"+i,
                   name:m.name.trim(),
-                  time:m.time?fmtTime24(m.time):"",
+                  time:m.time||"",
                   fixed:false,
                   items:[]
                 }));
@@ -1872,7 +1850,7 @@ const [storageReady, setStorageReady] = useState(false);
               setShowProfile(false);setOB(1);fl("Welcome! Add ingredients to your meals 🎉");
             }}>Complete setup ✅</button>
           </div>
-        </div>)}
+        </div>);})()}
         </>)}
       </div></div>)}
 
@@ -1897,7 +1875,9 @@ const [storageReady, setStorageReady] = useState(false);
       {/* DAY STRIP */}
       <div style={S.strip}>{DAYS.map((d,i)=>{const p=prog(d);const isT2=i===todayI;const isS=sel===d;const tr=isTrn(types[d]);const past=isPast(i);
         const tCol=isTrn(types[d])?T.accent:"#475569";
-        const bs=isS?{...S.db,borderColor:T.accent,background:T.accentDark,boxShadow:`0 0 0 3px ${T.accentBorder}`,transform:"scale(1.05)",zIndex:2}
+        const activeBg=isTrn(types[d])?"rgba(154,52,18,0.85)":"rgba(8,145,178,0.82)";
+        const activeGlow=isTrn(types[d])?"0 0 0 3px rgba(249,115,22,0.4), 0 6px 18px rgba(249,115,22,0.25)":"0 0 0 3px rgba(6,182,212,0.4), 0 6px 18px rgba(6,182,212,0.25)";
+        const bs=isS?{...S.db,borderColor:T.accent,background:activeBg,boxShadow:activeGlow,transform:"scale(1.09)",zIndex:2}
           :{...S.db,borderColor:"#1e293b",background:"rgba(15,23,42,0.9)",boxShadow:"none"};
         return(<button key={d} style={{...bs,...(isT2&&!isS?{borderColor:"#334155"}:{}),...(past&&!pastUnlocked[d]?{opacity:.35}:{}),borderTopColor:tCol}} onClick={()=>{setSel(d);setExp(null);if(d!=="Monday"||!isFut)setTab("meals");}}>
           <span style={{fontSize:8,fontWeight:700,color:isS?T.accentText:"#64748b",textTransform:"uppercase",letterSpacing:"1px"}}>{DS[i]}</span><span style={{fontFamily:"'Fraunces',serif",fontSize:15,fontWeight:700,color:isS?"#fff":"#94a3b8",textShadow:isS?"0 1px 4px rgba(0,0,0,0.3)":"none"}}>{dates[i].getDate()}</span>
@@ -1927,8 +1907,8 @@ const [storageReady, setStorageReady] = useState(false);
           </div>
           <button style={{fontSize:9,color:"#64748b",background:"none",border:"none",cursor:"pointer",textAlign:"center",padding:2}} onClick={()=>setCopyFrom(null)}>Cancel</button>
         </div>)}
-        {/* MACRO RINGS — concentric progress rings */}
-        {(()=>{const dTgt=gDT(sel);
+        {/* MACRO RINGS — concentric progress rings — hidden when scrolled */}
+        {!scrolled&&(()=>{const dTgt=gDT(sel);
           const tP=Math.round(dTgt*effMac.p/100/4);const tC=Math.round(dTgt*effMac.c/100/4);const tF=Math.round(dTgt*effMac.f/100/9);
           const aP=Math.round(sT.p);const aC=Math.round(sT.c);const aF=Math.round(sT.f);
           const calOver=sT.cals>dTgt;const calGap=dTgt-sT.cals;
@@ -2064,9 +2044,10 @@ const [storageReady, setStorageReady] = useState(false);
                   const cardGlow=done?{}:hasSynergy?{borderColor:"rgba(74,222,128,0.4)",boxShadow:"0 0 8px rgba(74,222,128,0.15)"}:hasInhibitor?{borderColor:"rgba(251,191,36,0.4)",boxShadow:"0 0 8px rgba(251,191,36,0.12)"}:{};
                   // Z-axis depth: expanded = primary (full opacity), collapsed = secondary (dimmed)
                   const isPrimary=isE;const isSecondary=!isE&&!done;
+                  const isEmpty=meal.items.length===0;
                   const depthStyle=done?{borderColor:"rgba(22,101,52,0.5)",background:"rgba(5,46,22,0.3)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)"}
                     :isPrimary?{...cardGlow,background:"rgba(30,41,59,0.5)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderWidth:2,borderColor:cardGlow.borderColor||T.accentBorder,boxShadow:(cardGlow.boxShadow||"")+", 0 4px 20px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05)",transform:"scale(1.01)"}
-                    :isSecondary?{...cardGlow,background:"rgba(30,41,59,0.2)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",opacity:.85}:{};
+                    :isSecondary?{...cardGlow,background:isEmpty?"rgba(10,15,30,0.18)":"rgba(30,41,59,0.2)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",opacity:.85,...(isEmpty?{border:"1.5px dashed rgba(71,85,105,0.38)"}:{})}:{};
                   return(<div key={meal.id} style={{...S.card,...depthStyle}}>
                     <div style={{display:"flex",alignItems:"center",padding:"7px 10px",cursor:"pointer",gap:6}} onClick={()=>{setExp(isE?null:`${sel}-${meal.id}`);setSAI(null);}}>
                       <div style={{flex:1,minWidth:0}}>
@@ -2135,6 +2116,12 @@ const [storageReady, setStorageReady] = useState(false);
                             {!isRO&&!lk&&<button style={{width:22,height:22,borderRadius:4,border:"1px solid #7f1d1d",background:"rgba(69,10,10,0.45)",color:"#f87171",fontSize:10,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>rmIng(sel,meal.id,ii)}>✕</button>}
                           </div></div>);
                       })}
+                      {isEmpty&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"14px 0 10px",gap:4,pointerEvents:"none"}}>
+                        <div style={{width:36,height:36,borderRadius:"50%",border:"1.5px dashed rgba(71,85,105,0.45)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:2}}>
+                          <span style={{fontSize:18,color:"rgba(71,85,105,0.55)",lineHeight:1,marginTop:-1}}>＋</span></div>
+                        <span style={{fontSize:11,fontWeight:600,color:"#334155",letterSpacing:".2px"}}>No ingredients yet</span>
+                        <span style={{fontSize:9,color:"rgba(71,85,105,0.6)"}}>Use the button below to get started</span>
+                      </div>}
                       {!isRO&&(showAI===meal.id?(<div style={{marginTop:3,padding:5,background:"rgba(10,15,30,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",borderRadius:7,border:"1px solid rgba(148,163,184,0.06)"}}>
                         <select style={{width:"100%",padding:6,border:"1.5px solid rgba(148,163,184,0.12)",borderRadius:7,fontSize:11,fontFamily:"'DM Sans'",marginBottom:3,color:"#e2e8f0",background:"rgba(30,41,59,0.45)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)"}} defaultValue="" onChange={e=>{if(e.target.value)startAI(meal.id,e.target.value);}}>
                           <option value="" disabled>Pick...</option>{Object.keys(catG).map(cat=>(<optgroup key={cat} label={cat}>{catG[cat].map(ing=>(<option key={ing.id} value={ing.id}>{ing.food}</option>))}</optgroup>))}</select>
@@ -2524,47 +2511,30 @@ const [storageReady, setStorageReady] = useState(false);
           {Object.keys(catG).map(cat=>(<div key={cat}><div style={{fontSize:10,fontWeight:700,color:"#475569",textTransform:"uppercase",padding:"5px 0 2px"}}>{cat}</div>
             {catG[cat].map(ing=>(<div key={ing.id} style={{display:"flex",justifyContent:"space-between",padding:"3px 0",borderBottom:"1px solid #1e293b",fontSize:10,color:"#cbd5e1"}}><span>{ing.food}</span><span style={{color:"#64748b"}}>{ing.unit==="piece"?`${ing.perUnit.cals}/pc`:`${ing.per100.cals}/100g`}</span></div>))}</div>))}
         </div>
-        {/* PANTRY INJECTION ENGINE */}
-        <div style={{background:"rgba(10,15,30,0.45)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",borderRadius:12,border:"1px solid rgba(148,163,184,0.06)",padding:10,marginBottom:12}}>
-          <div style={{fontSize:10,fontWeight:700,color:"#94a3b8",marginBottom:6}}>🛒 Tesco Pantry Search</div>
-          <div style={{display:"flex",gap:4,marginBottom:6}}>
-            <input style={{...S.fi,flex:1,marginBottom:0}} placeholder="Search product (e.g. Tesco Chicken Breast)…"
-              value={pantryQ} onChange={e=>setPantryQ(e.target.value)}
-              onKeyDown={e=>e.key==="Enter"&&searchPantry()}/>
-            <button style={{...S.cb,padding:"0 10px",fontSize:11,whiteSpace:"nowrap"}}
-              onClick={searchPantry} disabled={pantryBusy}>
-              {pantryBusy?"…":"Search"}
-            </button>
-          </div>
-          {pantryErr&&<div style={{fontSize:9,color:"#f87171",marginBottom:4}}>{pantryErr}</div>}
-          {pantryRes.length>0&&(<div style={{maxHeight:260,overflowY:"auto",display:"flex",flexDirection:"column",gap:4}}>
-            {pantryRes.map((item,i)=>{
+        {sharedIngs.length>0&&(<div style={{marginBottom:12}}>
+          <div style={{fontSize:10,fontWeight:700,color:"#94a3b8",marginBottom:6,display:"flex",alignItems:"center",gap:4}}>🌐 Community Ingredients <span style={{fontSize:9,color:"#475569",fontWeight:400}}>({sharedIngs.length} scanned by users)</span></div>
+          <div style={{maxHeight:200,overflowY:"auto",display:"flex",flexDirection:"column",gap:3}}>
+            {sharedIngs.map(item=>{
               const already=!!ings.find(x=>x.id===item.id);
-              return(<div key={i} style={{background:"rgba(30,41,59,0.3)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",borderRadius:8,border:"1px solid rgba(148,163,184,0.08)",padding:"6px 8px"}}>
-                <div style={{fontSize:10,fontWeight:700,color:"#f1f5f9",marginBottom:2}}>{item.food}</div>
-                <div style={{display:"flex",gap:6,fontSize:9,color:"#64748b",marginBottom:4}}>
-                  <span>{item.per100.cals} kcal</span>
-                  <span style={{color:"#f87171"}}>{item.per100.p}P</span>
-                  <span style={{color:"#fbbf24"}}>{item.per100.c}C</span>
-                  <span style={{color:"#a78bfa"}}>{item.per100.f}F</span>
-                  {(item.sol_fiber||item.insol_fiber)>0&&<span style={{color:"#4ade80"}}>{IC.grain(10)} {+(item.sol_fiber+item.insol_fiber).toFixed(1)}g fibre</span>}
+              const mac=item.unit==="piece"?item.perUnit:item.per100;
+              return(<div key={item.barcode||item.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"5px 8px",borderRadius:8,background:"rgba(30,41,59,0.3)",border:"1px solid rgba(148,163,184,0.07)"}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:10,fontWeight:700,color:"#f1f5f9",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{item.food}</div>
+                  <div style={{fontSize:9,color:"#64748b",display:"flex",gap:5}}>
+                    <span>{mac?.cals} kcal</span>
+                    <span style={{color:"#f87171"}}>{mac?.p}P</span>
+                    <span style={{color:"#fbbf24"}}>{mac?.c}C</span>
+                    <span style={{color:"#a78bfa"}}>{mac?.f}F</span>
+                  </div>
                 </div>
-                <button style={{width:"100%",padding:"3px 0",borderRadius:5,fontSize:9,fontWeight:700,cursor:already?"default":"pointer",
-                  border:`1px solid ${already?"#334155":"rgba(6,182,212,0.4)"}`,
-                  background:"transparent",color:already?"#475569":"#22d3ee"}}
-                  disabled={already} onClick={()=>addToPantry(item)}>
-                  {already?"✓ In pantry":"+ Add to pantry"}
+                <button style={{marginLeft:8,padding:"3px 8px",borderRadius:5,fontSize:9,fontWeight:700,border:`1px solid ${already?"#334155":"rgba(34,197,94,0.4)"}`,background:"transparent",color:already?"#475569":"#4ade80",cursor:already?"default":"pointer",flexShrink:0}}
+                  disabled={already} onClick={async()=>{if(already)return;const u=[...ings,item];setIngs(u);await sI(u);fl("✓ "+item.food);}}>
+                  {already?"✓ Added":"+ Add"}
                 </button>
               </div>);
             })}
-          </div>)}
-          {!pantryRes.length&&!pantryBusy&&!pantryErr&&(
-            <div style={{fontSize:9,color:"#334155",textAlign:"center",padding:"6px 0"}}>
-              Searches Open Food Facts (Tesco products included) · No API key required
-            </div>
-          )}
-        </div>
-
+          </div>
+        </div>)}
         {nIF?(<div style={{padding:10,background:"rgba(30,41,59,0.4)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",borderRadius:12,border:"1.5px solid rgba(148,163,184,0.1)"}}>
           <input style={S.fi} placeholder="Food name" value={nI.food} onChange={e=>setNI({...nI,food:e.target.value})}/>
           <div style={{display:"flex",gap:4,marginBottom:4}}><select style={{...S.fi,flex:1}} value={nI.unit} onChange={e=>setNI({...nI,unit:e.target.value})}><option value="g">Per 100g</option><option value="piece">Per piece</option></select>
@@ -2613,7 +2583,7 @@ const [storageReady, setStorageReady] = useState(false);
                           const pr=Math.round((n.proteins_100g||0)*10)/10;
                           const ca=Math.round((n.carbohydrates_100g||0)*10)/10;
                           const fa=Math.round((n.fat_100g||0)*10)/10;
-                          setNI({food:name,unit:"g",cals:String(cal),p:String(pr),c:String(ca),f:String(fa),defAmt:"100",maxAmt:"300",cat:"Other"});
+                          setNI({food:name,unit:"g",cals:String(cal),p:String(pr),c:String(ca),f:String(fa),defAmt:"100",maxAmt:"300",cat:"Other",barcode:code});
                           setNIF(true);setScanning(false);setScanStatus("");
                           fl("Scanned: "+name);
                         }else{setScanStatus("✗ Product not found — try manual entry");setTimeout(()=>{setScanning(false);setScanStatus("");},2000);}
@@ -3083,19 +3053,15 @@ const S={
   compBtn:{width:"100%",padding:10,border:"2px solid rgba(22,101,52,0.7)",borderRadius:10,background:"rgba(5,46,22,0.5)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",color:"#4ade80",fontSize:12,fontWeight:700,cursor:"pointer",textAlign:"center",boxShadow:"0 2px 12px rgba(34,197,94,0.1)"},
 };
 
-// Auth-gated mount
 let appMounted = false;
-
 function showSignIn() {
   document.getElementById("root").style.display = "none";
   document.getElementById("signin-gate").style.display = "flex";
 }
-
 function hideSignIn() {
   document.getElementById("signin-gate").style.display = "none";
   document.getElementById("root").style.display = "block";
 }
-
 document.getElementById("google-signin-btn").addEventListener("click", function() {
   const provider = new firebase.auth.GoogleAuthProvider();
   fbAuth.signInWithPopup(provider).catch(function(err) {
@@ -3103,13 +3069,8 @@ document.getElementById("google-signin-btn").addEventListener("click", function(
     fbAuth.signInWithRedirect(provider);
   });
 });
-
-// Set auth persistence to LOCAL (survives page reload)
 fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-
-// Handle redirect result (fallback if popup was blocked)
 fbAuth.getRedirectResult().catch(function(e){ console.warn("Redirect result:", e); });
-
 fbAuth.onAuthStateChanged(async function(user) {
   window.fbUser = user;
   if (user) {
