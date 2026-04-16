@@ -2966,22 +2966,27 @@ const [storageReady, setStorageReady] = useState(false);
                             {!isRO&&!lk&&<button style={{width:22,height:22,borderRadius:4,border:"1px solid #7f1d1d",background:"rgba(69,10,10,0.45)",color:"#f87171",fontSize:10,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>rmIng(sel,meal.id,ii)}>✕</button>}
                           </div></div>);
                       })}
-                      {!isRO&&(showAI===meal.id?(<div style={{marginTop:3,padding:8,background:"rgba(10,15,30,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",borderRadius:7,border:"1px solid rgba(148,163,184,0.06)"}}>
-                        <div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:3}}>
-                          <button style={S.mb} onClick={()=>{setSAI(null);setAS(meal.id);setAM("ing");}}>{IC.meal(12)} Pick from my ingredients</button>
-                          <button style={S.mb} onClick={()=>{setSAI(null);setAS(meal.id);setAM("scan");}}>
+                      {!isRO&&(showAI===meal.id?(<div onClick={e=>e.stopPropagation()} style={{marginTop:3,padding:8,background:"rgba(10,15,30,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",borderRadius:7,border:"1px solid rgba(148,163,184,0.06)"}}>
+                        {(!addMode||addSec!==meal.id)&&(<div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:3}}>
+                          <button style={S.mb} onClick={e=>{e.stopPropagation();setAS(meal.id);setAM("ing");}}>{IC.meal(12)} Pick from my ingredients</button>
+                          <button style={S.mb} onClick={e=>{e.stopPropagation();setAS(meal.id);setAM("scan");}}>
                             <svg width="12" height="12" viewBox="0 0 36 36" style={{verticalAlign:"middle",marginRight:4}}><rect x="2" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="2" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><line x1="4" y1="18" x2="32" y2="18" stroke="#f87171" strokeWidth="1.5" strokeDasharray="3,2"/></svg>
                             Scan a barcode
                           </button>
-                        </div>
-                        {addMode==="ing"&&addSec===meal.id&&(<div style={{marginBottom:3}}><select style={{width:"100%",padding:6,border:"1.5px solid rgba(148,163,184,0.12)",borderRadius:7,fontSize:11,fontFamily:"'DM Sans'",marginBottom:3,color:"#e2e8f0",background:"rgba(30,41,59,0.45)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)"}} defaultValue="" onChange={e=>{if(e.target.value){startAI(meal.id,e.target.value);setSAI(null);setAS(null);setAM(null);}}}>
-                          <option value="" disabled>Pick...</option>{Object.keys(catG).map(cat=>(<optgroup key={cat} label={cat}>{catG[cat].map(ing=>(<option key={ing.id} value={ing.id}>{ing.food}</option>))}</optgroup>))}</select></div>)}
-                        {addMode==="scan"&&addSec===meal.id&&(<div style={{display:"flex",gap:5,marginBottom:3}}>
-                          <button style={S.cb} onClick={()=>{if(typeof ZXing==="undefined")return fl("Scanner loading — try again");setSAI(null);setAS(meal.id);setScanning(true);}}>Open scanner</button>
                         </div>)}
-                        <button style={S.sb} onClick={()=>{setSAI(null);setAS(null);setAM(null);}}>Cancel</button>
+                        {addMode==="ing"&&addSec===meal.id&&(<div style={{marginBottom:3}}>
+                          <select style={{width:"100%",padding:6,border:"1.5px solid rgba(148,163,184,0.12)",borderRadius:7,fontSize:11,fontFamily:"'DM Sans'",marginBottom:3,color:"#e2e8f0",background:"rgba(30,41,59,0.45)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)"}} defaultValue="" onChange={e=>{if(e.target.value){startAI(meal.id,e.target.value);setSAI(null);setAS(null);setAM(null);}}}>
+                            <option value="" disabled>Pick...</option>{Object.keys(catG).map(cat=>(<optgroup key={cat} label={cat}>{catG[cat].map(ing=>(<option key={ing.id} value={ing.id}>{ing.food}</option>))}</optgroup>))}
+                          </select>
+                          <button style={S.sb} onClick={e=>{e.stopPropagation();setAS(null);setAM(null);}}>← Back</button>
+                        </div>)}
+                        {addMode==="scan"&&addSec===meal.id&&(<div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:3}}>
+                          <button style={S.cb} onClick={e=>{e.stopPropagation();if(typeof ZXing==="undefined")return fl("Scanner loading — try again");setSAI(null);setAS(meal.id);setScanning(true);}}>Open scanner</button>
+                          <button style={S.sb} onClick={e=>{e.stopPropagation();setAS(null);setAM(null);}}>← Back</button>
+                        </div>)}
+                        {(!addMode||addSec!==meal.id)&&<button style={S.sb} onClick={e=>{e.stopPropagation();setSAI(null);setAS(null);setAM(null);}}>Cancel</button>}
                       </div>
-                      ):<button style={{width:"100%",padding:5,border:"1.5px dashed #475569",borderRadius:5,background:"transparent",color:"#64748b",fontSize:10,fontWeight:600,cursor:"pointer",marginTop:3}} onClick={()=>setSAI(meal.id)}>+ Add ingredient</button>)}
+                      ):<button style={{width:"100%",padding:5,border:"1.5px dashed #475569",borderRadius:5,background:"transparent",color:"#64748b",fontSize:10,fontWeight:600,cursor:"pointer",marginTop:3}} onClick={e=>{e.stopPropagation();setSAI(meal.id);}}>+ Add ingredient</button>)}
                       {!isRO&&<button style={{width:"100%",padding:5,border:"none",borderRadius:5,background:"rgba(69,10,10,0.45)",color:"#f87171",fontSize:10,fontWeight:700,cursor:"pointer",marginTop:3,textAlign:"center"}} onClick={()=>delMeal(sel,meal.id)}>{IC.trash(12)}</button>}
                       {!isRO&&!meal.fixed&&meal.items.length>0&&/^[sci]-/.test(meal.id)&&!sP.find(p=>p.name===meal.name)&&(
                         <button style={{width:"100%",padding:5,border:"1.5px solid #854d0e",borderRadius:5,background:"transparent",color:"#fbbf24",fontSize:10,fontWeight:600,cursor:"pointer",marginTop:3,textAlign:"center"}} onClick={()=>savePreset(meal)}>⭐ Save preset</button>)}
