@@ -23,6 +23,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -3216,15 +3217,11 @@ const [storageReady, setStorageReady] = useState(false);
           <div style={{display:"flex",gap:5}}><button style={{...S.cb,...(!(nI.food&&nI.cals&&nI.defAmt)?S.cbOff:{})}} disabled={!(nI.food&&nI.cals&&nI.defAmt)} onClick={saveNI}>Save</button><button style={S.sb} onClick={()=>setNIF(false)}>Cancel</button></div>
         </div>):(<div style={{display:"flex",gap:6}}>
           <button style={{flex:1,padding:8,border:"1.5px dashed #475569",borderRadius:8,background:"transparent",color:"#64748b",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"center"}} onClick={()=>setNIF(true)}>{IC.edit(12)} Add manual</button>
-          <button style={{flex:1,padding:8,border:"1.5px dashed rgba(59,130,246,0.4)",borderRadius:8,background:"rgba(23,37,84,0.2)",color:"#93c5fd",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"center",display:"flex",alignItems:"center",justifyContent:"center",gap:4,flexDirection:"column"}} onClick={()=>{
-            if(!("BarcodeDetector" in window))return fl("Scanner needs Android Chrome or desktop Chrome — not available on iPhone");
+          <button style={{flex:1,padding:8,border:"1.5px dashed rgba(59,130,246,0.4)",borderRadius:8,background:"rgba(23,37,84,0.2)",color:"#93c5fd",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"center",display:"flex",alignItems:"center",justifyContent:"center",gap:4}} onClick={()=>{
             setScanning(true);
           }}>
-            <div style={{display:"flex",alignItems:"center",gap:4}}>
-              <svg width="14" height="14" viewBox="0 0 36 36" style={{verticalAlign:"middle"}}><rect x="2" y="2" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><rect x="24" y="2" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><rect x="2" y="24" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><rect x="24" y="24" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><line x1="4" y1="18" x2="32" y2="18" stroke="#f87171" strokeWidth="1.5" strokeDasharray="3,2"/></svg>
-              Scan barcode
-            </div>
-            {!("BarcodeDetector" in window)&&<span style={{fontSize:8,color:"#475569"}}>Android/Chrome only</span>}
+            <svg width="14" height="14" viewBox="0 0 36 36" style={{verticalAlign:"middle"}}><rect x="2" y="2" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><rect x="24" y="2" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><rect x="2" y="24" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><rect x="24" y="24" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><line x1="4" y1="18" x2="32" y2="18" stroke="#f87171" strokeWidth="1.5" strokeDasharray="3,2"/></svg>
+            Scan barcode
           </button>
         </div>)}
 
@@ -3237,46 +3234,41 @@ const [storageReady, setStorageReady] = useState(false);
             <div style={{position:"relative",width:"100%",borderRadius:12,overflow:"hidden",background:"#000"}}>
               <video ref={el=>{
                 if(!el||el.dataset.init)return;el.dataset.init="1";
-                let stopped=false;
-                navigator.mediaDevices.getUserMedia({video:{facingMode:"environment",width:{ideal:1280},height:{ideal:720}}}).then(stream=>{
-                  el.srcObject=stream;
-                  el.__stream=stream;
-                  if(!("BarcodeDetector" in window)){stream.getTracks().forEach(t=>t.stop());setScanStatus("✗ Scanner not supported on iPhone. Use Android or desktop Chrome");return;}
-                  const det=new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e"]});
-                  let retries=0;
-                  const scan=async()=>{
-                    if(stopped||!el.srcObject)return;
-                    try{const codes=await det.detect(el);
-                      if(codes.length>0){
-                        stopped=true;stream.getTracks().forEach(t=>t.stop());
-                        const code=codes[0].rawValue;
-                        setScanStatus("🔍 Looking up product…");
-                        try{
-                          const resp=await fetch("https://world.openfoodfacts.org/api/v2/product/"+code+".json");
-                          const data=await resp.json();
-                          if(data.status===1&&data.product){
-                            const p=data.product;const n=p.nutriments||{};
-                            const name=(p.product_name||p.product_name_en||"Unknown").slice(0,50);
-                            const cal=Math.round(n["energy-kcal_100g"]||n["energy-kcal"]||0);
-                            const pr=Math.round((n.proteins_100g||0)*10)/10;
-                            const ca=Math.round((n.carbohydrates_100g||0)*10)/10;
-                            const fa=Math.round((n.fat_100g||0)*10)/10;
-                            const{cat,defAmt,maxAmt}=autoCat(cal,pr,ca,fa);
-                            setNI({food:name,unit:"g",cals:String(cal),p:String(pr),c:String(ca),f:String(fa),defAmt:String(defAmt),maxAmt:String(maxAmt),cat,barcode:code});
-                            setNIF(true);setScanning(false);setScanStatus("");
-                            fl("Scanned: "+name);
-                          }else{
-                            setScanStatus("✗ Product not found — try manual entry");
-                            setTimeout(()=>{setScanning(false);setScanStatus("");},2000);
-                          }
-                        }catch(e){setScanStatus("✗ Lookup failed — tap retry");stopped=false;retries++;}
-                        return;
-                      }else{retries=0;}
-                    }catch{}
-                    requestAnimationFrame(scan);
-                  };
-                  el.onloadedmetadata=()=>scan();
-                }).catch(()=>setScanStatus("✗ Camera access denied"));
+                try{
+                  const hints=new Map();
+                  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[
+                    ZXing.BarcodeFormat.EAN_13,ZXing.BarcodeFormat.EAN_8,
+                    ZXing.BarcodeFormat.UPC_A,ZXing.BarcodeFormat.UPC_E,
+                    ZXing.BarcodeFormat.CODE_128,
+                  ]);
+                  const reader=new ZXing.BrowserMultiFormatReader(hints);
+                  el.__zxing=reader;
+                  reader.decodeFromVideoDevice(null,el,async(result,err)=>{
+                    if(!result)return;
+                    reader.reset();
+                    const code=result.getText();
+                    setScanStatus("🔍 Looking up product…");
+                    try{
+                      const resp=await fetch("https://world.openfoodfacts.org/api/v2/product/"+code+".json");
+                      const data=await resp.json();
+                      if(data.status===1&&data.product){
+                        const p=data.product;const n=p.nutriments||{};
+                        const name=(p.product_name||p.product_name_en||"Unknown").slice(0,50);
+                        const cal=Math.round(n["energy-kcal_100g"]||n["energy-kcal"]||0);
+                        const pr=Math.round((n.proteins_100g||0)*10)/10;
+                        const ca=Math.round((n.carbohydrates_100g||0)*10)/10;
+                        const fa=Math.round((n.fat_100g||0)*10)/10;
+                        const{cat,defAmt,maxAmt}=autoCat(cal,pr,ca,fa);
+                        setNI({food:name,unit:"g",cals:String(cal),p:String(pr),c:String(ca),f:String(fa),defAmt:String(defAmt),maxAmt:String(maxAmt),cat,barcode:code});
+                        setNIF(true);setScanning(false);setScanStatus("");
+                        fl("Scanned: "+name);
+                      }else{
+                        setScanStatus("✗ Product not found — try manual entry");
+                        setTimeout(()=>{setScanning(false);setScanStatus("");},2000);
+                      }
+                    }catch(e){setScanStatus("✗ Lookup failed — try again");setTimeout(()=>setScanStatus(""),2000);}
+                  });
+                }catch(e){setScanStatus("✗ Camera error: "+e.message);}
               }} style={{width:"100%",maxHeight:220,objectFit:"cover",display:"block"}} autoPlay playsInline muted/>
 
               {/* Aiming overlay — purely visual, doesn't affect scanning */}
@@ -3304,7 +3296,8 @@ const [storageReady, setStorageReady] = useState(false);
             {scanStatus&&<div style={{fontSize:11,color:scanStatus.startsWith("✗")?"#f87171":"#4ade80",marginTop:8,fontWeight:600,minHeight:18}}>{scanStatus}</div>}
             <button style={{marginTop:10,padding:"10px 24px",border:"none",borderRadius:8,background:"rgba(51,65,85,0.6)",color:"#94a3b8",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={()=>{
               setScanning(false);setScanStatus("");
-              const vids=document.querySelectorAll("video");vids.forEach(v=>{if(v.__stream)v.__stream.getTracks().forEach(t=>t.stop());});
+              const vids=document.querySelectorAll("video");
+              vids.forEach(v=>{if(v.__zxing)v.__zxing.reset();if(v.__stream)v.__stream.getTracks().forEach(t=>t.stop());});
             }}>Cancel</button>
           </div>
         </div>)}
