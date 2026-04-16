@@ -1173,7 +1173,7 @@ function PaywallScreen({onRedeem,trialExpired,stripeUrl}){
             </div>
           </div>))}
         </div>
-        <button onClick={()=>setShowInfo(false)} style={{width:"100%",marginTop:16,padding:"12px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}>Got it — Unlock for £4.99/yr</button>
+        <button onClick={()=>{setShowInfo(false);window.location.href=url;}} style={{width:"100%",marginTop:16,padding:"12px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}>Unlock for £4.99/yr →</button>
       </div>
     </div>)}
 
