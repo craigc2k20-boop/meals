@@ -1075,13 +1075,46 @@ const ADMIN_EMAIL="craigc2k20@gmail.com";
 
 // ── DUMMY DATA for paywall preview ──────────────────────────
 const DM_MEALS=[
-  {id:"dm1",name:"Breakfast",time:"8:00 AM",cals:487,items:["Porridge Oats 50g","Mixed Berries 80g","Whey Protein 30g"]},
-  {id:"dm2",name:"Lunch",time:"12:30 PM",cals:618,items:["Chicken Breast 260g","Basmati Rice 75g","Broccoli 100g","Soy Sauce 15g"]},
-  {id:"dm3",name:"Snack",time:"3:30 PM",cals:198,items:["HP Yogurt 150g","Mixed Berries 50g"]},
-  {id:"dm4",name:"Dinner",time:"6:00 PM",cals:601,items:["Salmon Fillet 130g","Sweet Potato Chips 150g","Baby Spinach 60g"]},
+  {id:"dm1",name:"Breakfast",time:"8:00 AM",cals:487,p:38,c:52,f:9,items:[
+    {name:"Porridge Oats",amt:50,unit:"g",locked:false,cals:185,p:6,c:30,f:4},
+    {name:"Mixed Berries",amt:80,unit:"g",locked:false,cals:32,p:0.6,c:6,f:0.2},
+    {name:"Whey Protein",amt:30,unit:"g",locked:true,cals:120,p:24,c:3,f:1.5},
+    {name:"Skimmed Milk",amt:150,unit:"g",locked:false,cals:53,p:5.2,c:7.5,f:0.2},
+  ]},
+  {id:"dm2",name:"Lunch",time:"12:30 PM",cals:618,p:55,c:62,f:12,items:[
+    {name:"Chicken Breast",amt:260,unit:"g",locked:true,cals:286,p:60,c:0,f:3},
+    {name:"Basmati Rice",amt:75,unit:"g",locked:false,cals:263,p:5,c:58,f:0.8},
+    {name:"Broccoli",amt:100,unit:"g",locked:false,cals:34,p:2.8,c:4,f:0.4},
+    {name:"Soy Sauce",amt:15,unit:"g",locked:false,cals:8,p:0.8,c:0.9,f:0},
+  ]},
+  {id:"dm3",name:"Snack",time:"3:30 PM",cals:198,p:20,c:22,f:3,items:[
+    {name:"HP Yogurt",amt:150,unit:"g",locked:false,cals:81,p:15,c:4.5,f:0.2},
+    {name:"Mixed Berries",amt:50,unit:"g",locked:false,cals:20,p:0.4,c:4,f:0.2},
+    {name:"Porridge Oats",amt:25,unit:"g",locked:false,cals:93,p:3,c:15,f:2},
+  ]},
+  {id:"dm4",name:"Dinner",time:"6:00 PM",cals:601,p:44,c:52,f:18,items:[
+    {name:"Salmon Fillet",amt:130,unit:"g",locked:true,cals:270,p:26,c:0,f:17},
+    {name:"Sweet Potato Chips",amt:150,unit:"g",locked:false,cals:221,p:2,c:36,f:7},
+    {name:"Baby Spinach",amt:60,unit:"g",locked:false,cals:14,p:1.7,c:0.2,f:0.2},
+    {name:"Passata",amt:100,unit:"g",locked:false,cals:24,p:1,c:4,f:0.1},
+  ]},
 ];
 const DM_WEIGHTS=[84.0,83.6,83.4,83.1,82.8,82.5,82.3,82.1,81.9,81.7,81.5,81.4,81.2,81.0];
 const DM_DAYS_DONE=[true,true,true,true,true,true,false];
+const DM_BENEFITS=[
+  {e:"🎯",t:"Personalised Calorie Targets",d:"Your daily calories are calculated from your weight, height, age, activity level and goal — not a generic number."},
+  {e:"⚖️",t:"Training vs Rest Day Splitting",d:"Training days automatically get more calories and carbs. Rest days are lower. Your weekly total stays on budget."},
+  {e:"🔄",t:"Adaptive TDEE Learning",d:"The app learns your actual metabolism from weekly weigh-ins and adjusts your targets automatically over time."},
+  {e:"📊",t:"Macro Tracking (P / C / F)",d:"Track protein, carbs and fat against your targets with visual progress rings updated in real time as you log meals."},
+  {e:"🍽️",t:"Auto Meal Planning",d:"Your meals are automatically built and balanced each week using your ingredient list. Adjust portions or swap items freely."},
+  {e:"🔒",t:"Lock Ingredients",d:"Lock any ingredient (like your protein shake) so the app works around it when rebalancing the rest of your meals."},
+  {e:"📱",t:"Barcode Scanner",d:"Scan any food barcode to instantly add it to your ingredient library with full nutritional data pulled automatically."},
+  {e:"🌐",t:"Community Ingredients",d:"Scanned items are shared across all users — so the more people use it, the bigger the shared ingredient database grows."},
+  {e:"📈",t:"Weight Progress Tracking",d:"Log your weight each week and see a clear chart of your progress. The app flags if you're losing too fast or too slow."},
+  {e:"📅",t:"Weekly Adherence Stats",d:"See what percentage of meals you completed each week and track your consistency over time in the stats tab."},
+  {e:"💧",t:"Hydration Targets",d:"Daily water targets are calculated from your body weight and increase on training days to keep you performing well."},
+  {e:"🏋️",t:"Football & Training Modes",d:"Set individual days as Training, Rest or Football — each gets different calorie and macro splits automatically."},
+];
 
 function PaywallScreen({onRedeem}){
   const[tab,setTab]=useState("meals");
@@ -1089,9 +1122,17 @@ function PaywallScreen({onRedeem}){
   const[code,setCode]=useState("");
   const[codeErr,setCodeErr]=useState("");
   const[codeBusy,setCodeBusy]=useState(false);
+  const[expandedMeal,setExpandedMeal]=useState(null);
+  const[showInfo,setShowInfo]=useState(false);
+  const[lockedItems,setLockedItems]=useState({"dm1-2":true,"dm2-0":true,"dm4-0":true});
+  const[amounts,setAmounts]=useState({});
   const totalDummy=DM_MEALS.reduce((s,m)=>s+m.cals,0);
   const today=new Date();
   const dummyDates=DAYS.map((_,i)=>{const d=new Date(today);d.setDate(d.getDate()-today.getDay()+i+1);return d;});
+
+  const getAmt=(mId,iIdx,def)=>amounts[`${mId}-${iIdx}`]??def;
+  const adjAmt=(mId,iIdx,def,delta)=>{const cur=getAmt(mId,iIdx,def);setAmounts(a=>({...a,[`${mId}-${iIdx}`]:Math.max(5,cur+delta)}));};
+  const toggleLock=(key)=>setLockedItems(l=>({...l,[key]:!l[key]}));
 
   const handleCode=async()=>{
     if(!code.trim())return;
@@ -1104,101 +1145,199 @@ function PaywallScreen({onRedeem}){
   const tabBtn=(k,l)=>(<button onClick={()=>setTab(k)} style={{flex:1,padding:"7px 0",border:"none",borderRadius:7,background:tab===k?"rgba(51,65,85,0.45)":"transparent",color:tab===k?"#e2e8f0":"#64748b",fontSize:10,fontWeight:700,cursor:"pointer",textTransform:"uppercase",letterSpacing:"1px"}}>{l}</button>);
 
   return(<div style={{fontFamily:"'DM Sans',sans-serif",maxWidth:640,margin:"0 auto",padding:"14px 10px 160px",color:"#e2e8f0",background:"linear-gradient(145deg,#0a0f1e 0%,#0f172a 40%,#111827 100%)",minHeight:"100vh",position:"relative"}}>
+
+    {/* Info modal */}
+    {showInfo&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",zIndex:1000,display:"flex",alignItems:"flex-end",justifyContent:"center",padding:16}}>
+      <div style={{background:"rgba(15,23,42,0.98)",border:"1px solid rgba(148,163,184,0.15)",borderRadius:20,padding:20,width:"100%",maxWidth:600,maxHeight:"80vh",overflowY:"auto"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"#f1f5f9"}}>What you get with SlimRoute</div>
+          <button onClick={()=>setShowInfo(false)} style={{width:28,height:28,borderRadius:8,border:"1px solid rgba(148,163,184,0.2)",background:"rgba(30,41,59,0.5)",color:"#94a3b8",fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {DM_BENEFITS.map((b,i)=>(<div key={i} style={{display:"flex",gap:12,padding:"10px 12px",borderRadius:10,background:"rgba(30,41,59,0.35)",border:"1px solid rgba(148,163,184,0.07)"}}>
+            <span style={{fontSize:22,flexShrink:0}}>{b.e}</span>
+            <div>
+              <div style={{fontSize:12,fontWeight:700,color:"#f1f5f9",marginBottom:2}}>{b.t}</div>
+              <div style={{fontSize:10,color:"#64748b",lineHeight:1.5}}>{b.d}</div>
+            </div>
+          </div>))}
+        </div>
+        <button onClick={()=>setShowInfo(false)} style={{width:"100%",marginTop:16,padding:"12px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}>Got it — Unlock for £4.99/yr</button>
+      </div>
+    </div>)}
+
     {/* Preview banner */}
-    <div style={{background:"rgba(59,130,246,0.15)",border:"1px solid rgba(59,130,246,0.3)",borderRadius:8,padding:"6px 12px",marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
-      <span style={{fontSize:14}}>👁</span>
-      <span style={{fontSize:10,fontWeight:600,color:"#93c5fd"}}>Preview — this is example data. Your real data will be private.</span>
+    <div style={{background:"rgba(59,130,246,0.15)",border:"1px solid rgba(59,130,246,0.3)",borderRadius:8,padding:"6px 12px",marginBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+      <div style={{display:"flex",alignItems:"center",gap:6}}>
+        <span style={{fontSize:14}}>👁</span>
+        <span style={{fontSize:10,fontWeight:600,color:"#93c5fd"}}>Preview — example data. Your real data will be private.</span>
+      </div>
+      <button onClick={()=>setShowInfo(true)} style={{width:24,height:24,borderRadius:12,border:"1.5px solid rgba(59,130,246,0.5)",background:"rgba(59,130,246,0.2)",color:"#93c5fd",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>i</button>
     </div>
+
     {/* Week nav dummy */}
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
       <div style={{width:32,height:32,borderRadius:8,border:"1px solid rgba(148,163,184,0.1)",background:"rgba(30,41,59,0.4)",display:"flex",alignItems:"center",justifyContent:"center",color:"#94a3b8",fontSize:17}}>‹</div>
       <span style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:15,color:"#cbd5e1"}}>{dummyDates[0].getDate()} {dummyDates[0].toLocaleString("en-GB",{month:"short"})} — {dummyDates[6].getDate()} {dummyDates[6].toLocaleString("en-GB",{month:"short"})}</span>
       <div style={{width:32,height:32,borderRadius:8,border:"1px solid rgba(148,163,184,0.1)",background:"rgba(30,41,59,0.4)",display:"flex",alignItems:"center",justifyContent:"center",color:"#94a3b8",fontSize:17}}>›</div>
     </div>
+
     {/* Day strip dummy */}
     <div style={{display:"flex",gap:3,marginBottom:10,overflowX:"auto"}}>
       {DAYS.map((d,i)=>{const isS=i===2;const done=DM_DAYS_DONE[i];
-        return(<div key={d} style={{flex:1,minWidth:42,padding:"5px 2px 4px",borderRadius:10,border:`1.5px solid ${isS?"#3b82f6":"rgba(30,41,59,0.6)"}`,borderTop:`3px solid ${done?"#22c55e":isS?"#3b82f6":"#475569"}`,background:isS?"rgba(30,41,84,0.5)":"rgba(15,23,42,0.5)",textAlign:"center"}}>
-          <div style={{fontSize:8,fontWeight:700,color:isS?"#93c5fd":"#64748b",textTransform:"uppercase",letterSpacing:"1px"}}>{DS[i]}</div>
+        return(<div key={d} style={{flex:1,minWidth:42,padding:"5px 2px 4px",borderRadius:10,border:`1.5px solid ${isS?"#3b82f6":"rgba(30,41,59,0.6)"}`,borderTop:`3px solid ${done?"#22c55e":isS?"#f97316":"#475569"}`,background:isS?"rgba(124,45,18,0.3)":"rgba(15,23,42,0.5)",textAlign:"center"}}>
+          <div style={{fontSize:8,fontWeight:700,color:isS?"#fb923c":"#64748b",textTransform:"uppercase",letterSpacing:"1px"}}>{DS[i]}</div>
           <div style={{fontFamily:"'Fraunces',serif",fontSize:15,fontWeight:700,color:isS?"#fff":"#94a3b8"}}>{dummyDates[i].getDate()}</div>
-          <div style={{fontSize:10}}>{done?"✓":"·"}</div>
+          <div style={{fontSize:10}}>{done?"✓":isS?"🏋":"·"}</div>
         </div>);
       })}
     </div>
+
     {/* Tab bar */}
     <div style={{display:"flex",gap:3,marginBottom:10,background:"rgba(30,41,59,0.35)",borderRadius:10,padding:3,border:"1px solid rgba(148,163,184,0.08)"}}>
       {tabBtn("meals","🍽 Meals")}{tabBtn("ingredients","💊 Ingredients")}{tabBtn("profile","👤 Profile")}
     </div>
+
     {/* MEALS tab */}
     {tab==="meals"&&(<>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-        <div><div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:700,color:"#f1f5f9"}}>Wednesday</div>
-          <span style={{fontSize:10,color:"#64748b",textTransform:"uppercase",letterSpacing:".6px"}}>{dummyDates[2].getDate()} {dummyDates[2].toLocaleString("en-GB",{month:"short"})}</span></div>
-        <div style={{display:"flex",gap:4}}>
-          <div style={{padding:"6px 10px",borderRadius:8,background:"rgba(30,58,138,0.4)",color:"#93c5fd",fontSize:11,fontWeight:700}}>🏋 Train</div>
+        <div>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:700,color:"#f1f5f9"}}>Wednesday</div>
+          <span style={{fontSize:10,color:"#64748b",textTransform:"uppercase",letterSpacing:".6px"}}>{dummyDates[2].getDate()} {dummyDates[2].toLocaleString("en-GB",{month:"short"})}</span>
         </div>
+        <div style={{padding:"6px 10px",borderRadius:8,background:"rgba(124,45,18,0.4)",color:"#fb923c",fontSize:11,fontWeight:700}}>🏋 Train</div>
       </div>
       <div style={{display:"flex",justifyContent:"space-between",padding:"6px 10px",borderRadius:8,background:"rgba(10,15,30,0.3)",marginBottom:8}}>
         <span style={{fontSize:9,color:"#64748b",fontWeight:600}}>💧 Hydration target</span>
         <span style={{fontSize:9,color:"#4ade80",fontWeight:700}}>2,750 ml</span>
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:6}}>
-        {DM_MEALS.map(m=>(<div key={m.id} style={{background:"rgba(30,41,59,0.35)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",overflow:"hidden"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 12px"}}>
-            <div>
-              <div style={{fontSize:13,fontWeight:700,color:"#f1f5f9"}}>{m.name}</div>
-              <div style={{fontSize:10,color:"#64748b"}}>{m.time} · {m.cals} kcal</div>
+        {DM_MEALS.map(m=>{
+          const isExp=expandedMeal===m.id;
+          return(<div key={m.id} style={{background:"rgba(30,41,59,0.35)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",overflow:"hidden"}}>
+            {/* Meal header — tap to expand */}
+            <div onClick={()=>setExpandedMeal(isExp?null:m.id)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 12px",cursor:"pointer"}}>
+              <div>
+                <div style={{fontSize:13,fontWeight:700,color:"#f1f5f9"}}>{m.name}</div>
+                <div style={{fontSize:10,color:"#64748b"}}>{m.time} · {m.cals} kcal · P{m.p}g C{m.c}g F{m.f}g</div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <div style={{width:26,height:26,borderRadius:6,border:"2px solid rgba(71,85,105,0.6)",background:"rgba(15,23,42,0.5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"#475569"}}>·</div>
+                <span style={{fontSize:12,color:"#64748b",transition:"transform .2s",display:"inline-block",transform:isExp?"rotate(180deg)":"rotate(0deg)"}}>▼</span>
+              </div>
             </div>
-            <div style={{width:26,height:26,borderRadius:6,border:"2px solid rgba(71,85,105,0.6)",background:"rgba(15,23,42,0.5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"#475569"}}>·</div>
-          </div>
-          <div style={{padding:"0 12px 10px",display:"flex",flexDirection:"column",gap:3}}>
-            {m.items.map((it,j)=>(<div key={j} style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#94a3b8",padding:"3px 0",borderBottom:"1px solid rgba(30,41,59,0.5)"}}>
-              <span>{it}</span>
-            </div>))}
-          </div>
-        </div>))}
+            {/* Expanded ingredient detail */}
+            {isExp&&(<div style={{borderTop:"1px solid rgba(148,163,184,0.06)",padding:"8px 12px",display:"flex",flexDirection:"column",gap:6}}>
+              {m.items.map((it,j)=>{
+                const key=`${m.id}-${j}`;
+                const locked=lockedItems[key]??it.locked;
+                const amt=getAmt(m.id,j,it.amt);
+                return(<div key={j} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 8px",borderRadius:8,background:"rgba(15,23,42,0.4)",border:`1px solid ${locked?"rgba(249,115,22,0.2)":"rgba(148,163,184,0.06)"}`}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:11,fontWeight:600,color:"#e2e8f0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{it.name}</div>
+                    <div style={{fontSize:9,color:"#64748b"}}>{it.cals} kcal · P{it.p}g C{it.c}g F{it.f}g</div>
+                  </div>
+                  {/* Amount controls */}
+                  <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
+                    <button onClick={()=>adjAmt(m.id,j,it.amt,-5)} disabled={locked} style={{width:20,height:20,borderRadius:4,border:"1px solid rgba(148,163,184,0.15)",background:"rgba(30,41,59,0.5)",color:locked?"#334155":"#94a3b8",fontSize:12,cursor:locked?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>−</button>
+                    <span style={{fontSize:11,fontWeight:700,color:locked?"#f97316":"#e2e8f0",minWidth:36,textAlign:"center"}}>{amt}{it.unit}</span>
+                    <button onClick={()=>adjAmt(m.id,j,it.amt,5)} disabled={locked} style={{width:20,height:20,borderRadius:4,border:"1px solid rgba(148,163,184,0.15)",background:"rgba(30,41,59,0.5)",color:locked?"#334155":"#94a3b8",fontSize:12,cursor:locked?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>+</button>
+                  </div>
+                  {/* Lock button */}
+                  <button onClick={()=>toggleLock(key)} style={{width:24,height:24,borderRadius:5,border:`1px solid ${locked?"rgba(249,115,22,0.4)":"rgba(148,163,184,0.15)"}`,background:locked?"rgba(124,45,18,0.3)":"rgba(30,41,59,0.4)",color:locked?"#f97316":"#475569",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexShrink:0}}>{locked?"🔒":"🔓"}</button>
+                </div>);
+              })}
+              <div style={{fontSize:8,color:"#334155",textAlign:"center",marginTop:2}}>🔒 Locked ingredients stay fixed when the app rebalances your meals</div>
+            </div>)}
+          </div>);
+        })}
       </div>
       <div style={{marginTop:10,padding:"8px 12px",borderRadius:10,background:"rgba(30,41,59,0.3)",display:"flex",justifyContent:"space-between"}}>
         <span style={{fontSize:11,fontWeight:700,color:"#fbbf24"}}>Daily Total</span>
         <span style={{fontSize:11,fontWeight:700,color:"#fbbf24"}}>{totalDummy} kcal</span>
       </div>
     </>)}
+
     {/* INGREDIENTS tab */}
     {tab==="ingredients"&&(<div>
       <div style={{fontSize:12,fontWeight:700,color:"#94a3b8",marginBottom:8}}>24 ingredients</div>
       {["Protein","Carbs","Veg","Dairy","Sauce"].map(cat=>(<div key={cat}>
         <div style={{fontSize:10,fontWeight:700,color:"#475569",textTransform:"uppercase",padding:"5px 0 2px"}}>{cat}</div>
-        {(cat==="Protein"?["Chicken breast","Tuna in Brine","Salmon Fillet","Turkey Mince"]:
-          cat==="Carbs"?["Basmati Rice","Porridge Oats","Wholemeal Wrap","Sweet Potato Chips"]:
-          cat==="Veg"?["Broccoli","Baby Spinach","Mixed Peppers"]:
-          cat==="Dairy"?["HP Yogurt","Skimmed Milk"]:
-          ["Soy Sauce","Passata"]).map(f=>(<div key={f} style={{display:"flex",justifyContent:"space-between",padding:"3px 0",borderBottom:"1px solid #1e293b",fontSize:10,color:"#cbd5e1"}}>
-            <span>{f}</span><span style={{color:"#64748b"}}>per 100g</span>
+        {(cat==="Protein"?[["Chicken Breast","110/100g"],["Tuna in Brine","109/100g"],["Salmon Fillet","208/100g"],["Turkey Mince","118/100g"]]:
+          cat==="Carbs"?[["Basmati Rice","350/100g"],["Porridge Oats","370/100g"],["Wholemeal Wrap","170/pc"],["Sweet Potato Chips","147/100g"]]:
+          cat==="Veg"?[["Broccoli","34/100g"],["Baby Spinach","23/100g"],["Mixed Peppers","26/100g"]]:
+          cat==="Dairy"?[["HP Yogurt","54/100g"],["Skimmed Milk","35/100g"]]:
+          [["Soy Sauce","53/100g"],["Passata","24/100g"]]).map(([f,cal])=>(<div key={f} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #1e293b",fontSize:10,color:"#cbd5e1"}}>
+            <span>{f}</span><span style={{color:"#64748b"}}>{cal} kcal</span>
           </div>))}
       </div>))}
     </div>)}
+
     {/* PROFILE tab */}
     {tab==="profile"&&(<div>
+      {/* User overview card */}
+      <div style={{background:"rgba(30,41,59,0.35)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",padding:14,marginBottom:10}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+          <div style={{width:44,height:44,borderRadius:22,background:"linear-gradient(135deg,#3b82f6,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:700,color:"#fff",flexShrink:0}}>T</div>
+          <div>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:700,color:"#f1f5f9"}}>Test User</div>
+            <div style={{fontSize:10,color:"#64748b"}}>Male · 31 years · Active lifestyle</div>
+          </div>
+          <div style={{marginLeft:"auto",textAlign:"right"}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#4ade80"}}>Steady Loss 🎯</div>
+            <div style={{fontSize:9,color:"#475569"}}>-300 kcal/day</div>
+          </div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
+          {[["Start Weight","84.0 kg","#94a3b8"],["Current","81.0 kg","#4ade80"],["Lost","3.0 kg","#4ade80"],["Height","5ft 11in","#94a3b8"],["Waist","34 in","#94a3b8"],["Body Fat","18%","#94a3b8"]].map(([l,v,c])=>(<div key={l} style={{background:"rgba(15,23,42,0.4)",borderRadius:8,padding:"8px 10px",textAlign:"center"}}>
+            <div style={{fontSize:8,color:"#475569",textTransform:"uppercase",letterSpacing:"1px",marginBottom:2}}>{l}</div>
+            <div style={{fontSize:13,fontWeight:700,color:c}}>{v}</div>
+          </div>))}
+        </div>
+      </div>
+
+      {/* Targets */}
+      <div style={{background:"rgba(30,41,59,0.35)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",padding:14,marginBottom:10}}>
+        <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:10}}>Daily Targets</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+          <span style={{fontSize:12,color:"#94a3b8"}}>Training days</span>
+          <span style={{fontSize:14,fontWeight:700,color:"#fb923c"}}>2,280 kcal</span>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <span style={{fontSize:12,color:"#94a3b8"}}>Rest days</span>
+          <span style={{fontSize:14,fontWeight:700,color:"#06b6d4"}}>1,854 kcal</span>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          {[{l:"Protein",v:"35%",col:"#f87171"},{l:"Carbs",v:"40%",col:"#fbbf24"},{l:"Fat",v:"25%",col:"#a78bfa"}].map(x=>(<div key={x.l} style={{flex:1,background:"rgba(15,23,42,0.4)",borderRadius:8,padding:"6px",textAlign:"center"}}>
+            <div style={{fontSize:9,color:"#475569",marginBottom:2}}>{x.l}</div>
+            <div style={{fontSize:14,fontWeight:700,color:x.col}}>{x.v}</div>
+          </div>))}
+        </div>
+      </div>
+
+      {/* Progress rings */}
       <div style={{background:"rgba(30,41,59,0.35)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",padding:14,marginBottom:10,display:"flex",flexDirection:"column",alignItems:"center"}}>
         <div style={{fontSize:8,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:6}}>Today's Progress</div>
         <svg width="120" height="120" viewBox="0 0 100 100">
-          {[{r:42,pct:0.78,col:"#3b82f6"},{r:33,pct:0.65,col:"#fbbf24"},{r:24,pct:0.81,col:"#a78bfa"}].map((m,i)=>{
+          {[{r:42,pct:0.78,col:"#f97316"},{r:33,pct:0.65,col:"#fbbf24"},{r:24,pct:0.81,col:"#a78bfa"}].map((m,i)=>{
             const circ=2*Math.PI*m.r;const fill=circ*m.pct;
             return(<g key={i}><circle cx="50" cy="50" r={m.r} fill="none" stroke="rgba(30,41,59,0.6)" strokeWidth="5"/>
               <circle cx="50" cy="50" r={m.r} fill="none" stroke={m.col} strokeWidth="5" strokeDasharray={`${fill} ${circ}`} strokeLinecap="round" transform="rotate(-90 50 50)"/></g>);})}
           <text x="50" y="48" textAnchor="middle" fill="#e2e8f0" fontSize="12" fontWeight="700" fontFamily="'DM Sans',sans-serif">1904</text>
-          <text x="50" y="57" textAnchor="middle" fill="#475569" fontSize="7" fontFamily="'DM Sans',sans-serif">/ 2100</text>
+          <text x="50" y="57" textAnchor="middle" fill="#475569" fontSize="7" fontFamily="'DM Sans',sans-serif">/ 2280</text>
         </svg>
         <div style={{display:"flex",gap:10,marginTop:4}}>
-          {[{l:"P",v:"148g",col:"#3b82f6"},{l:"C",v:"198g",col:"#fbbf24"},{l:"F",v:"52g",col:"#a78bfa"}].map(m=>(<div key={m.l} style={{display:"flex",alignItems:"center",gap:3}}>
-            <div style={{width:7,height:7,borderRadius:4,background:m.col}}/><span style={{fontSize:10,fontWeight:700,color:m.col}}>{m.l}</span><span style={{fontSize:10,color:"#cbd5e1"}}>{m.v}</span>
+          {[{l:"P",v:"148/199g",col:"#f97316"},{l:"C",v:"198/228g",col:"#fbbf24"},{l:"F",v:"52/63g",col:"#a78bfa"}].map(m=>(<div key={m.l} style={{display:"flex",alignItems:"center",gap:3}}>
+            <div style={{width:7,height:7,borderRadius:4,background:m.col}}/><span style={{fontSize:10,fontWeight:700,color:m.col}}>{m.l}</span><span style={{fontSize:9,color:"#cbd5e1"}}>{m.v}</span>
           </div>))}
         </div>
       </div>
+
+      {/* Weight chart */}
       <div style={{background:"rgba(30,41,59,0.35)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",padding:14,marginBottom:10}}>
         <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:8}}>Weight Progress (4 weeks)</div>
         <svg width="100%" height="80" viewBox="0 0 300 80">
-          {DM_WEIGHTS.map((w,i)=>{const x=i*(300/13);const y=((w-80.5)/(84.5-80.5));const py=70-y*60;
+          {DM_WEIGHTS.map((w,i)=>{const x=i*(300/13);const py=70-((w-80.5)/(84.5-80.5))*60;
             return i===0?null:<line key={i} x1={(i-1)*(300/13)} y1={70-((DM_WEIGHTS[i-1]-80.5)/(84.5-80.5))*60} x2={x} y2={py} stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"/>;
           })}
           {DM_WEIGHTS.map((w,i)=>{const x=i*(300/13);const py=70-((w-80.5)/(84.5-80.5))*60;
@@ -1207,7 +1346,7 @@ function PaywallScreen({onRedeem}){
           <text x="0" y="78" fill="#475569" fontSize="8">84.0kg</text>
           <text x="260" y="78" fill="#4ade80" fontSize="8">81.0kg</text>
         </svg>
-        <div style={{fontSize:10,color:"#4ade80",fontWeight:700,textAlign:"center"}}>↓ 3.0kg over 4 weeks ✅</div>
+        <div style={{fontSize:10,color:"#4ade80",fontWeight:700,textAlign:"center",marginTop:4}}>↓ 3.0kg over 4 weeks · 85% adherence ✅</div>
       </div>
     </div>)}
 
@@ -1219,7 +1358,10 @@ function PaywallScreen({onRedeem}){
           <div style={{fontSize:11,color:"#64748b"}}>Track your nutrition, hit your goals, feel better.</div>
         </div>
         <button onClick={()=>window.open("https://buy.stripe.com/PLACEHOLDER","_blank")} style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:8,boxShadow:"0 4px 20px rgba(59,130,246,0.4)"}}>Unlock for £4.99 / year</button>
-        <button onClick={()=>setShowCode(true)} style={{width:"100%",padding:"8px",borderRadius:8,border:"1px solid rgba(148,163,184,0.15)",background:"transparent",color:"#64748b",fontSize:12,fontWeight:600,cursor:"pointer"}}>I have a code</button>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>setShowCode(true)} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid rgba(148,163,184,0.15)",background:"transparent",color:"#64748b",fontSize:12,fontWeight:600,cursor:"pointer"}}>I have a code</button>
+          <button onClick={()=>setShowInfo(true)} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid rgba(59,130,246,0.3)",background:"rgba(59,130,246,0.1)",color:"#93c5fd",fontSize:12,fontWeight:600,cursor:"pointer"}}>ⓘ What's included</button>
+        </div>
       </>):(<>
         <div style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:700,color:"#f1f5f9",marginBottom:8,textAlign:"center"}}>Enter your code</div>
         <input style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1.5px solid rgba(59,130,246,0.4)",background:"rgba(15,23,42,0.6)",color:"#f1f5f9",fontSize:14,fontWeight:700,letterSpacing:"3px",textTransform:"uppercase",textAlign:"center",marginBottom:8,boxSizing:"border-box"}}
