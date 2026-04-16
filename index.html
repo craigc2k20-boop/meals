@@ -1073,6 +1073,40 @@ function diaryReducer(state,action){
 
 const ADMIN_EMAIL="craigc2k20@gmail.com";
 
+// ── Patch notes ───────────────────────────────────────────
+const PATCH_VERSION="1.2";
+const PATCH_NOTES=[
+  {e:"📷",t:"Improved barcode scanner",d:"Smaller camera window with a visual aiming guide to help line up barcodes. Fewer errors and more reliable scanning.",audience:"all"},
+  {e:"🏷️",t:"Auto category detection",d:"Scanned items now automatically get the right category — Protein, Carbs, Sauce, Premade etc. based on their macros.",audience:"all"},
+  {e:"🗑️",t:"Delete account option",d:"You can now permanently delete your account and all your data from Profile → Data.",audience:"all"},
+  {e:"📲",t:"Add to home screen guide",d:"First time setup now shows step-by-step instructions to add SlimRoute to your home screen for the best experience.",audience:"all"},
+  {e:"✨",t:"What's New notifications",d:"We'll now let you know when something changes that affects you — just like this!",audience:"all"},
+];
+
+function WhatsNewPopup({onDismiss,accessState}){
+  return(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",zIndex:1001,display:"flex",alignItems:"flex-end",justifyContent:"center",padding:16}}>
+    <div style={{background:"rgba(15,23,42,0.98)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:20,padding:22,width:"100%",maxWidth:480}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+        <span style={{fontSize:24}}>✨</span>
+        <div>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"#f1f5f9"}}>What's New</div>
+          <div style={{fontSize:9,color:"#475569"}}>Version {PATCH_VERSION}</div>
+        </div>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
+        {PATCH_NOTES.filter(n=>n.audience==="all"||(n.audience==="paid"&&accessState==="open")||(n.audience==="trial"&&accessState==="trial")).map((n,i)=>(<div key={i} style={{display:"flex",gap:12,padding:"10px 12px",borderRadius:10,background:"rgba(30,41,59,0.5)",border:"1px solid rgba(148,163,184,0.07)"}}>
+          <span style={{fontSize:20,flexShrink:0}}>{n.e}</span>
+          <div>
+            <div style={{fontSize:12,fontWeight:700,color:"#f1f5f9",marginBottom:2}}>{n.t}</div>
+            <div style={{fontSize:10,color:"#64748b",lineHeight:1.5}}>{n.d}</div>
+          </div>
+        </div>))}
+      </div>
+      <button onClick={onDismiss} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>Got it 👍</button>
+    </div>
+  </div>);
+}
+
 // ── DUMMY DATA for paywall preview ──────────────────────────
 const DM_MEALS=[
   {id:"dm1",name:"Breakfast",time:"8:00 AM",cals:487,p:38,c:52,f:9,items:[
@@ -1108,7 +1142,7 @@ const DM_BENEFITS=[
   {e:"📊",t:"Macro Tracking (P / C / F)",d:"Track protein, carbs and fat against your targets with visual progress rings updated in real time as you log meals."},
   {e:"🍽️",t:"Auto Meal Planning",d:"Your meals are automatically built and balanced each week using your ingredient list. Adjust portions or swap items freely."},
   {e:"🔒",t:"Lock Ingredients",d:"Lock any ingredient (like your protein shake) so the app works around it when rebalancing the rest of your meals."},
-  {e:"📱",t:"Barcode Scanner",d:"Scan any food barcode to instantly add it to your ingredient library with full nutritional data pulled automatically."},
+  {e:"📱",t:"Barcode Scanner",d:"Scan any food barcode to instantly add it to your ingredient library with full nutritional data pulled automatically. Works on Android Chrome and desktop Chrome — iPhone users can add ingredients manually."},
   {e:"🌐",t:"Community Ingredients",d:"Scanned items are shared across all users — so the more people use it, the bigger the shared ingredient database grows."},
   {e:"📈",t:"Weight Progress Tracking",d:"Log your weight each week and see a clear chart of your progress. The app flags if you're losing too fast or too slow."},
   {e:"📅",t:"Weekly Adherence Stats",d:"See what percentage of meals you completed each week and track your consistency over time in the stats tab."},
@@ -1352,6 +1386,19 @@ function PaywallScreen({onRedeem,trialExpired,stripeUrl}){
             <span>{f}</span><span style={{color:"#64748b"}}>{cal} kcal</span>
           </div>))}
       </div>))}
+      {/* Add ingredient demo buttons */}
+      <div style={{marginTop:14,display:"flex",gap:6}}>
+        <div style={{flex:1,padding:8,border:"1.5px dashed #334155",borderRadius:8,background:"transparent",color:"#475569",fontSize:11,fontWeight:600,textAlign:"center",cursor:"default"}}>
+          {IC.edit(12)} Add manual
+        </div>
+        <div style={{flex:1,padding:8,border:"1.5px dashed rgba(51,65,85,0.4)",borderRadius:8,background:"transparent",color:"#475569",fontSize:11,fontWeight:600,textAlign:"center",cursor:"default",display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+          <div style={{display:"flex",alignItems:"center",gap:4}}>
+            <svg width="12" height="12" viewBox="0 0 36 36"><rect x="2" y="2" width="10" height="10" rx="2" fill="none" stroke="#475569" strokeWidth="2.5"/><rect x="24" y="2" width="10" height="10" rx="2" fill="none" stroke="#475569" strokeWidth="2.5"/><rect x="2" y="24" width="10" height="10" rx="2" fill="none" stroke="#475569" strokeWidth="2.5"/><rect x="24" y="24" width="10" height="10" rx="2" fill="none" stroke="#475569" strokeWidth="2.5"/><line x1="4" y1="18" x2="32" y2="18" stroke="#475569" strokeWidth="1.5" strokeDasharray="3,2"/></svg>
+            Scan barcode
+          </div>
+          <span style={{fontSize:8,color:"#334155"}}>Android &amp; Chrome only</span>
+        </div>
+      </div>
     </div>)}
 
     {/* PROFILE tab */}
@@ -1457,6 +1504,34 @@ function PaywallScreen({onRedeem,trialExpired,stripeUrl}){
   </div>);
 }
 
+function autoCat(cals,p,c,f){
+  // Returns {cat, defAmt, maxAmt} based on macros per 100g
+  const kcal=+cals||0,pr=+p||0,ca=+c||0,fa=+f||0;
+  // Protein first — high protein, low carb
+  if(pr>=15&&ca<20)return{cat:"Protein",defAmt:150,maxAmt:350};
+  // Dairy — decent protein + fat combo (milk, cheese, yogurt)
+  if(pr>=5&&fa>=2&&ca<30&&kcal<200)return{cat:"Dairy",defAmt:150,maxAmt:300};
+  // Whey/protein powder — very high protein
+  if(pr>=50)return{cat:"Protein",defAmt:30,maxAmt:60};
+  // Fats — high fat, low carb (nuts, oils, butter)
+  if(fa>=20&&ca<20)return{cat:"Fats",defAmt:15,maxAmt:50};
+  // Carbs — high carb staples (rice, pasta, oats, bread)
+  if(ca>=50&&pr<15)return{cat:"Carbs",defAmt:75,maxAmt:150};
+  // Veg — very low calorie
+  if(kcal<40&&ca<10)return{cat:"Veg",defAmt:80,maxAmt:250};
+  // Fruit — low cal, naturally sweet, minimal protein
+  if(kcal<70&&ca>=5&&pr<2&&fa<1)return{cat:"Fruit",defAmt:80,maxAmt:200};
+  // Snack — moderate everything, typically processed
+  if(kcal>=300&&kcal<550&&ca>=20)return{cat:"Snack",defAmt:30,maxAmt:100};
+  // Sauce/condiment — low serving size, high flavour
+  if(kcal<150&&ca>=5&&pr<5)return{cat:"Sauce",defAmt:30,maxAmt:100};
+  // Premade meal — moderate protein + carbs + fat together (like Bhuna)
+  if(pr>=3&&ca>=5&&fa>=2&&kcal>=80)return{cat:"Premade",defAmt:300,maxAmt:500};
+  // Protein-ish — moderate protein that didn't fit above
+  if(pr>=8)return{cat:"Protein",defAmt:100,maxAmt:250};
+  return{cat:"Other",defAmt:100,maxAmt:300};
+}
+
 function App(){
   const initT=(td)=>{const t={};const days=td||["Monday","Tuesday","Thursday","Friday"];DAYS.forEach(d=>{t[d]=days.includes(d)?"training":"rest";});return t;};
   const initC=()=>{const c={};DAYS.forEach(d=>{c[d]={};});return c;};
@@ -1532,6 +1607,7 @@ const [storageReady, setStorageReady] = useState(false);
   const[showReset,setShowReset]=useState(false);
   const[showDeleteAccount,setShowDeleteAccount]=useState(false);
   const[showHomeScreenGuide,setShowHomeScreenGuide]=useState(false);
+  const[showWhatsNew,setShowWhatsNew]=useState(false);
   const[onboardStep,setOB]=useState(1); // 1=goal, 2=training, 3=stats, 4=meals
   const[obMeals,setObMeals]=useState([{name:"Breakfast",time:"08:00"},{name:"Lunch",time:"12:30"},{name:"Dinner",time:"18:00"},{name:"Snack",time:"15:30"}]); // onboarding meal slots
   const[copyFrom,setCopyFrom]=useState(null); // day name when copy picker is open
@@ -1662,6 +1738,13 @@ const [storageReady, setStorageReady] = useState(false);
       }
     }catch{}
   })();},[]);
+
+  // Show What's New if user hasn't seen this patch version
+  useEffect(()=>{
+    if(accessState==="checking"||accessState==="locked")return;
+    const seen=localStorage.getItem("ept:patchSeen");
+    if(seen!==PATCH_VERSION)setShowWhatsNew(true);
+  },[accessState]);
 
   // ── Payment success handler ──────────────────────────────
   // Stripe redirects back to slimroute.co.uk?payment=success after payment
@@ -2104,6 +2187,7 @@ const [storageReady, setStorageReady] = useState(false);
       <style>{`@keyframes pulse{0%,100%{opacity:0.2;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}`}</style>
     </div>)}
     {accessState==="locked"&&<PaywallScreen onRedeem={redeemCode} trialExpired={trialExpired} stripeUrl={stripeUrl}/>}
+    {(accessState==="open"||accessState==="trial")&&showWhatsNew&&<WhatsNewPopup accessState={accessState} onDismiss={()=>{localStorage.setItem("ept:patchSeen",PATCH_VERSION);setShowWhatsNew(false);}}/>}
     {(accessState==="open"||accessState==="trial")&&showHomeScreenGuide&&(()=>{
       const ua=navigator.userAgent;
       const isPWA=window.navigator.standalone||window.matchMedia('(display-mode: standalone)').matches;
@@ -3132,60 +3216,93 @@ const [storageReady, setStorageReady] = useState(false);
           <div style={{display:"flex",gap:5}}><button style={{...S.cb,...(!(nI.food&&nI.cals&&nI.defAmt)?S.cbOff:{})}} disabled={!(nI.food&&nI.cals&&nI.defAmt)} onClick={saveNI}>Save</button><button style={S.sb} onClick={()=>setNIF(false)}>Cancel</button></div>
         </div>):(<div style={{display:"flex",gap:6}}>
           <button style={{flex:1,padding:8,border:"1.5px dashed #475569",borderRadius:8,background:"transparent",color:"#64748b",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"center"}} onClick={()=>setNIF(true)}>{IC.edit(12)} Add manual</button>
-          <button style={{flex:1,padding:8,border:"1.5px dashed rgba(59,130,246,0.4)",borderRadius:8,background:"rgba(23,37,84,0.2)",color:"#93c5fd",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"center",display:"flex",alignItems:"center",justifyContent:"center",gap:4}} onClick={()=>{
-            if(!("BarcodeDetector" in window))return fl("Scanner not available on iPhone — use Android or desktop Chrome");
+          <button style={{flex:1,padding:8,border:"1.5px dashed rgba(59,130,246,0.4)",borderRadius:8,background:"rgba(23,37,84,0.2)",color:"#93c5fd",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"center",display:"flex",alignItems:"center",justifyContent:"center",gap:4,flexDirection:"column"}} onClick={()=>{
+            if(!("BarcodeDetector" in window))return fl("Scanner needs Android Chrome or desktop Chrome — not available on iPhone");
             setScanning(true);
           }}>
-            <svg width="14" height="14" viewBox="0 0 36 36" style={{verticalAlign:"middle"}}><rect x="2" y="2" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><rect x="24" y="2" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><rect x="2" y="24" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><rect x="24" y="24" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><line x1="4" y1="18" x2="32" y2="18" stroke="#f87171" strokeWidth="1.5" strokeDasharray="3,2"/></svg>
-            Scan barcode
+            <div style={{display:"flex",alignItems:"center",gap:4}}>
+              <svg width="14" height="14" viewBox="0 0 36 36" style={{verticalAlign:"middle"}}><rect x="2" y="2" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><rect x="24" y="2" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><rect x="2" y="24" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><rect x="24" y="24" width="10" height="10" rx="2" fill="none" stroke="#93c5fd" strokeWidth="2.5"/><line x1="4" y1="18" x2="32" y2="18" stroke="#f87171" strokeWidth="1.5" strokeDasharray="3,2"/></svg>
+              Scan barcode
+            </div>
+            {!("BarcodeDetector" in window)&&<span style={{fontSize:8,color:"#475569"}}>Android/Chrome only</span>}
           </button>
         </div>)}
 
         {/* BARCODE SCANNER MODAL */}
-        {scanning&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{maxWidth:400,width:"100%",textAlign:"center"}}>
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:700,color:"#f1f5f9",marginBottom:8}}>Scan barcode</div>
-            <div style={{fontSize:10,color:"#94a3b8",marginBottom:12}}>Point your camera at a food barcode</div>
-            <video ref={el=>{
-              if(!el||el.dataset.init)return;el.dataset.init="1";
-              let stopped=false;
-              navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}}).then(stream=>{
-                el.srcObject=stream;
-                el.__stream=stream;
-                if(!("BarcodeDetector" in window)){stream.getTracks().forEach(t=>t.stop());setScanStatus("✗ Scanner not supported on iPhone. Use Android or desktop Chrome");return;}
-                const det=new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e"]});
-                const scan=async()=>{
-                  if(stopped||!el.srcObject)return;
-                  try{const codes=await det.detect(el);
-                    if(codes.length>0){
-                      stopped=true;stream.getTracks().forEach(t=>t.stop());
-                      const code=codes[0].rawValue;
-                      setScanStatus("Found: "+code+" — looking up…");
-                      try{
-                        const resp=await fetch("https://world.openfoodfacts.org/api/v2/product/"+code+".json");
-                        const data=await resp.json();
-                        if(data.status===1&&data.product){
-                          const p=data.product;const n=p.nutriments||{};
-                          const name=(p.product_name||p.product_name_en||"Unknown").slice(0,50);
-                          const cal=Math.round(n["energy-kcal_100g"]||n["energy-kcal"]||0);
-                          const pr=Math.round((n.proteins_100g||0)*10)/10;
-                          const ca=Math.round((n.carbohydrates_100g||0)*10)/10;
-                          const fa=Math.round((n.fat_100g||0)*10)/10;
-                          setNI({food:name,unit:"g",cals:String(cal),p:String(pr),c:String(ca),f:String(fa),defAmt:"100",maxAmt:"300",cat:"Other",barcode:code});
-                          setNIF(true);setScanning(false);setScanStatus("");
-                          fl("Scanned: "+name);
-                        }else{setScanStatus("✗ Product not found — try manual entry");setTimeout(()=>{setScanning(false);setScanStatus("");},2000);}
-                      }catch(e){setScanStatus("✗ Lookup failed: "+e.message);setTimeout(()=>{setScanning(false);setScanStatus("");},2000);}
-                      return;
-                    }
-                  }catch{}
-                  requestAnimationFrame(scan);
-                };
-                el.onloadedmetadata=()=>scan();
-              }).catch(()=>setScanStatus("✗ Camera access denied"));
-            }} style={{width:"100%",borderRadius:12,border:"2px solid rgba(59,130,246,0.4)",background:"#000",maxHeight:300}} autoPlay playsInline muted/>
-            {scanStatus&&<div style={{fontSize:11,color:scanStatus.startsWith("✗")?"#f87171":"#4ade80",marginTop:8,fontWeight:600}}>{scanStatus}</div>}
-            <button style={{marginTop:12,padding:"10px 24px",border:"none",borderRadius:8,background:"rgba(51,65,85,0.6)",color:"#94a3b8",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={()=>{
+        {scanning&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.92)",zIndex:999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{maxWidth:360,width:"100%",textAlign:"center"}}>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>Scan barcode</div>
+            <div style={{fontSize:9,color:"#64748b",marginBottom:10}}>Line up the barcode within the guides</div>
+            {/* Camera + overlay wrapper */}
+            <div style={{position:"relative",width:"100%",borderRadius:12,overflow:"hidden",background:"#000"}}>
+              <video ref={el=>{
+                if(!el||el.dataset.init)return;el.dataset.init="1";
+                let stopped=false;
+                navigator.mediaDevices.getUserMedia({video:{facingMode:"environment",width:{ideal:1280},height:{ideal:720}}}).then(stream=>{
+                  el.srcObject=stream;
+                  el.__stream=stream;
+                  if(!("BarcodeDetector" in window)){stream.getTracks().forEach(t=>t.stop());setScanStatus("✗ Scanner not supported on iPhone. Use Android or desktop Chrome");return;}
+                  const det=new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e"]});
+                  let retries=0;
+                  const scan=async()=>{
+                    if(stopped||!el.srcObject)return;
+                    try{const codes=await det.detect(el);
+                      if(codes.length>0){
+                        stopped=true;stream.getTracks().forEach(t=>t.stop());
+                        const code=codes[0].rawValue;
+                        setScanStatus("🔍 Looking up product…");
+                        try{
+                          const resp=await fetch("https://world.openfoodfacts.org/api/v2/product/"+code+".json");
+                          const data=await resp.json();
+                          if(data.status===1&&data.product){
+                            const p=data.product;const n=p.nutriments||{};
+                            const name=(p.product_name||p.product_name_en||"Unknown").slice(0,50);
+                            const cal=Math.round(n["energy-kcal_100g"]||n["energy-kcal"]||0);
+                            const pr=Math.round((n.proteins_100g||0)*10)/10;
+                            const ca=Math.round((n.carbohydrates_100g||0)*10)/10;
+                            const fa=Math.round((n.fat_100g||0)*10)/10;
+                            const{cat,defAmt,maxAmt}=autoCat(cal,pr,ca,fa);
+                            setNI({food:name,unit:"g",cals:String(cal),p:String(pr),c:String(ca),f:String(fa),defAmt:String(defAmt),maxAmt:String(maxAmt),cat,barcode:code});
+                            setNIF(true);setScanning(false);setScanStatus("");
+                            fl("Scanned: "+name);
+                          }else{
+                            setScanStatus("✗ Product not found — try manual entry");
+                            setTimeout(()=>{setScanning(false);setScanStatus("");},2000);
+                          }
+                        }catch(e){setScanStatus("✗ Lookup failed — tap retry");stopped=false;retries++;}
+                        return;
+                      }else{retries=0;}
+                    }catch{}
+                    requestAnimationFrame(scan);
+                  };
+                  el.onloadedmetadata=()=>scan();
+                }).catch(()=>setScanStatus("✗ Camera access denied"));
+              }} style={{width:"100%",maxHeight:220,objectFit:"cover",display:"block"}} autoPlay playsInline muted/>
+
+              {/* Aiming overlay — purely visual, doesn't affect scanning */}
+              <div style={{position:"absolute",inset:0,pointerEvents:"none"}}>
+                {/* Dark overlay top */}
+                <div style={{position:"absolute",top:0,left:0,right:0,height:"25%",background:"rgba(0,0,0,0.45)"}}/>
+                {/* Dark overlay bottom */}
+                <div style={{position:"absolute",bottom:0,left:0,right:0,height:"25%",background:"rgba(0,0,0,0.45)"}}/>
+                {/* Dark overlay left */}
+                <div style={{position:"absolute",top:"25%",bottom:"25%",left:0,width:"8%",background:"rgba(0,0,0,0.45)"}}/>
+                {/* Dark overlay right */}
+                <div style={{position:"absolute",top:"25%",bottom:"25%",right:0,width:"8%",background:"rgba(0,0,0,0.45)"}}/>
+                {/* Corner brackets */}
+                {[{t:"25%",l:"8%",bt:"2px solid #3b82f6",bl:"2px solid #3b82f6",br:"none",bb:"none"},
+                  {t:"25%",r:"8%",bt:"2px solid #3b82f6",br:"2px solid #3b82f6",bl:"none",bb:"none"},
+                  {b:"25%",l:"8%",bb:"2px solid #3b82f6",bl:"2px solid #3b82f6",br:"none",bt:"none"},
+                  {b:"25%",r:"8%",bb:"2px solid #3b82f6",br:"2px solid #3b82f6",bl:"none",bt:"none"},
+                ].map((s,i)=>(<div key={i} style={{position:"absolute",width:20,height:20,...s}}/>))}
+                {/* Horizontal scan line */}
+                <div style={{position:"absolute",top:"50%",left:"8%",right:"8%",height:1.5,background:"rgba(59,130,246,0.7)",boxShadow:"0 0 6px rgba(59,130,246,0.8)",animation:"scanLine 1.8s ease-in-out infinite"}}/>
+                <style>{`@keyframes scanLine{0%,100%{top:30%}50%{top:70%}}`}</style>
+              </div>
+            </div>
+
+            {scanStatus&&<div style={{fontSize:11,color:scanStatus.startsWith("✗")?"#f87171":"#4ade80",marginTop:8,fontWeight:600,minHeight:18}}>{scanStatus}</div>}
+            <button style={{marginTop:10,padding:"10px 24px",border:"none",borderRadius:8,background:"rgba(51,65,85,0.6)",color:"#94a3b8",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={()=>{
               setScanning(false);setScanStatus("");
               const vids=document.querySelectorAll("video");vids.forEach(v=>{if(v.__stream)v.__stream.getTracks().forEach(t=>t.stop());});
             }}>Cancel</button>
