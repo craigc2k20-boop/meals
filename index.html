@@ -1643,6 +1643,8 @@ const [storageReady, setStorageReady] = useState(false);
   const[hydrationLog,setHydrationLog]=useState([]);
   const[showHydCustom,setShowHydCustom]=useState(false);
   const[hydExpanded,setHydExpanded]=useState(false);
+  const[ingSearch,setIngSearch]=useState("");
+  const[ingCatTab,setIngCatTab]=useState("All");
   const[showHydExpanded,setShowHydExpanded]=useState(false);
   const[hydCustomVal,setHydCustomVal]=useState(""); // minutes remaining until gym window
   const[showMonWI,setShowMonWI]=useState(false); // Monday weight-in modal
@@ -2147,8 +2149,21 @@ const [storageReady, setStorageReady] = useState(false);
     dispatch({type:'SET_CM',cm:newCm});sv(types,checks,newCm,comp,newCal,newMac);fl(`Set ${newCal} kcal · P${newMac.p}% C${newMac.c}% F${newMac.f}%`);
   };
 
-  const saveNI=async()=>{const{food,unit,cals,p,c,f,defAmt,maxAmt,cat,barcode}=nI;if(!food||!cals||!defAmt)return;const id=food.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/-+$/,"");const e={id,food,unit,defAmt:+defAmt,maxAmt:+(maxAmt||defAmt*2),cat:cat||"Other"};if(unit==="piece")e.perUnit={cals:+cals,p:+(p||0),c:+(c||0),f:+(f||0)};else e.per100={cals:+cals,p:+(p||0),c:+(c||0),f:+(f||0)};const u=[...ings,e];setIngs(u);await sI(u);
-    if(barcode){try{await fbDb.collection("sharedIngredients").doc(barcode).set({...e,barcode,addedAt:firebase.firestore.FieldValue.serverTimestamp(),addedBy:window.fbUser?.displayName||window.fbUser?.email||"unknown"});}catch(err){console.warn("Share failed",err);}}
+  const saveNI=async()=>{const{food,unit,cals,p,c,f,defAmt,maxAmt,cat,barcode}=nI;if(!food||!cals||!defAmt)return;const id=food.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/-+$/,"");
+    // Check for duplicate
+    const existing=ings.find(x=>x.id===id||x.food.toLowerCase()===food.toLowerCase());
+    if(existing){
+      if(addSec){addIngSec(sel,addSec,existing.id,addTime?fmtTime24(addTime):"");setAS(null);setAM(null);setAddTime("");}
+      setNI({food:"",unit:"g",cals:"",p:"",c:"",f:"",defAmt:"",maxAmt:"",cat:"Protein",barcode:""});setNIF(false);
+      fl(`${food} is already in your ingredients — added to meal`);return;
+    }
+    const e={id,food,unit,defAmt:+defAmt,maxAmt:+(maxAmt||defAmt*2),cat:cat||"Other"};if(unit==="piece")e.perUnit={cals:+cals,p:+(p||0),c:+(c||0),f:+(f||0)};else e.per100={cals:+cals,p:+(p||0),c:+(c||0),f:+(f||0)};const u=[...ings,e];setIngs(u);await sI(u);
+    if(barcode){try{
+      const existing=await fbDb.collection("sharedIngredients").doc(barcode).get();
+      if(!existing.exists){
+        await fbDb.collection("sharedIngredients").doc(barcode).set({...e,barcode,addedAt:firebase.firestore.FieldValue.serverTimestamp(),addedBy:window.fbUser?.displayName||window.fbUser?.email||"unknown"});
+      }
+    }catch(err){console.warn("Share failed",err);}}
     // If scanning was triggered from a meal section, add it directly to that meal
     if(addSec){addIngSec(sel,addSec,id,addTime?fmtTime24(addTime):"");setAS(null);setAM(null);setAddTime("");}
     setNI({food:"",unit:"g",cals:"",p:"",c:"",f:"",defAmt:"",maxAmt:"",cat:"Protein",barcode:""});setNIF(false);fl("✓ "+food+" added");};
@@ -3399,35 +3414,54 @@ const [storageReady, setStorageReady] = useState(false);
 
       {/* INGREDIENTS TAB */}
       {tab==="ingredients"&&(<div style={{marginTop:4}}>
-        <div style={{fontSize:12,fontWeight:700,color:"#94a3b8",marginBottom:8}}>{ings.length} ingredients</div>
-        <div style={{maxHeight:350,overflowY:"auto",marginBottom:12}}>
-          {Object.keys(catG).map(cat=>(<div key={cat}><div style={{fontSize:10,fontWeight:700,color:"#475569",textTransform:"uppercase",padding:"5px 0 2px"}}>{cat}</div>
-            {catG[cat].map(ing=>(<div key={ing.id} style={{display:"flex",justifyContent:"space-between",padding:"3px 0",borderBottom:"1px solid #1e293b",fontSize:10,color:"#cbd5e1"}}><span>{ing.food}</span><span style={{color:"#64748b"}}>{ing.unit==="piece"?`${ing.perUnit.cals}/pc`:`${ing.per100.cals}/100g`}</span></div>))}</div>))}
+        {/* Search bar */}
+        <div style={{position:"relative",marginBottom:8}}>
+          <input style={{...S.fi,marginBottom:0,paddingLeft:28}} placeholder="Search ingredients…" value={ingSearch} onChange={e=>{setIngSearch(e.target.value);setIngCatTab("All");}}/>
+          <span style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",fontSize:12,color:"#475569",pointerEvents:"none"}}>🔍</span>
+          {ingSearch&&<button onClick={()=>setIngSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"#475569",fontSize:13,cursor:"pointer",padding:0}}>✕</button>}
         </div>
-        {sharedIngs.length>0&&(<div style={{marginBottom:12}}>
-          <div style={{fontSize:10,fontWeight:700,color:"#94a3b8",marginBottom:6,display:"flex",alignItems:"center",gap:4}}>🌐 Community Ingredients <span style={{fontSize:9,color:"#475569",fontWeight:400}}>({sharedIngs.length} scanned by users)</span></div>
-          <div style={{maxHeight:200,overflowY:"auto",display:"flex",flexDirection:"column",gap:3}}>
-            {sharedIngs.map(item=>{
-              const already=!!ings.find(x=>x.id===item.id);
-              const mac=item.unit==="piece"?item.perUnit:item.per100;
-              return(<div key={item.barcode||item.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"5px 8px",borderRadius:8,background:"rgba(30,41,59,0.3)",border:"1px solid rgba(148,163,184,0.07)"}}>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:10,fontWeight:700,color:"#f1f5f9",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{item.food}</div>
-                  <div style={{fontSize:9,color:"#64748b",display:"flex",gap:5}}>
-                    <span>{mac?.cals} kcal</span>
-                    <span style={{color:"#f87171"}}>{mac?.p}P</span>
-                    <span style={{color:"#fbbf24"}}>{mac?.c}C</span>
-                    <span style={{color:"#a78bfa"}}>{mac?.f}F</span>
-                  </div>
+
+        {/* Category tabs — only show when not searching */}
+        {!ingSearch&&(()=>{
+          const cats=["All",...Object.keys(catG).filter(c=>catG[c]?.length>0)];
+          return(<div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:8,paddingBottom:2}}>
+            {cats.map(c=>(<button key={c} onClick={()=>setIngCatTab(c)} style={{padding:"4px 10px",borderRadius:20,border:`1.5px solid ${ingCatTab===c?"rgba(59,130,246,0.6)":"rgba(51,65,85,0.4)"}`,background:ingCatTab===c?"rgba(59,130,246,0.15)":"transparent",color:ingCatTab===c?"#93c5fd":"#64748b",fontSize:9,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>{c}{c!=="All"?` (${catG[c]?.length})`:` (${ings.length})`}</button>))}
+          </div>);
+        })()}
+
+        {/* Ingredient list */}
+        <div style={{maxHeight:350,overflowY:"auto",marginBottom:12}}>
+          {(()=>{
+            const filtered=ings.filter(ing=>
+              (!ingSearch||ing.food.toLowerCase().includes(ingSearch.toLowerCase())) &&
+              (ingCatTab==="All"||ing.cat===ingCatTab)
+            );
+            if(!filtered.length)return(<div style={{fontSize:10,color:"#475569",textAlign:"center",padding:"20px 0"}}>No ingredients found</div>);
+            // When searching, show flat list. When browsing by tab, group by category
+            if(ingSearch||ingCatTab!=="All"){
+              return filtered.map(ing=>(<div key={ing.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 6px",borderBottom:"1px solid #1e293b",fontSize:10,color:"#cbd5e1",borderRadius:4}}>
+                <div>
+                  <span>{ing.food}</span>
+                  {ingSearch&&ing.cat&&<span style={{fontSize:8,color:"#475569",marginLeft:6,background:"rgba(30,41,59,0.6)",padding:"1px 4px",borderRadius:3}}>{ing.cat}</span>}
                 </div>
-                <button style={{marginLeft:8,padding:"3px 8px",borderRadius:5,fontSize:9,fontWeight:700,border:`1px solid ${already?"#334155":"rgba(34,197,94,0.4)"}`,background:"transparent",color:already?"#475569":"#4ade80",cursor:already?"default":"pointer",flexShrink:0}}
-                  disabled={already} onClick={async()=>{if(already)return;const u=[...ings,item];setIngs(u);await sI(u);fl("✓ "+item.food);}}>
-                  {already?"✓ Added":"+ Add"}
-                </button>
+                <span style={{color:"#64748b"}}>{ing.unit==="piece"?`${ing.perUnit?.cals}/pc`:`${ing.per100?.cals}/100g`}</span>
+              </div>));
+            }
+            // Grouped by category
+            return Object.keys(catG).map(cat=>{
+              const items=catG[cat];
+              if(!items?.length)return null;
+              return(<div key={cat}>
+                <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1px",padding:"6px 0 2px"}}>{cat}</div>
+                {items.map(ing=>(<div key={ing.id} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #1e293b",fontSize:10,color:"#cbd5e1"}}>
+                  <span>{ing.food}</span>
+                  <span style={{color:"#64748b"}}>{ing.unit==="piece"?`${ing.perUnit?.cals}/pc`:`${ing.per100?.cals}/100g`}</span>
+                </div>))}
               </div>);
-            })}
-          </div>
-        </div>)}
+            });
+          })()}
+        </div>
+
         {nIF?(<div style={{padding:10,background:"rgba(30,41,59,0.4)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",borderRadius:12,border:"1.5px solid rgba(148,163,184,0.1)"}}>
           <input style={S.fi} placeholder="Food name" value={nI.food} onChange={e=>setNI({...nI,food:e.target.value})}/>
           <div style={{display:"flex",gap:4,marginBottom:4}}><select style={{...S.fi,flex:1}} value={nI.unit} onChange={e=>setNI({...nI,unit:e.target.value})}><option value="g">Per 100g</option><option value="piece">Per piece</option></select>
@@ -3445,7 +3479,6 @@ const [storageReady, setStorageReady] = useState(false);
             Scan barcode
           </button>
         </div>)}
-
       </div>)}
 
       {/* BARCODE SCANNER MODAL — global, works from any tab */}
