@@ -41,7 +41,7 @@ const fbDb = firebase.firestore();
 
 window.fbUser = null;
 window.fbSyncStatus = "";
-window.fbSignOut = () => fbAuth.signOut().then(() => window.location.reload());
+window.fbSignOut = () => {localStorage.removeItem("ept:accessCache");fbAuth.signOut().then(() => window.location.reload());};
 
 let _syncTimer = null;
 function syncToCloud() {
@@ -1530,6 +1530,7 @@ const [storageReady, setStorageReady] = useState(false);
   const[profile,setProfile]=useState(null); // {weight,height,age,gender,activity,bodyFat,waist,sleep,stress,job,goal}
   const[showProfile,setShowProfile]=useState(false);
   const[showReset,setShowReset]=useState(false);
+  const[showDeleteAccount,setShowDeleteAccount]=useState(false);
   const[onboardStep,setOB]=useState(1); // 1=goal, 2=training, 3=stats, 4=meals
   const[obMeals,setObMeals]=useState([{name:"Breakfast",time:"08:00"},{name:"Lunch",time:"12:30"},{name:"Dinner",time:"18:00"},{name:"Snack",time:"15:30"}]); // onboarding meal slots
   const[copyFrom,setCopyFrom]=useState(null); // day name when copy picker is open
@@ -3487,6 +3488,38 @@ const [storageReady, setStorageReady] = useState(false);
                 </div>)}
               </div>
               <button style={{width:"100%",padding:10,border:"1px solid rgba(148,163,184,0.1)",borderRadius:10,background:"rgba(30,41,59,0.3)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",color:"#94a3b8",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"center",marginTop:14}} onClick={()=>{setPF({...profile});setShowProfile(true);}}>{IC.edit(14)} Edit Profile</button>
+
+              {/* Delete Account */}
+              <div style={{marginTop:14,borderTop:"1px solid rgba(148,163,184,0.06)",paddingTop:14}}>
+                {!showDeleteAccount?(<button style={{width:"100%",padding:10,border:"1.5px solid rgba(239,68,68,0.25)",borderRadius:10,background:"transparent",color:"#f87171",fontSize:11,fontWeight:700,cursor:"pointer",textAlign:"center",opacity:0.7}} onClick={()=>setShowDeleteAccount(true)}>🗑 Delete My Account</button>
+                ):(<div style={{padding:14,borderRadius:12,background:"rgba(69,10,10,0.4)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",border:"1.5px solid rgba(239,68,68,0.4)"}}>
+                  <div style={{fontSize:13,fontWeight:700,color:"#f87171",marginBottom:8,textAlign:"center"}}>⚠️ Delete account?</div>
+                  <div style={{fontSize:10,color:"#fca5a5",marginBottom:6,lineHeight:1.6}}>This will permanently delete:</div>
+                  <div style={{fontSize:10,color:"#94a3b8",marginBottom:12,lineHeight:1.8}}>
+                    · All your meals and plans<br/>
+                    · Your weight history and progress<br/>
+                    · Your profile and settings<br/>
+                    · Your subscription / trial access
+                  </div>
+                  <div style={{fontSize:10,fontWeight:700,color:"#f87171",marginBottom:12,textAlign:"center"}}>This cannot be undone.</div>
+                  <div style={{display:"flex",gap:6}}>
+                    <button style={{flex:1,padding:10,border:"none",borderRadius:8,background:"rgba(239,68,68,0.8)",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={async()=>{
+                      try{
+                        // Delete Firestore user document
+                        await fbDb.collection("users").doc(window.fbUser.uid).delete();
+                        // Clear all local storage
+                        const keysToRemove=[];
+                        for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&(k.startsWith("ept:")||k==="ept:accessCache"))keysToRemove.push(k);}
+                        keysToRemove.forEach(k=>localStorage.removeItem(k));
+                        // Sign out and reload
+                        await fbAuth.signOut();
+                        window.location.reload();
+                      }catch(e){fl("Error deleting account — try again");}
+                    }}>Yes, delete everything</button>
+                    <button style={{flex:1,padding:10,border:"1px solid rgba(148,163,184,0.1)",borderRadius:8,background:"rgba(30,41,59,0.4)",color:"#94a3b8",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={()=>setShowDeleteAccount(false)}>Cancel</button>
+                  </div>
+                </div>)}
+              </div>
             </>)}
           </div>);
         })():<div style={{textAlign:"center",padding:30,color:"#475569"}}>
