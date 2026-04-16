@@ -1482,6 +1482,7 @@ const [storageReady, setStorageReady] = useState(false);
   const[accessState,setAccessState]=useState("checking"); // checking|open|trial|locked
   const[trialDaysLeft,setTrialDaysLeft]=useState(7);
   const[trialExpired,setTrialExpired]=useState(false);
+  const[trialEndDate,setTrialEndDate]=useState(null);
   const[isAdmin,setIsAdmin]=useState(false);
   const[adminCodes,setAdminCodes]=useState([]);
   const[adminUsedCodes,setAdminUsedCodes]=useState([]);
@@ -1546,7 +1547,7 @@ const [storageReady, setStorageReady] = useState(false);
         const te=d.trialEnd.toDate();
         if(te>new Date()){
           const daysLeft=Math.max(1,Math.ceil((te-new Date())/86400000));
-          setTrialDaysLeft(daysLeft);setAccessState("trial");return;
+          setTrialDaysLeft(daysLeft);setTrialEndDate(te);setAccessState("trial");return;
         }else{setTrialExpired(true);}
       }
       setAccessState("locked");
@@ -1560,7 +1561,7 @@ const [storageReady, setStorageReady] = useState(false);
           if(d.paid&&d.paidUntil?.toDate()>new Date()){setAccessState("open");return;}
           if(d.trialEnd){
             const te=d.trialEnd.toDate();
-            if(te>new Date()){const daysLeft=Math.max(1,Math.ceil((te-new Date())/86400000));setTrialDaysLeft(daysLeft);setAccessState("trial");return;}
+            if(te>new Date()){const daysLeft=Math.max(1,Math.ceil((te-new Date())/86400000));setTrialDaysLeft(daysLeft);setTrialEndDate(te);setAccessState("trial");return;}
             else{setTrialExpired(true);}
           }
           setAccessState("locked");
@@ -1587,7 +1588,7 @@ const [storageReady, setStorageReady] = useState(false);
       const daysLeft=Math.max(1,Math.ceil((trialEnd-new Date())/86400000));
       await fbDb.collection("users").doc(window.fbUser.uid).set({trialEnd:firebase.firestore.Timestamp.fromDate(trialEnd),trialCode:code},{merge:true});
       await ref.update({usesCount,...(nowUsed?{active:false,used:true}:{}),lastUsedBy:window.fbUser?.email||"unknown",lastUsedAt:firebase.firestore.FieldValue.serverTimestamp()});
-      setTrialDaysLeft(daysLeft);setAccessState("trial");
+      setTrialDaysLeft(daysLeft);setTrialEndDate(trialEnd);setAccessState("trial");
       return true;
     }catch(e){return"Error redeeming code";}
   };
@@ -2036,7 +2037,7 @@ const [storageReady, setStorageReady] = useState(false);
     {(accessState==="open"||accessState==="trial")&&(
     <div style={{...S.wrap,boxShadow:T.wrapGlow,transition:"box-shadow .5s"}} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       {accessState==="trial"&&<div style={{background:"rgba(251,191,36,0.15)",border:"1px solid rgba(251,191,36,0.3)",borderRadius:8,padding:"6px 12px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <span style={{fontSize:10,fontWeight:600,color:"#fbbf24"}}>⏱ {trialDaysLeft>=1440?`${Math.ceil(trialDaysLeft/1440)} day${Math.ceil(trialDaysLeft/1440)!==1?"s":""}`:`${trialDaysLeft>=60?`${Math.ceil(trialDaysLeft/60)} hour${Math.ceil(trialDaysLeft/60)!==1?"s":""}`:`${trialDaysLeft} min${trialDaysLeft!==1?"s":""}`}`} left in your free trial</span>
+        <span style={{fontSize:10,fontWeight:600,color:"#fbbf24"}}>⏱ Free trial {trialEndDate?`ends ${trialEndDate.toLocaleString("en-GB",{timeZone:"Europe/London",day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})} UK time`:"active"}</span>
         <button onClick={()=>window.open("https://buy.stripe.com/PLACEHOLDER","_blank")} style={{fontSize:9,fontWeight:700,color:"#fbbf24",background:"rgba(251,191,36,0.2)",border:"1px solid rgba(251,191,36,0.4)",borderRadius:5,padding:"2px 8px",cursor:"pointer"}}>Unlock £4.99/yr</button>
       </div>}
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet"/>
