@@ -1529,7 +1529,7 @@ const [storageReady, setStorageReady] = useState(false);
       if(d.paid&&d.paidUntil?.toDate()>new Date()){setAccessState("open");return;}
       if(d.trialEnd){
         const te=d.trialEnd.toDate();
-        if(te>new Date()){const days=Math.ceil((te-new Date())/(86400000));setTrialDaysLeft(days);setAccessState("trial");return;}
+        if(te>new Date()){const minsLeft=Math.ceil((te-new Date())/60000);const days=Math.ceil(minsLeft/1440);setTrialDaysLeft(minsLeft);setAccessState("trial");return;}
       }
       setAccessState("locked");
     }catch{setAccessState("locked");}
@@ -1541,10 +1541,11 @@ const [storageReady, setStorageReady] = useState(false);
       const doc=await ref.get();
       if(!doc.exists||!doc.data().active)return"Code not found or already used";
       if(doc.data().expiryAt&&doc.data().expiryAt.toDate()<new Date())return"This code has expired";
-      const trialEnd=new Date();trialEnd.setDate(trialEnd.getDate()+7);
+      const trialEnd=doc.data().expiryAt?doc.data().expiryAt.toDate():(()=>{const d=new Date();d.setDate(d.getDate()+7);return d;})();
       await fbDb.collection("users").doc(window.fbUser.uid).set({trialEnd:firebase.firestore.Timestamp.fromDate(trialEnd),trialCode:code},{merge:true});
       await ref.delete();
-      setTrialDaysLeft(7);setAccessState("trial");
+      const minsLeft=Math.ceil((trialEnd-new Date())/60000);
+      setTrialDaysLeft(minsLeft);setAccessState("trial");
       return true;
     }catch(e){return"Error redeeming code";}
   };
@@ -1987,7 +1988,7 @@ const [storageReady, setStorageReady] = useState(false);
     {(accessState==="open"||accessState==="trial")&&(
     <div style={{...S.wrap,boxShadow:T.wrapGlow,transition:"box-shadow .5s"}} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       {accessState==="trial"&&<div style={{background:"rgba(251,191,36,0.15)",border:"1px solid rgba(251,191,36,0.3)",borderRadius:8,padding:"6px 12px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <span style={{fontSize:10,fontWeight:600,color:"#fbbf24"}}>⏱ {trialDaysLeft} day{trialDaysLeft!==1?"s":""} left in your free trial</span>
+        <span style={{fontSize:10,fontWeight:600,color:"#fbbf24"}}>⏱ {trialDaysLeft>=1440?`${Math.ceil(trialDaysLeft/1440)} day${Math.ceil(trialDaysLeft/1440)!==1?"s":""}`:`${trialDaysLeft>=60?`${Math.ceil(trialDaysLeft/60)} hour${Math.ceil(trialDaysLeft/60)!==1?"s":""}`:`${trialDaysLeft} min${trialDaysLeft!==1?"s":""}`}`} left in your free trial</span>
         <button onClick={()=>window.open("https://buy.stripe.com/PLACEHOLDER","_blank")} style={{fontSize:9,fontWeight:700,color:"#fbbf24",background:"rgba(251,191,36,0.2)",border:"1px solid rgba(251,191,36,0.4)",borderRadius:5,padding:"2px 8px",cursor:"pointer"}}>Unlock £4.99/yr</button>
       </div>}
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet"/>
@@ -2186,7 +2187,12 @@ const [storageReady, setStorageReady] = useState(false);
           </div>)}
           <div style={{display:"flex",gap:6}}>
             <button style={{...S.sb,flex:0,padding:"10px 16px"}} onClick={()=>setOB(1)}>← Back</button>
-            <button style={{...S.cb,flex:1,padding:12,fontSize:13,...(profForm.trainingCount>0&&(profForm.trainingDays||[]).length<profForm.trainingCount?S.cbOff:{})}} disabled={profForm.trainingCount>0&&(profForm.trainingDays||[]).length<profForm.trainingCount} onClick={()=>setOB(3)}>Next →</button>
+            <button style={{...S.cb,flex:1,padding:12,fontSize:13,...(profForm.trainingCount>0&&(profForm.trainingDays||[]).length<profForm.trainingCount?S.cbOff:{})}} disabled={profForm.trainingCount>0&&(profForm.trainingDays||[]).length<profForm.trainingCount} onClick={()=>{
+              const c=profForm.trainingCount||0;
+              const act=c===0?"sedentary":c<=2?"light":c<=4?"moderate":c<=5?"active":"very";
+              setPF({...profForm,activity:act});
+              setOB(3);
+            }}>Next →</button>
           </div>
         </div>)}
 
@@ -2206,9 +2212,13 @@ const [storageReady, setStorageReady] = useState(false);
             <div style={{flex:1}}><label style={S.lbl}>Body fat % (optional)</label><input style={S.fi} type="number" placeholder="e.g. 18" value={profForm.bodyFat} onChange={e=>setPF({...profForm,bodyFat:e.target.value})}/>
               <span style={{fontSize:9,color:"#475569"}}>{profForm.bodyFat?"Katch-McArdle":"Mifflin-St Jeor"}</span></div>
             <div style={{flex:1}}><label style={S.lbl}>Waist <button style={{background:"none",border:"none",color:T.accent,fontSize:8,fontWeight:700,cursor:"pointer",padding:0}} onClick={()=>{const cur=profForm.waistUnit||"in";const nv=cur==="in"?"cm":"in";const wv=profForm.waist?cur==="in"?String(+(parseFloat(profForm.waist)*2.54).toFixed(1)):String(cmToIn(profForm.waist)):profForm.waist;setPF({...profForm,waistUnit:nv,waist:wv});}}>{(profForm.waistUnit||"in")==="in"?"in ⇄ cm":"cm ⇄ in"}</button></label><input style={S.fi} type="number" step="0.1" placeholder={profForm.waistUnit==="cm"?"86":"34"} value={profForm.waist} onChange={e=>setPF({...profForm,waist:e.target.value})}/></div></div>
-          <div style={{marginBottom:5}}><label style={S.lbl}>Activity Level</label>
-            <select style={S.fi} value={profForm.activity} onChange={e=>setPF({...profForm,activity:e.target.value})}>
-              <option value="sedentary">Sedentary</option><option value="light">Light (1-2/wk)</option><option value="moderate">Moderate (3-4/wk)</option><option value="active">Active (4-5/wk)</option><option value="very">Very Active (6-7)</option></select></div>
+          <div style={{marginBottom:5,opacity:0.5}}>
+            <label style={S.lbl}>Activity Level <span style={{fontSize:8,color:"#3b82f6",fontWeight:600,textTransform:"none",letterSpacing:0}}>— set from training days</span></label>
+            <div style={{...S.fi,color:"#64748b",cursor:"default",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span>{{sedentary:"Sedentary",light:"Light (1-2/wk)",moderate:"Moderate (3-4/wk)",active:"Active (4-5/wk)",very:"Very Active (6-7)"}[profForm.activity]||"Moderate (3-4/wk)"}</span>
+              <span style={{fontSize:8,color:"#334155"}}>🔒</span>
+            </div>
+          </div>
           <div style={{display:"flex",gap:5,marginBottom:5}}>
             <div style={{flex:1}}><label style={S.lbl}>Day job</label><select style={S.fi} value={profForm.job} onChange={e=>setPF({...profForm,job:e.target.value})}>
               <option value="desk">Desk</option><option value="mixed">Mixed</option><option value="active">Active</option></select></div>
@@ -3134,7 +3144,10 @@ const [storageReady, setStorageReady] = useState(false);
             {profTab==="training"&&(<>
               <div style={{background:"rgba(30,41,59,0.35)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",padding:"2px 14px",marginBottom:12}}>
                 {row("Goal",goalLabels[profile.goal]||profile.goal,{aggressive:"#f87171",lose:"#fbbf24",maintain:"#4ade80",gain:"#93c5fd",bulk:"#a78bfa"}[profile.goal])}
-                {row("Activity",actLabels[profile.activity]||profile.activity)}
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid rgba(148,163,184,0.06)",opacity:0.5}}>
+                  <span style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.2px"}}>Activity Level <span style={{fontSize:7,color:"#3b82f6",textTransform:"none",letterSpacing:0,fontWeight:600}}>— from training days</span></span>
+                  <span style={{fontSize:12,fontWeight:700,color:"#e2e8f0"}}>{actLabels[profile.activity]||profile.activity} 🔒</span>
+                </div>
                 {row("Training Days",(profile.trainingCount||0)+"/week")}
               </div>
               {td.length>0&&(<div style={{background:"rgba(30,41,59,0.35)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",padding:12,marginBottom:12}}>
@@ -3496,7 +3509,7 @@ const [storageReady, setStorageReady] = useState(false);
           </div>
           {/* Expiry date + time */}
           <div style={{marginBottom:8}}>
-            <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:6}}>Expiry (optional) — UK Time</div>
+            <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:6}}>Trial ends at (optional) — UK Time <span style={{color:"#334155",fontWeight:400,textTransform:"none",letterSpacing:0}}>· leave blank for 7 days from redemption</span></div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               {/* Date picker */}
               <input type="date" style={{...S.fi,flex:1,marginBottom:0,colorScheme:"dark"}} value={adminExpDate} onChange={e=>setAdminExpDate(e.target.value)} min={new Date().toISOString().slice(0,10)}/>
@@ -3517,7 +3530,7 @@ const [storageReady, setStorageReady] = useState(false);
               <button onClick={()=>setAdminExpAmPm(a=>a==="AM"?"PM":"AM")} style={{padding:"6px 10px",borderRadius:8,border:`1.5px solid ${adminExpAmPm==="AM"?"rgba(59,130,246,0.5)":"rgba(249,115,22,0.5)"}`,background:adminExpAmPm==="AM"?"rgba(23,37,84,0.4)":"rgba(67,20,7,0.4)",color:adminExpAmPm==="AM"?"#93c5fd":"#fdba74",fontSize:13,fontWeight:700,cursor:"pointer",minWidth:44,textAlign:"center"}}>{adminExpAmPm}</button>
               {adminExpDate&&<button onClick={()=>setAdminExpDate("")} style={{fontSize:9,color:"#64748b",background:"none",border:"none",cursor:"pointer",padding:2,whiteSpace:"nowrap"}}>Clear</button>}
             </div>
-            {adminExpDate&&<div style={{fontSize:9,color:"#fbbf24",marginTop:4}}>⏰ Expires: {new Date(`${adminExpDate}T${String((adminExpHour%12)+(adminExpAmPm==="PM"?12:0)).padStart(2,"0")}:${String(adminExpMin).padStart(2,"0")}:00`).toLocaleString("en-GB",{timeZone:"Europe/London",day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})} UK time</div>}
+            {adminExpDate&&<div style={{fontSize:9,color:"#fbbf24",marginTop:4}}>⏰ Trial ends: {new Date(`${adminExpDate}T${String((adminExpHour%12)+(adminExpAmPm==="PM"?12:0)).padStart(2,"0")}:${String(adminExpMin).padStart(2,"0")}:00`).toLocaleString("en-GB",{timeZone:"Europe/London",day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})} UK time</div>}
           </div>
           <div style={{fontSize:9,color:"#475569"}}>Leave code blank to auto-generate. Single-use — self-destructs on redemption. Gives 7 days free access.</div>
         </div>
