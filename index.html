@@ -1124,8 +1124,18 @@ function PaywallScreen({onRedeem}){
   const[codeBusy,setCodeBusy]=useState(false);
   const[expandedMeal,setExpandedMeal]=useState(null);
   const[showInfo,setShowInfo]=useState(false);
+  const[selectedDay,setSelectedDay]=useState(2);
   const[lockedItems,setLockedItems]=useState({"dm1-2":true,"dm2-0":true,"dm4-0":true});
   const[amounts,setAmounts]=useState({});
+  const DM_DAY_DATA=[
+    {day:"Monday",type:"rest",done:true,cals:1847,target:1854,p:142,c:164,f:50,meals:[{name:"Breakfast",cals:487},{name:"Lunch",cals:618},{name:"Snack",cals:198},{name:"Dinner",cals:544}]},
+    {day:"Tuesday",type:"training",done:true,cals:2271,target:2280,p:181,c:227,f:61,meals:[{name:"Breakfast",cals:487},{name:"Lunch",cals:618},{name:"Pre-Workout",cals:287},{name:"Snack",cals:198},{name:"Dinner",cals:681}]},
+    {day:"Wednesday",type:"training",done:false,current:true},
+    {day:"Thursday",type:"rest",done:true,cals:1861,target:1854,p:147,c:166,f:52,meals:[{name:"Breakfast",cals:487},{name:"Lunch",cals:618},{name:"Snack",cals:198},{name:"Dinner",cals:558}]},
+    {day:"Friday",type:"training",done:true,cals:2280,target:2280,p:183,c:228,f:62,meals:[{name:"Breakfast",cals:487},{name:"Lunch",cals:618},{name:"Pre-Workout",cals:376},{name:"Snack",cals:198},{name:"Dinner",cals:601}]},
+    {day:"Saturday",type:"training",done:true,cals:2253,target:2280,p:178,c:224,f:60,meals:[{name:"Breakfast",cals:512},{name:"Lunch",cals:645},{name:"Snack",cals:198},{name:"Dinner",cals:601},{name:"Eve Snack",cals:297}]},
+    {day:"Sunday",type:"rest",done:false,current:false,meals:[{name:"Breakfast",cals:487},{name:"Lunch",cals:618},{name:"Snack",cals:198},{name:"Dinner",cals:551}]},
+  ];
   const totalDummy=DM_MEALS.reduce((s,m)=>s+m.cals,0);
   const today=new Date();
   const dummyDates=DAYS.map((_,i)=>{const d=new Date(today);d.setDate(d.getDate()-today.getDay()+i+1);return d;});
@@ -1182,13 +1192,14 @@ function PaywallScreen({onRedeem}){
       <div style={{width:32,height:32,borderRadius:8,border:"1px solid rgba(148,163,184,0.1)",background:"rgba(30,41,59,0.4)",display:"flex",alignItems:"center",justifyContent:"center",color:"#94a3b8",fontSize:17}}>›</div>
     </div>
 
-    {/* Day strip dummy */}
+    {/* Day strip — clickable */}
     <div style={{display:"flex",gap:3,marginBottom:10,overflowX:"auto"}}>
-      {DAYS.map((d,i)=>{const isS=i===2;const done=DM_DAYS_DONE[i];
-        return(<div key={d} style={{flex:1,minWidth:42,padding:"5px 2px 4px",borderRadius:10,border:`1.5px solid ${isS?"#3b82f6":"rgba(30,41,59,0.6)"}`,borderTop:`3px solid ${done?"#22c55e":isS?"#f97316":"#475569"}`,background:isS?"rgba(124,45,18,0.3)":"rgba(15,23,42,0.5)",textAlign:"center"}}>
-          <div style={{fontSize:8,fontWeight:700,color:isS?"#fb923c":"#64748b",textTransform:"uppercase",letterSpacing:"1px"}}>{DS[i]}</div>
+      {DAYS.map((d,i)=>{const isS=i===selectedDay;const done=DM_DAYS_DONE[i];const isCurrent=i===2;
+        const accentCol=DM_DAY_DATA[i].type==="training"?"#f97316":"#06b6d4";
+        return(<div key={d} onClick={()=>{setSelectedDay(i);setExpandedMeal(null);setTab("meals");}} style={{flex:1,minWidth:42,padding:"5px 2px 4px",borderRadius:10,border:`1.5px solid ${isS?accentCol:"rgba(30,41,59,0.6)"}`,borderTop:`3px solid ${done?"#22c55e":isCurrent?accentCol:"#334155"}`,background:isS?`rgba(${DM_DAY_DATA[i].type==="training"?"124,45,18":"21,94,117"},0.3)`:"rgba(15,23,42,0.5)",textAlign:"center",cursor:"pointer",transition:"all .15s",boxShadow:isS?`0 0 0 2px ${accentCol}30`:"none"}}>
+          <div style={{fontSize:8,fontWeight:700,color:isS?accentCol:"#64748b",textTransform:"uppercase",letterSpacing:"1px"}}>{DS[i]}</div>
           <div style={{fontFamily:"'Fraunces',serif",fontSize:15,fontWeight:700,color:isS?"#fff":"#94a3b8"}}>{dummyDates[i].getDate()}</div>
-          <div style={{fontSize:10}}>{done?"✓":isS?"🏋":"·"}</div>
+          <div style={{fontSize:10}}>{done?"✓":isCurrent?DM_DAY_DATA[i].type==="training"?"🏋":"😴":"·"}</div>
         </div>);
       })}
     </div>
@@ -1199,64 +1210,124 @@ function PaywallScreen({onRedeem}){
     </div>
 
     {/* MEALS tab */}
-    {tab==="meals"&&(<>
+    {tab==="meals"&&(()=>{
+      const dayData=DM_DAY_DATA[selectedDay];
+      const accentCol=dayData.type==="training"?"#f97316":"#06b6d4";
+      const accentBg=dayData.type==="training"?"rgba(124,45,18,0.4)":"rgba(21,94,117,0.4)";
+      const typeLabel=dayData.type==="training"?"🏋 Train":"😴 Rest";
+
+      return(<>
+      {/* Day header */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
         <div>
-          <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:700,color:"#f1f5f9"}}>Wednesday</div>
-          <span style={{fontSize:10,color:"#64748b",textTransform:"uppercase",letterSpacing:".6px"}}>{dummyDates[2].getDate()} {dummyDates[2].toLocaleString("en-GB",{month:"short"})}</span>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:700,color:"#f1f5f9",display:"flex",alignItems:"center",gap:8}}>
+            {dayData.day}
+            {dayData.done&&<span style={{fontSize:12,background:"rgba(34,197,94,0.15)",border:"1px solid rgba(34,197,94,0.3)",color:"#4ade80",borderRadius:6,padding:"2px 7px",fontFamily:"'DM Sans',sans-serif",fontWeight:700}}>✓ Done</span>}
+          </div>
+          <span style={{fontSize:10,color:"#64748b",textTransform:"uppercase",letterSpacing:".6px"}}>{dummyDates[selectedDay].getDate()} {dummyDates[selectedDay].toLocaleString("en-GB",{month:"short"})}</span>
         </div>
-        <div style={{padding:"6px 10px",borderRadius:8,background:"rgba(124,45,18,0.4)",color:"#fb923c",fontSize:11,fontWeight:700}}>🏋 Train</div>
+        <div style={{padding:"6px 10px",borderRadius:8,background:accentBg,color:accentCol,fontSize:11,fontWeight:700}}>{typeLabel}</div>
       </div>
-      <div style={{display:"flex",justifyContent:"space-between",padding:"6px 10px",borderRadius:8,background:"rgba(10,15,30,0.3)",marginBottom:8}}>
-        <span style={{fontSize:9,color:"#64748b",fontWeight:600}}>💧 Hydration target</span>
-        <span style={{fontSize:9,color:"#4ade80",fontWeight:700}}>2,750 ml</span>
-      </div>
-      <div style={{display:"flex",flexDirection:"column",gap:6}}>
-        {DM_MEALS.map(m=>{
-          const isExp=expandedMeal===m.id;
-          return(<div key={m.id} style={{background:"rgba(30,41,59,0.35)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",overflow:"hidden"}}>
-            {/* Meal header — tap to expand */}
-            <div onClick={()=>setExpandedMeal(isExp?null:m.id)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 12px",cursor:"pointer"}}>
-              <div>
-                <div style={{fontSize:13,fontWeight:700,color:"#f1f5f9"}}>{m.name}</div>
-                <div style={{fontSize:10,color:"#64748b"}}>{m.time} · {m.cals} kcal · P{m.p}g C{m.c}g F{m.f}g</div>
-              </div>
-              <div style={{display:"flex",alignItems:"center",gap:6}}>
-                <div style={{width:26,height:26,borderRadius:6,border:"2px solid rgba(71,85,105,0.6)",background:"rgba(15,23,42,0.5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"#475569"}}>·</div>
-                <span style={{fontSize:12,color:"#64748b",transition:"transform .2s",display:"inline-block",transform:isExp?"rotate(180deg)":"rotate(0deg)"}}>▼</span>
-              </div>
+
+      {/* COMPLETED DAY — summary view */}
+      {dayData.done&&(<>
+        {/* Calorie summary bar */}
+        <div style={{background:"rgba(30,41,59,0.35)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",padding:14,marginBottom:10}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <span style={{fontSize:11,fontWeight:700,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"1px"}}>Day Summary</span>
+            <span style={{fontSize:14,fontWeight:700,color:dayData.cals<=dayData.target+50?"#4ade80":"#fbbf24"}}>{dayData.cals} / {dayData.target} kcal</span>
+          </div>
+          {/* Progress bar */}
+          <div style={{height:6,borderRadius:3,background:"rgba(30,41,59,0.6)",overflow:"hidden",marginBottom:10}}>
+            <div style={{height:"100%",borderRadius:3,width:`${Math.min(100,dayData.cals/dayData.target*100)}%`,background:dayData.cals<=dayData.target+50?"#4ade80":"#fbbf24",transition:"width .4s"}}/>
+          </div>
+          {/* Macro row */}
+          <div style={{display:"flex",gap:8}}>
+            {[{l:"Protein",v:dayData.p+"g",col:"#f87171"},{l:"Carbs",v:dayData.c+"g",col:"#fbbf24"},{l:"Fat",v:dayData.f+"g",col:"#a78bfa"}].map(m=>(<div key={m.l} style={{flex:1,background:"rgba(15,23,42,0.4)",borderRadius:8,padding:"6px",textAlign:"center"}}>
+              <div style={{fontSize:8,color:"#475569",textTransform:"uppercase",marginBottom:2}}>{m.l}</div>
+              <div style={{fontSize:13,fontWeight:700,color:m.col}}>{m.v}</div>
+            </div>))}
+          </div>
+        </div>
+        {/* Meal list — read only, all checked */}
+        <div style={{display:"flex",flexDirection:"column",gap:5}}>
+          {dayData.meals.map((m,i)=>(<div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 12px",borderRadius:10,background:"rgba(30,41,59,0.25)",border:"1px solid rgba(34,197,94,0.1)"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{width:22,height:22,borderRadius:5,background:"rgba(34,197,94,0.85)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#052e16",flexShrink:0}}>✓</div>
+              <span style={{fontSize:12,fontWeight:600,color:"#cbd5e1"}}>{m.name}</span>
             </div>
-            {/* Expanded ingredient detail */}
-            {isExp&&(<div style={{borderTop:"1px solid rgba(148,163,184,0.06)",padding:"8px 12px",display:"flex",flexDirection:"column",gap:6}}>
-              {m.items.map((it,j)=>{
-                const key=`${m.id}-${j}`;
-                const locked=lockedItems[key]??it.locked;
-                const amt=getAmt(m.id,j,it.amt);
-                return(<div key={j} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 8px",borderRadius:8,background:"rgba(15,23,42,0.4)",border:`1px solid ${locked?"rgba(249,115,22,0.2)":"rgba(148,163,184,0.06)"}`}}>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:11,fontWeight:600,color:"#e2e8f0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{it.name}</div>
-                    <div style={{fontSize:9,color:"#64748b"}}>{it.cals} kcal · P{it.p}g C{it.c}g F{it.f}g</div>
-                  </div>
-                  {/* Amount controls */}
-                  <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
-                    <button onClick={()=>adjAmt(m.id,j,it.amt,-5)} disabled={locked} style={{width:20,height:20,borderRadius:4,border:"1px solid rgba(148,163,184,0.15)",background:"rgba(30,41,59,0.5)",color:locked?"#334155":"#94a3b8",fontSize:12,cursor:locked?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>−</button>
-                    <span style={{fontSize:11,fontWeight:700,color:locked?"#f97316":"#e2e8f0",minWidth:36,textAlign:"center"}}>{amt}{it.unit}</span>
-                    <button onClick={()=>adjAmt(m.id,j,it.amt,5)} disabled={locked} style={{width:20,height:20,borderRadius:4,border:"1px solid rgba(148,163,184,0.15)",background:"rgba(30,41,59,0.5)",color:locked?"#334155":"#94a3b8",fontSize:12,cursor:locked?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>+</button>
-                  </div>
-                  {/* Lock button */}
-                  <button onClick={()=>toggleLock(key)} style={{width:24,height:24,borderRadius:5,border:`1px solid ${locked?"rgba(249,115,22,0.4)":"rgba(148,163,184,0.15)"}`,background:locked?"rgba(124,45,18,0.3)":"rgba(30,41,59,0.4)",color:locked?"#f97316":"#475569",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexShrink:0}}>{locked?"🔒":"🔓"}</button>
-                </div>);
-              })}
-              <div style={{fontSize:8,color:"#334155",textAlign:"center",marginTop:2}}>🔒 Locked ingredients stay fixed when the app rebalances your meals</div>
-            </div>)}
-          </div>);
-        })}
-      </div>
-      <div style={{marginTop:10,padding:"8px 12px",borderRadius:10,background:"rgba(30,41,59,0.3)",display:"flex",justifyContent:"space-between"}}>
-        <span style={{fontSize:11,fontWeight:700,color:"#fbbf24"}}>Daily Total</span>
-        <span style={{fontSize:11,fontWeight:700,color:"#fbbf24"}}>{totalDummy} kcal</span>
-      </div>
-    </>)}
+            <span style={{fontSize:11,color:"#64748b",fontWeight:600}}>{m.cals} kcal</span>
+          </div>))}
+        </div>
+        <div style={{fontSize:8,color:"#334155",textAlign:"center",marginTop:8}}>Read only — completed days are locked</div>
+      </>)}
+
+      {/* CURRENT DAY — expandable live meals */}
+      {dayData.current&&(<>
+        <div style={{display:"flex",justifyContent:"space-between",padding:"6px 10px",borderRadius:8,background:"rgba(10,15,30,0.3)",marginBottom:8}}>
+          <span style={{fontSize:9,color:"#64748b",fontWeight:600}}>💧 Hydration target</span>
+          <span style={{fontSize:9,color:"#4ade80",fontWeight:700}}>2,750 ml</span>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          {DM_MEALS.map(m=>{
+            const isExp=expandedMeal===m.id;
+            return(<div key={m.id} style={{background:"rgba(30,41,59,0.35)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",overflow:"hidden"}}>
+              <div onClick={()=>setExpandedMeal(isExp?null:m.id)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 12px",cursor:"pointer"}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:700,color:"#f1f5f9"}}>{m.name}</div>
+                  <div style={{fontSize:10,color:"#64748b"}}>{m.time} · {m.cals} kcal · P{m.p}g C{m.c}g F{m.f}g</div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <div style={{width:26,height:26,borderRadius:6,border:"2px solid rgba(71,85,105,0.6)",background:"rgba(15,23,42,0.5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"#475569"}}>·</div>
+                  <span style={{fontSize:12,color:"#64748b",display:"inline-block",transform:isExp?"rotate(180deg)":"rotate(0deg)",transition:"transform .2s"}}>▼</span>
+                </div>
+              </div>
+              {isExp&&(<div style={{borderTop:"1px solid rgba(148,163,184,0.06)",padding:"8px 12px",display:"flex",flexDirection:"column",gap:6}}>
+                {m.items.map((it,j)=>{
+                  const key=`${m.id}-${j}`;const locked=lockedItems[key]??it.locked;const amt=getAmt(m.id,j,it.amt);
+                  return(<div key={j} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 8px",borderRadius:8,background:"rgba(15,23,42,0.4)",border:`1px solid ${locked?"rgba(249,115,22,0.2)":"rgba(148,163,184,0.06)"}`}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:11,fontWeight:600,color:"#e2e8f0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{it.name}</div>
+                      <div style={{fontSize:9,color:"#64748b"}}>{it.cals} kcal · P{it.p}g C{it.c}g F{it.f}g</div>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
+                      <button onClick={()=>adjAmt(m.id,j,it.amt,-5)} disabled={locked} style={{width:20,height:20,borderRadius:4,border:"1px solid rgba(148,163,184,0.15)",background:"rgba(30,41,59,0.5)",color:locked?"#334155":"#94a3b8",fontSize:12,cursor:locked?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>−</button>
+                      <span style={{fontSize:11,fontWeight:700,color:locked?"#f97316":"#e2e8f0",minWidth:36,textAlign:"center"}}>{amt}{it.unit}</span>
+                      <button onClick={()=>adjAmt(m.id,j,it.amt,5)} disabled={locked} style={{width:20,height:20,borderRadius:4,border:"1px solid rgba(148,163,184,0.15)",background:"rgba(30,41,59,0.5)",color:locked?"#334155":"#94a3b8",fontSize:12,cursor:locked?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>+</button>
+                    </div>
+                    <button onClick={()=>toggleLock(key)} style={{width:24,height:24,borderRadius:5,border:`1px solid ${locked?"rgba(249,115,22,0.4)":"rgba(148,163,184,0.15)"}`,background:locked?"rgba(124,45,18,0.3)":"rgba(30,41,59,0.4)",color:locked?"#f97316":"#475569",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexShrink:0}}>{locked?"🔒":"🔓"}</button>
+                  </div>);
+                })}
+                <div style={{fontSize:8,color:"#334155",textAlign:"center",marginTop:2}}>🔒 Locked ingredients stay fixed when the app rebalances your meals</div>
+              </div>)}
+            </div>);
+          })}
+        </div>
+        <div style={{marginTop:10,padding:"8px 12px",borderRadius:10,background:"rgba(30,41,59,0.3)",display:"flex",justifyContent:"space-between"}}>
+          <span style={{fontSize:11,fontWeight:700,color:"#fbbf24"}}>Daily Total</span>
+          <span style={{fontSize:11,fontWeight:700,color:"#fbbf24"}}>{DM_MEALS.reduce((s,m)=>s+m.cals,0)} kcal</span>
+        </div>
+      </>)}
+
+      {/* UPCOMING DAY — planned but not done */}
+      {!dayData.done&&!dayData.current&&(<>
+        <div style={{background:"rgba(30,41,59,0.25)",borderRadius:12,border:"1px solid rgba(148,163,184,0.06)",padding:14,marginBottom:10,textAlign:"center"}}>
+          <div style={{fontSize:20,marginBottom:4}}>📅</div>
+          <div style={{fontSize:12,fontWeight:700,color:"#64748b",marginBottom:2}}>Upcoming day</div>
+          <div style={{fontSize:10,color:"#475569"}}>Meals will be shown here on {dayData.day}</div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:5}}>
+          {dayData.meals.map((m,i)=>(<div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 12px",borderRadius:10,background:"rgba(30,41,59,0.2)",border:"1px solid rgba(148,163,184,0.05)",opacity:0.6}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{width:22,height:22,borderRadius:5,border:"2px solid rgba(71,85,105,0.4)",background:"rgba(15,23,42,0.4)",flexShrink:0}}/>
+              <span style={{fontSize:12,fontWeight:600,color:"#64748b"}}>{m.name}</span>
+            </div>
+            <span style={{fontSize:11,color:"#475569"}}>{m.cals} kcal</span>
+          </div>))}
+        </div>
+      </>)}
+      </>);
+    })()}
 
     {/* INGREDIENTS tab */}
     {tab==="ingredients"&&(<div>
