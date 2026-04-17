@@ -65,12 +65,16 @@ function syncToCloud() {
   });
 }
 function debounceSyncToCloud() {
+  localStorage.setItem("ept:lastActive", String(Date.now()));
   if (_syncTimer) clearTimeout(_syncTimer);
   _syncTimer = setTimeout(syncToCloud, 2000);
 }
 
 async function syncFromCloud() {
   if (!window.fbUser) return;
+  // Don't overwrite local data if user was active in last 30 seconds
+  const lastLocal=parseInt(localStorage.getItem("ept:lastActive")||"0");
+  if(Date.now()-lastLocal<30000){window.fbSyncStatus="Skipped (recent local activity)";return;}
   try {
     const doc = await fbDb.collection("users").doc(window.fbUser.uid).get();
     if (doc.exists && doc.data().data) {
@@ -115,24 +119,6 @@ window.storage = {
 </head>
 <body>
 <div id="root" style="display:none"></div>
-<div id="signin-gate" style="display:none;min-height:100vh;background:linear-gradient(145deg,#0a0f1e 0%,#0f172a 40%,#111827 100%);align-items:center;justify-content:center">
-  <div style="text-align:center;padding:40px 20px;max-width:360px">
-    <img src="data:image/png;base64,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" alt="SlimRoute" style="width:120px;margin-bottom:20px;border-radius:8px"/>
-    <div style="display:flex;align-items:flex-start;justify-content:center;margin-bottom:2px">
-      <div style="font-family:'Fraunces',serif;font-size:34px;font-weight:700;color:#f1f5f9;letter-spacing:3px;text-shadow:0 2px 8px rgba(0,0,0,0.3)">SLIM</div>
-    </div>
-    <div style="display:flex;align-items:flex-start;justify-content:center;gap:2px;margin-bottom:28px">
-      <div style="font-family:'Fraunces',serif;font-size:34px;font-weight:700;color:#3b82f6;letter-spacing:3px;text-shadow:0 2px 8px rgba(59,130,246,0.2)">ROUTE</div>
-      <span style="font-size:9px;color:#64748b;margin-top:6px">&#8482;</span>
-    </div>
-    <div style="font-size:12px;color:#64748b;margin-bottom:28px">Sign in to sync across devices</div>
-    <button id="google-signin-btn" style="display:inline-flex;align-items:center;gap:10px;padding:12px 28px;border:1.5px solid rgba(59,130,246,0.4);border-radius:12px;background:rgba(23,37,84,0.4);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);color:#93c5fd;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;box-shadow:0 4px 20px rgba(0,0,0,0.3);transition:all .15s">
-      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-      Sign in with Google
-    </button>
-    <div style="font-size:9px;color:#334155;margin-top:20px">Your data is private and stored securely</div>
-  </div>
-</div>
 <script type="text/babel">
 const {useState,useEffect,useReducer,useCallback,useMemo,useContext,useRef}=React;
 // ------------------------------------------------------------
@@ -1151,7 +1137,7 @@ const DM_BENEFITS=[
   {e:"💰",t:"£4.99 a year. That's it.",d:"No monthly fees. No upsells. No ads. One flat price for everything — including all future features as the app grows."},
 ];
 
-function PaywallScreen({onRedeem,trialExpired,stripeUrl}){
+function PaywallScreen({onRedeem,trialExpired,stripeUrl,isGuest=false,isChecking=false,pendingAction,setPendingAction,setPendingCode}){
   const url=stripeUrl||"https://buy.stripe.com/6oU7sK0Zzaoh8XV8jY1ck00";
   const[tab,setTab]=useState("meals");
   const[showCode,setShowCode]=useState(false);
@@ -1482,17 +1468,64 @@ function PaywallScreen({onRedeem,trialExpired,stripeUrl}){
 
     {/* ── PAYWALL FOOTER ─────────────────────────── */}
     <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:640,background:"rgba(10,15,30,0.97)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderTop:"1px solid rgba(59,130,246,0.3)",padding:"16px 20px 24px",zIndex:999}}>
-      {!showCode?(<>
+
+      {/* CHECKING — subtle loading */}
+      {isChecking&&(<div style={{textAlign:"center",padding:"8px 0"}}>
+        <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:8}}>
+          {[0,1,2].map(i=>(<div key={i} style={{width:6,height:6,borderRadius:3,background:"#3b82f6",opacity:0.4,animation:`pulse 1.2s ease-in-out ${i*0.2}s infinite`}}/>))}
+        </div>
+        <style>{`@keyframes pulse{0%,100%{opacity:0.2;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}`}</style>
+      </div>)}
+
+      {/* GUEST — new user, show sign-in CTAs */}
+      {!isChecking&&isGuest&&!showCode&&!pendingAction&&(<>
+        <div style={{textAlign:"center",marginBottom:14}}>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:700,color:"#f1f5f9",marginBottom:3}}>Get started with SlimRoute</div>
+          <div style={{fontSize:11,color:"#64748b"}}>Track your nutrition, hit your goals, feel better.</div>
+        </div>
+        {/* Primary CTA — code */}
+        <button onClick={()=>setShowCode(true)} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:8,boxShadow:"0 4px 20px rgba(59,130,246,0.4)"}}>🎟 I have a trial code</button>
+        {/* Secondary CTAs */}
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>{setPendingAction("pay");window.googleSignIn();}} style={{flex:1,padding:"10px",borderRadius:8,border:"1px solid rgba(59,130,246,0.3)",background:"rgba(59,130,246,0.1)",color:"#93c5fd",fontSize:12,fontWeight:700,cursor:"pointer"}}>🔓 Unlock £4.99/yr</button>
+          <button onClick={()=>setShowInfo(true)} style={{flex:1,padding:"10px",borderRadius:8,border:"1px solid rgba(148,163,184,0.1)",background:"transparent",color:"#64748b",fontSize:12,fontWeight:600,cursor:"pointer"}}>ⓘ What's included</button>
+        </div>
+      </>)}
+
+      {/* GUEST — code flow: enter code first, then sign in */}
+      {!isChecking&&isGuest&&showCode&&!pendingAction&&(<>
+        <div style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:700,color:"#f1f5f9",marginBottom:8,textAlign:"center"}}>Enter your trial code</div>
+        <input style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1.5px solid rgba(59,130,246,0.4)",background:"rgba(15,23,42,0.6)",color:"#f1f5f9",fontSize:14,fontWeight:700,letterSpacing:"3px",textTransform:"uppercase",textAlign:"center",marginBottom:8,boxSizing:"border-box"}}
+          placeholder="XXXXXXXX" value={code} onChange={e=>setCode(e.target.value.toUpperCase())} maxLength={12}/>
+        {codeErr&&<div style={{fontSize:10,color:"#f87171",textAlign:"center",marginBottom:8}}>{codeErr}</div>}
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>{setShowCode(false);setCode("");setCodeErr("");}} style={{flex:1,padding:"10px",borderRadius:8,border:"1px solid rgba(148,163,184,0.15)",background:"transparent",color:"#64748b",fontSize:12,fontWeight:600,cursor:"pointer"}}>Back</button>
+          <button onClick={()=>{if(!code.trim())return;setPendingCode(code.trim().toUpperCase());setPendingAction("code");setCodeErr("");window.googleSignIn();}} disabled={!code.trim()} style={{flex:2,padding:"10px",borderRadius:8,border:"none",background:code.trim()?"rgba(59,130,246,0.8)":"rgba(51,65,85,0.4)",color:code.trim()?"#fff":"#475569",fontSize:13,fontWeight:700,cursor:code.trim()?"pointer":"default"}}>Continue with Google →</button>
+        </div>
+      </>)}
+
+      {/* GUEST — waiting for Google sign-in */}
+      {!isChecking&&isGuest&&pendingAction&&(<div style={{textAlign:"center",padding:"8px 0"}}>
+        <div style={{fontSize:13,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>Signing in with Google…</div>
+        <div style={{fontSize:10,color:"#64748b",marginBottom:8}}>{pendingAction==="pay"?"Sign in to continue to payment":"Sign in to redeem your code"}</div>
+        <button onClick={()=>setPendingAction(null)} style={{fontSize:10,color:"#475569",background:"none",border:"none",cursor:"pointer"}}>Cancel</button>
+      </div>)}
+
+      {/* LOCKED — returning user, trial expired */}
+      {!isChecking&&!isGuest&&!showCode&&(<>
         <div style={{textAlign:"center",marginBottom:12}}>
           <div style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>{trialExpired?"🔓 Get your data back":"🔒 Unlock SlimRoute"}</div>
           <div style={{fontSize:11,color:"#64748b"}}>{trialExpired?"Your meals, progress and stats are waiting — subscribe to continue.":"Track your nutrition, hit your goals, feel better."}</div>
         </div>
-        <button onClick={()=>window.location.href="https://buy.stripe.com/6oU7sK0Zzaoh8XV8jY1ck00"} style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:8,boxShadow:"0 4px 20px rgba(59,130,246,0.4)"}}>Unlock for £4.99 / year</button>
+        <button onClick={()=>window.location.href=url} style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:8,boxShadow:"0 4px 20px rgba(59,130,246,0.4)"}}>Unlock for £4.99 / year</button>
         <div style={{display:"flex",gap:8}}>
           <button onClick={()=>setShowCode(true)} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid rgba(148,163,184,0.15)",background:"transparent",color:"#64748b",fontSize:12,fontWeight:600,cursor:"pointer"}}>I have a code</button>
           <button onClick={()=>setShowInfo(true)} style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid rgba(59,130,246,0.3)",background:"rgba(59,130,246,0.1)",color:"#93c5fd",fontSize:12,fontWeight:600,cursor:"pointer"}}>ⓘ What's included</button>
         </div>
-      </>):(<>
+      </>)}
+
+      {/* LOCKED — code redemption (returning user) */}
+      {!isChecking&&!isGuest&&showCode&&(<>
         <div style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:700,color:"#f1f5f9",marginBottom:8,textAlign:"center"}}>Enter your code</div>
         <input style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1.5px solid rgba(59,130,246,0.4)",background:"rgba(15,23,42,0.6)",color:"#f1f5f9",fontSize:14,fontWeight:700,letterSpacing:"3px",textTransform:"uppercase",textAlign:"center",marginBottom:8,boxSizing:"border-box"}}
           placeholder="XXXXXXXX" value={code} onChange={e=>setCode(e.target.value.toUpperCase())} maxLength={12}/>
@@ -1536,7 +1569,7 @@ function autoCat(cals,p,c,f){
 
 
 // Sequential tip system — shows one at a time in order, no auto-dismiss
-const TIP_ORDER=["day-type","copy-day","hydration","lock-ingredient","spread-leftover","plateau-mode","complete-day"];
+const TIP_ORDER=["copy-day","hydration","lock-ingredient","spread-leftover","complete-day"];
 // Track which tips are currently mounted to prevent duplicates
 const _mountedTips=new Set();
 
@@ -1580,6 +1613,62 @@ function Tip({tipKey,title,text,position="below",align="right",onlyFirst=false,c
     </div>)}
   </div>);}
 
+function HomeScreenGuide({onDismiss}){
+  const ua=navigator.userAgent;
+  const isPWA=window.navigator.standalone||window.matchMedia('(display-mode: standalone)').matches;
+  const device=isPWA?'pwa':/iPhone|iPod/.test(ua)?(/CriOS/.test(ua)?'iphone-chrome':'iphone-safari'):/iPad/.test(ua)?'ipad-safari':/Android/.test(ua)?'android':'desktop';
+  const dismiss=()=>{localStorage.setItem("ept:homeScreenDismissed","1");onDismiss();};
+  if(device==='pwa'){dismiss();return null;}
+  const stepsMap={
+    'iphone-safari':[
+      {icon:"📤",text:"Tap the Share button at the bottom of Safari"},
+      {icon:"📲",text:"Scroll down and tap Add to Home Screen"},
+      {icon:"✅",text:"Tap Add in the top right corner"},
+    ],
+    'iphone-chrome':[
+      {icon:"⚠️",text:"Chrome on iPhone can't add to home screen"},
+      {icon:"🧭",text:"Open slimroute.co.uk in Safari instead"},
+      {icon:"📤",text:"Tap Share → Add to Home Screen → Add"},
+    ],
+    'ipad-safari':[
+      {icon:"📤",text:"Tap the Share button in the Safari toolbar"},
+      {icon:"📲",text:"Tap Add to Home Screen"},
+      {icon:"✅",text:"Tap Add to confirm"},
+    ],
+    'android':[
+      {icon:"⋮",text:"Tap the three dots menu in the top right"},
+      {icon:"📲",text:"Tap Add to Home screen"},
+      {icon:"✅",text:"Tap Add to confirm"},
+    ],
+    'desktop':[
+      {icon:"⭐",text:"Click the star icon in your browser address bar"},
+      {icon:"⌨️",text:"Or press Cmd+D (Mac) / Ctrl+D (Windows)"},
+      {icon:"✅",text:"SlimRoute will be saved to your bookmarks"},
+    ],
+  };
+  const deviceSteps=stepsMap[device]||stepsMap['desktop'];
+  const deviceLabel={'iphone-safari':'iPhone — Safari','iphone-chrome':'iPhone — Chrome','ipad-safari':'iPad — Safari','android':'Android','desktop':'Desktop'}[device];
+  return(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",zIndex:1000,display:"flex",alignItems:"flex-end",justifyContent:"center",padding:16}}>
+    <div style={{background:"rgba(15,23,42,0.98)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:20,padding:24,width:"100%",maxWidth:480}}>
+      <div style={{textAlign:"center",marginBottom:20}}>
+        <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>Add to your home screen</div>
+        <div style={{fontSize:11,color:"#64748b"}}>Detected: {deviceLabel}</div>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
+        {deviceSteps.map((s,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:14,padding:"12px 14px",borderRadius:12,background:"rgba(30,41,59,0.5)",border:"1px solid rgba(148,163,184,0.07)"}}>
+          <div style={{width:36,height:36,borderRadius:10,background:"rgba(59,130,246,0.15)",border:"1px solid rgba(59,130,246,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{s.icon}</div>
+          <div>
+            <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1px",marginBottom:2}}>Step {i+1}</div>
+            <div style={{fontSize:12,fontWeight:600,color:"#e2e8f0",lineHeight:1.4}}>{s.text}</div>
+          </div>
+        </div>))}
+      </div>
+      <button style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:8}} onClick={dismiss}>Got it ✓</button>
+      <button style={{width:"100%",padding:"8px",borderRadius:8,border:"none",background:"transparent",color:"#475569",fontSize:11,cursor:"pointer"}} onClick={dismiss}>Skip</button>
+    </div>
+  </div>);
+}
+
 function App(){
   const initT=(td)=>{const t={};const days=td||["Monday","Tuesday","Thursday","Friday"];DAYS.forEach(d=>{t[d]=days.includes(d)?"training":"rest";});return t;};
   const initC=()=>{const c={};DAYS.forEach(d=>{c[d]={};});return c;};
@@ -1600,16 +1689,94 @@ function App(){
 // storageReady flag — set true after initial window.storage load completes
 const [storageReady, setStorageReady] = useState(false);
   const wCal=_wCal;const wMacPct=_wMacPct;
-  const[sel,setSel]=useState(()=>DAYS[(new Date().getDay()+6)%7]);
+  const[sel,setSel]=useState(()=>{
+    const saved=localStorage.getItem("ept:lastSel");
+    const today=DAYS[(new Date().getDay()+6)%7];
+    // Only restore saved day if it's a valid day name, otherwise use today
+    return(saved&&DAYS.includes(saved))?saved:today;
+  });
+  // Persist sel whenever it changes
+  useEffect(()=>{localStorage.setItem("ept:lastSel",sel);},[sel]);
   const[toast,setT2]=useState(null);
   const[exp,setExp]=useState(null);
-  const[accessState,setAccessState]=useState("checking"); // checking|open|trial|locked
+  const[accessState,setAccessState]=useState("checking"); // checking|open|trial|locked|guest
+
+  // Re-run access check when Firebase auth resolves
+  useEffect(()=>{
+    const handler=async()=>{
+      await runAccessCheck();
+      // After sign-in, action on pending intent
+      if(pendingAction==="pay"&&window.fbUser){
+        setPendingAction(null);
+        window.location.href=stripeUrl;
+      }else if(pendingAction==="code"&&window.fbUser&&pendingCode){
+        const result=await redeemCode(pendingCode);
+        setPendingAction(null);setPendingCode("");
+        if(result!==true)fl(result||"Invalid code");
+      }
+    };
+    window.addEventListener("fbAuthReady",handler);
+    return()=>window.removeEventListener("fbAuthReady",handler);
+  },[pendingAction,pendingCode,stripeUrl]);
+
+  const runAccessCheck=async()=>{
+    const email=window.fbUser?.email;
+    const uid=window.fbUser?.uid;
+    if(!uid){setAccessState("guest");return;}
+    if(email===ADMIN_EMAIL){setIsAdmin(true);setAccessState("open");return;}
+    try{
+      const cached=localStorage.getItem("ept:accessCache");
+      if(cached){
+        const c=JSON.parse(cached);
+        if(c.uid===uid&&c.expires>Date.now()){
+          if(c.state==="open"){setAccessState("open");return;}
+          if(c.state==="trial"&&c.trialEnd>Date.now()){
+            const daysLeft=Math.max(1,Math.ceil((c.trialEnd-Date.now())/86400000));
+            setTrialDaysLeft(daysLeft);setTrialEndDate(new Date(c.trialEnd));setAccessState("trial");return;
+          }
+        }
+      }
+    }catch{}
+    const saveCache=(state,trialEnd)=>{
+      try{localStorage.setItem("ept:accessCache",JSON.stringify({uid,state,trialEnd:trialEnd?.getTime()||null,expires:Date.now()+3600000}));}catch{}
+    };
+    try{
+      const doc=await fbDb.collection("users").doc(uid).get();
+      const d=doc.data()||{};
+      if(d.paid&&d.paidUntil?.toDate()>new Date()){saveCache("open");setAccessState("open");return;}
+      if(d.trialEnd){
+        const te=d.trialEnd.toDate();
+        if(te>new Date()){
+          const daysLeft=Math.max(1,Math.ceil((te-new Date())/86400000));
+          setTrialDaysLeft(daysLeft);setTrialEndDate(te);saveCache("trial",te);setAccessState("trial");return;
+        }else{setTrialExpired(true);}
+      }
+      saveCache("locked");setAccessState("locked");
+    }catch(e){
+      console.warn("Access check failed, retrying",e);
+      setTimeout(async()=>{
+        try{
+          const doc=await fbDb.collection("users").doc(window.fbUser?.uid).get();
+          const d=doc.data()||{};
+          if(d.paid&&d.paidUntil?.toDate()>new Date()){saveCache("open");setAccessState("open");return;}
+          if(d.trialEnd){
+            const te=d.trialEnd.toDate();
+            if(te>new Date()){const daysLeft=Math.max(1,Math.ceil((te-new Date())/86400000));setTrialDaysLeft(daysLeft);setTrialEndDate(te);saveCache("trial",te);setAccessState("trial");return;}
+            else{setTrialExpired(true);}
+          }
+          setAccessState("locked");
+        }catch{setAccessState("locked");}
+      },3000);
+    }
+  };
   const[trialDaysLeft,setTrialDaysLeft]=useState(7);
   const[trialExpired,setTrialExpired]=useState(false);
   const[trialEndDate,setTrialEndDate]=useState(null);
   const[isAdmin,setIsAdmin]=useState(false);
   const[stripeUrl,setStripeUrl]=useState("https://buy.stripe.com/6oU7sK0Zzaoh8XV8jY1ck00");
   const[adminStripeUrl,setAdminStripeUrl]=useState("");
+  const[pendingAction,setPendingAction]=useState(null); // "pay" or "code"
+  const[pendingCode,setPendingCode]=useState("");
   const[adminCodes,setAdminCodes]=useState([]);
   const[adminUsedCodes,setAdminUsedCodes]=useState([]);
   const[adminNewCode,setAdminNewCode]=useState("");
@@ -1674,61 +1841,7 @@ const [storageReady, setStorageReady] = useState(false);
   const[scrolled,setScrolled]=useState(false);
   useEffect(()=>{const onScroll=()=>setScrolled(window.scrollY>60);window.addEventListener("scroll",onScroll,{passive:true});return()=>window.removeEventListener("scroll",onScroll);},[]);
 
-  // ── Access control ───────────────────────────────────────
-  useEffect(()=>{(async()=>{
-    const email=window.fbUser?.email;
-    const uid=window.fbUser?.uid;
-    if(!uid){setAccessState("locked");return;}
-    if(email===ADMIN_EMAIL){setIsAdmin(true);setAccessState("open");return;}
-
-    // Check localStorage cache first — skip Firestore if fresh (under 60 mins)
-    try{
-      const cached=localStorage.getItem("ept:accessCache");
-      if(cached){
-        const c=JSON.parse(cached);
-        if(c.uid===uid&&c.expires>Date.now()){
-          if(c.state==="open"){setAccessState("open");return;}
-          if(c.state==="trial"&&c.trialEnd>Date.now()){
-            const daysLeft=Math.max(1,Math.ceil((c.trialEnd-Date.now())/86400000));
-            setTrialDaysLeft(daysLeft);setTrialEndDate(new Date(c.trialEnd));setAccessState("trial");return;
-          }
-        }
-      }
-    }catch{}
-
-    const saveCache=(state,trialEnd)=>{
-      try{localStorage.setItem("ept:accessCache",JSON.stringify({uid,state,trialEnd:trialEnd?.getTime()||null,expires:Date.now()+3600000}));}catch{}
-    };
-
-    try{
-      const doc=await fbDb.collection("users").doc(uid).get();
-      const d=doc.data()||{};
-      if(d.paid&&d.paidUntil?.toDate()>new Date()){saveCache("open");setAccessState("open");return;}
-      if(d.trialEnd){
-        const te=d.trialEnd.toDate();
-        if(te>new Date()){
-          const daysLeft=Math.max(1,Math.ceil((te-new Date())/86400000));
-          setTrialDaysLeft(daysLeft);setTrialEndDate(te);saveCache("trial",te);setAccessState("trial");return;
-        }else{setTrialExpired(true);}
-      }
-      saveCache("locked");setAccessState("locked");
-    }catch(e){
-      console.warn("Access check failed, retrying",e);
-      setTimeout(async()=>{
-        try{
-          const doc=await fbDb.collection("users").doc(window.fbUser?.uid).get();
-          const d=doc.data()||{};
-          if(d.paid&&d.paidUntil?.toDate()>new Date()){saveCache("open");setAccessState("open");return;}
-          if(d.trialEnd){
-            const te=d.trialEnd.toDate();
-            if(te>new Date()){const daysLeft=Math.max(1,Math.ceil((te-new Date())/86400000));setTrialDaysLeft(daysLeft);setTrialEndDate(te);saveCache("trial",te);setAccessState("trial");return;}
-            else{setTrialExpired(true);}
-          }
-          setAccessState("locked");
-        }catch{setAccessState("locked");}
-      },3000);
-    }
-  })();},[]);
+  // ── Access control runs via runAccessCheck() triggered by fbAuthReady event ──
 
   const redeemCode=async(code)=>{
     try{
@@ -1802,7 +1915,7 @@ const [storageReady, setStorageReady] = useState(false);
 
   // Show What's New if user hasn't seen this patch version
   useEffect(()=>{
-    if(accessState==="checking"||accessState==="locked")return;
+    if(accessState==="checking"||accessState==="locked"||accessState==="guest")return;
     const seen=localStorage.getItem("ept:patchSeen");
     if(seen!==PATCH_VERSION)setShowWhatsNew(true);
   },[accessState]);
@@ -1832,7 +1945,7 @@ const [storageReady, setStorageReady] = useState(false);
   })();},[]);
 
   useEffect(()=>{
-    if(accessState==="checking")return;
+    if(accessState==="checking"||accessState==="guest")return;
     let unsub=()=>{};
     try{
       unsub=fbDb.collection("sharedIngredients").limit(200).onSnapshot(snap=>{
@@ -2272,73 +2385,11 @@ const [storageReady, setStorageReady] = useState(false);
 
   return (
     <>
-    {accessState==="checking"&&(<div style={{minHeight:"100vh",background:"linear-gradient(145deg,#0a0f1e 0%,#0f172a 40%,#111827 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif"}}>
-      <div style={{display:"flex",alignItems:"flex-end",gap:2,marginBottom:8}}>
-        <div style={{fontFamily:"'Fraunces',serif",fontSize:38,fontWeight:700,color:"#f1f5f9",letterSpacing:3,textShadow:"0 2px 8px rgba(0,0,0,0.3)"}}>SLIM</div>
-        <div style={{fontFamily:"'Fraunces',serif",fontSize:38,fontWeight:700,color:"#3b82f6",letterSpacing:3,textShadow:"0 2px 8px rgba(59,130,246,0.2)"}}>ROUTE</div>
-        <span style={{fontSize:9,color:"#64748b",marginBottom:8}}>™</span>
-      </div>
-      <div style={{display:"flex",gap:6,marginTop:8}}>
-        {[0,1,2].map(i=>(<div key={i} style={{width:6,height:6,borderRadius:3,background:"#3b82f6",opacity:0.4,animation:`pulse 1.2s ease-in-out ${i*0.2}s infinite`}}/>))}
-      </div>
-      <style>{`@keyframes pulse{0%,100%{opacity:0.2;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}`}</style>
-    </div>)}
-    {accessState==="locked"&&<PaywallScreen onRedeem={redeemCode} trialExpired={trialExpired} stripeUrl={stripeUrl}/>}
+    {accessState==="checking"&&<PaywallScreen onRedeem={redeemCode} trialExpired={false} stripeUrl={stripeUrl} isGuest={true} isChecking={true} pendingAction={pendingAction} setPendingAction={setPendingAction} setPendingCode={setPendingCode}/>}
+    {(accessState==="guest"||accessState==="locked")&&<PaywallScreen onRedeem={redeemCode} trialExpired={trialExpired} stripeUrl={stripeUrl} isGuest={accessState==="guest"} pendingAction={pendingAction} setPendingAction={setPendingAction} setPendingCode={setPendingCode}/>}
     {(accessState==="open"||accessState==="trial")&&showWhatsNew&&<WhatsNewPopup accessState={accessState} onDismiss={()=>{localStorage.setItem("ept:patchSeen",PATCH_VERSION);setShowWhatsNew(false);}}/>}
-    {(accessState==="open"||accessState==="trial")&&showHomeScreenGuide&&(()=>{
-      const ua=navigator.userAgent;
-      const isPWA=window.navigator.standalone||window.matchMedia('(display-mode: standalone)').matches;
-      const device=isPWA?'pwa':/iPhone|iPod/.test(ua)?(/CriOS/.test(ua)?'iphone-chrome':'iphone-safari'):/iPad/.test(ua)?'ipad-safari':/Android/.test(ua)?'android':'desktop';
-      if(device==='pwa'){localStorage.setItem("ept:homeScreenDismissed","1");setShowHomeScreenGuide(false);return null;}
-      const steps={
-        'iphone-safari':[
-          {icon:"📤",text:"Tap the Share button at the bottom of Safari"},
-          {icon:"📲",text:"Scroll down and tap Add to Home Screen"},
-          {icon:"✅",text:"Tap Add in the top right corner"},
-        ],
-        'iphone-chrome':[
-          {icon:"⚠️",text:"Chrome on iPhone can't add to home screen"},
-          {icon:"🧭",text:"Open slimroute.co.uk in Safari instead"},
-          {icon:"📤",text:"Tap Share → Add to Home Screen → Add"},
-        ],
-        'ipad-safari':[
-          {icon:"📤",text:"Tap the Share button in the Safari toolbar"},
-          {icon:"📲",text:"Tap Add to Home Screen"},
-          {icon:"✅",text:"Tap Add to confirm"},
-        ],
-        'android':[
-          {icon:"⋮",text:"Tap the three dots menu in the top right"},
-          {icon:"📲",text:"Tap Add to Home screen"},
-          {icon:"✅",text:"Tap Add to confirm"},
-        ],
-        'desktop':[
-          {icon:"⭐",text:"Click the star icon in your browser address bar"},
-          {icon:"⌨️",text:"Or press Cmd+D (Mac) / Ctrl+D (Windows)"},
-          {icon:"✅",text:"SlimRoute will be saved to your bookmarks"},
-        ],
-      };
-      const deviceSteps=steps[device]||steps['desktop'];
-      const deviceLabel={'iphone-safari':'iPhone — Safari','iphone-chrome':'iPhone — Chrome','ipad-safari':'iPad — Safari','android':'Android','desktop':'Desktop'}[device];
-      return(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",zIndex:1000,display:"flex",alignItems:"flex-end",justifyContent:"center",padding:16}}>
-        <div style={{background:"rgba(15,23,42,0.98)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:20,padding:24,width:"100%",maxWidth:480}}>
-          <div style={{textAlign:"center",marginBottom:20}}>
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>Add to your home screen</div>
-            <div style={{fontSize:11,color:"#64748b"}}>Detected: {deviceLabel}</div>
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
-            {deviceSteps.map((s,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:14,padding:"12px 14px",borderRadius:12,background:"rgba(30,41,59,0.5)",border:"1px solid rgba(148,163,184,0.07)"}}>
-              <div style={{width:36,height:36,borderRadius:10,background:"rgba(59,130,246,0.15)",border:"1px solid rgba(59,130,246,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{s.icon}</div>
-              <div>
-                <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1px",marginBottom:2}}>Step {i+1}</div>
-                <div style={{fontSize:12,fontWeight:600,color:"#e2e8f0",lineHeight:1.4}}>{s.text}</div>
-              </div>
-            </div>))}
-          </div>
-          <button style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:8}} onClick={()=>{localStorage.setItem("ept:homeScreenDismissed","1");setShowHomeScreenGuide(false);}}>Got it ✓</button>
-          <button style={{width:"100%",padding:"8px",borderRadius:8,border:"none",background:"transparent",color:"#475569",fontSize:11,cursor:"pointer"}} onClick={()=>{localStorage.setItem("ept:homeScreenDismissed","1");setShowHomeScreenGuide(false);}}>Skip</button>
-        </div>
-      </div>);
-    })()}
+    {(accessState==="open"||accessState==="trial")&&showHomeScreenGuide&&
+      <HomeScreenGuide onDismiss={()=>setShowHomeScreenGuide(false)}/>}
     {(accessState==="open"||accessState==="trial")&&(
     <div style={{...S.wrap,boxShadow:T.wrapGlow,transition:"box-shadow .5s"}} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       {accessState==="trial"&&<div style={{background:"rgba(251,191,36,0.15)",border:"1px solid rgba(251,191,36,0.3)",borderRadius:8,padding:"6px 12px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -2726,9 +2777,6 @@ const [storageReady, setStorageReady] = useState(false);
             <span style={{fontSize:10,color:"#64748b",letterSpacing:".6px",textTransform:"uppercase"}}>{fmt(dates[selI])}</span>
           </div>
           <div style={{display:"flex",gap:4}}>
-            {selE&&!selCo&&(<Tip tipKey="day-type" title="Set your day type" text="Tap to cycle between 🏋️ Gym, ⚽ Football and 😴 Rest. Training days get more calories, rest days fewer." position="below" align="right">
-              <button style={{border:"none",borderRadius:8,padding:"6px 10px",fontSize:11,fontWeight:700,cursor:"pointer",background:isTrain?T.accentDark:"rgba(30,41,59,0.6)",color:isTrain?T.accentText:"#94a3b8",display:"flex",alignItems:"center",gap:4}} onClick={()=>togType(sel)}>{types[sel]==="football"?<>{IC.football(14)} Football</>:types[sel]==="training"?<>{IC.train(14)} Train</>:<>{IC.rest(14)} Rest</>}</button>
-            </Tip>)}
             {selE&&gM(sel).length>0&&!selCo&&(<Tip tipKey="copy-day" title="Copy day" text="Copies today's meals to another day of the week — useful when you want to repeat a good day." position="below" align="right">
               <button style={{border:"1px solid rgba(148,163,184,0.1)",borderRadius:7,padding:"4px 8px",fontSize:10,fontWeight:600,cursor:"pointer",background:copyFrom===sel?"rgba(59,130,246,0.15)":"rgba(30,41,59,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",color:copyFrom===sel?"#93c5fd":"#94a3b8",display:"flex",alignItems:"center",gap:3}} onClick={()=>setCopyFrom(copyFrom===sel?null:sel)}>{IC.copy(12)} Copy day</button>
             </Tip>)}
@@ -2868,17 +2916,6 @@ const [storageReady, setStorageReady] = useState(false);
             {wRem>10&&<Tip tipKey="spread-leftover" title="Spread leftover calories" text="Distributes your remaining weekly calories evenly across future days — so nothing goes to waste." position="below" align="right">
               <button title="Spread remaining calories evenly across future days this week" style={{fontSize:8,padding:"2px 7px",border:"1px solid rgba(51,65,85,0.5)",borderRadius:4,background:"rgba(30,41,59,0.6)",color:"#93c5fd",fontWeight:700,cursor:"pointer"}} onClick={spreadRemaining}>Spread leftover</button>
             </Tip>}
-            <Tip tipKey="plateau-mode" title="Plateau mode" text="Reduces rest day calories by 5% to help break a weight loss plateau. Turn on if the scales haven't moved in 2+ weeks." position="below" align="right">
-              <button style={{fontSize:8,padding:"2px 7px",border:`1px solid ${stallAdj?"#dc2626":"rgba(51,65,85,0.5)"}`,borderRadius:4,background:stallAdj?"rgba(127,29,29,0.6)":"rgba(30,41,59,0.6)",color:stallAdj?"#fca5a5":"#94a3b8",fontWeight:700,cursor:"pointer"}} onClick={()=>{
-                const next=stallAdj?0:-0.05;
-                dispatch({type:'SET_STALL',stallAdj:next});
-                const newCm={...cm};
-                DAYS.forEach(d=>{const di=DAYS.indexOf(d);if(isPast(di)||comp[d])return;delete newCm[d];});
-                dispatch({type:'SET_CM',cm:newCm});
-                sv(types,checks,newCm,comp,wCal,wMacPct);
-                fl(next?`Plateau mode ON — rest days -5%`:`Plateau mode OFF`);
-              }}>{stallAdj?"🔴 Plateau mode":"Plateau mode"}</button>
-            </Tip>
           </div>
         </div>
         {/* SUPPLEMENT TIMING ALERTS */}
@@ -2889,14 +2926,6 @@ const [storageReady, setStorageReady] = useState(false);
             <div style={{fontSize:9,color:"#94a3b8"}}>Mix electrolytes now so they absorb before training starts at 17:00. Sodium, potassium &amp; magnesium support muscle contraction and hydration.</div>
           </div>
           <button onClick={()=>setSuppAlerts(a=>({...a,electrolyte:false}))} style={{background:"none",border:"none",color:"#475569",fontSize:14,cursor:"pointer",padding:0,lineHeight:1}}>×</button>
-        </div>)}
-        {isTrain&&suppAlerts.magnesium&&(<div style={{background:"rgba(167,139,250,0.08)",borderRadius:10,border:"1px solid rgba(167,139,250,0.3)",padding:"10px 12px",marginBottom:10,display:"flex",alignItems:"flex-start",gap:8}}>
-          <span style={{fontSize:18,lineHeight:1}}>🧴</span>
-          <div style={{flex:1}}>
-            <div style={{fontSize:9,fontWeight:700,color:"#a78bfa",marginBottom:2,textTransform:"uppercase",letterSpacing:"1px"}}>Recovery Alert — Topical Magnesium</div>
-            <div style={{fontSize:9,color:"#94a3b8"}}>Apply magnesium oil or lotion to trained muscle groups now. Transdermal absorption aids overnight recovery, reduces DOMS, and supports sleep quality.</div>
-          </div>
-          <button onClick={()=>setSuppAlerts(a=>({...a,magnesium:false}))} style={{background:"none",border:"none",color:"#475569",fontSize:14,cursor:"pointer",padding:0,lineHeight:1}}>×</button>
         </div>)}
         <div style={{display:"flex",flexDirection:"column",gap:14}}>
           {secs.map(g=>{
@@ -2930,7 +2959,7 @@ const [storageReady, setStorageReady] = useState(false);
                             if(ids.includes("omega3-dna"))badges.push({e:"🐟",l:"Omega-3",c:"#38bdf8",bg:"rgba(56,189,248,0.12)",bc:"rgba(56,189,248,0.3)"});
                             if(ids.includes("psyllium-caps"))badges.push({e:IC.pill(10),l:"Fiber",c:"#c084fc",bg:"rgba(192,132,252,0.12)",bc:"rgba(192,132,252,0.3)"});
                             const mTime=meal.time||"";const mHr=parseInt(mTime)||0;const isPM=mTime.includes("PM");const hr24=isPM&&mHr!==12?mHr+12:(!isPM&&mHr===12?0:mHr);
-                            if(isTrain&&hr24>=20)badges.push({e:"🧲",l:"Magnesium",c:"#a78bfa",bg:"rgba(167,139,250,0.12)",bc:"rgba(167,139,250,0.3)"});
+                            if(isTrain&&hr24>=20){} // magnesium badge removed
                             return badges.map((b,i)=>(<span key={i} style={{fontSize:8,fontWeight:700,color:b.c,background:b.bg,border:`1px solid ${b.bc}`,borderRadius:4,padding:"1px 5px",whiteSpace:"nowrap"}}>{b.e} {b.l}</span>));
                           })()}
                           <div style={{display:"flex",gap:4,fontSize:9,fontWeight:500,color:isPrimary?"#94a3b8":"#475569"}}><span>{mt.cals}</span><span style={{color:isPrimary?"#3b82f6":"#334155"}}>{Math.round(mt.p)}P</span><span style={{color:isPrimary?"#fbbf24":"#334155"}}>{Math.round(mt.c)}C</span><span style={{color:isPrimary?"#a78bfa":"#334155"}}>{Math.round(mt.f)}F</span></div>
@@ -3431,33 +3460,24 @@ const [storageReady, setStorageReady] = useState(false);
         </div>
 
         {/* Category tabs — only show when not searching */}
-        {!ingSearch&&(()=>{
-          const cats=["All",...Object.keys(catG).filter(c=>catG[c]?.length>0)];
-          return(<div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:8,paddingBottom:2}}>
-            {cats.map(c=>(<button key={c} onClick={()=>setIngCatTab(c)} style={{padding:"4px 10px",borderRadius:20,border:`1.5px solid ${ingCatTab===c?"rgba(59,130,246,0.6)":"rgba(51,65,85,0.4)"}`,background:ingCatTab===c?"rgba(59,130,246,0.15)":"transparent",color:ingCatTab===c?"#93c5fd":"#64748b",fontSize:9,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>{c}{c!=="All"?` (${catG[c]?.length})`:` (${ings.length})`}</button>))}
-          </div>);
-        })()}
+        {!ingSearch&&(<div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:8,paddingBottom:2}}>
+          {["All",...Object.keys(catG).filter(c=>catG[c]?.length>0)].map(c=>(<button key={c} onClick={()=>setIngCatTab(c)} style={{padding:"4px 10px",borderRadius:20,border:`1.5px solid ${ingCatTab===c?"rgba(59,130,246,0.6)":"rgba(51,65,85,0.4)"}`,background:ingCatTab===c?"rgba(59,130,246,0.15)":"transparent",color:ingCatTab===c?"#93c5fd":"#64748b",fontSize:9,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>{c}{c!=="All"?` (${catG[c]?.length})`:` (${ings.length})`}</button>))}
+        </div>)}
 
         {/* Ingredient list */}
         <div style={{maxHeight:350,overflowY:"auto",marginBottom:12}}>
-          {(()=>{
-            const filtered=ings.filter(ing=>
-              (!ingSearch||ing.food.toLowerCase().includes(ingSearch.toLowerCase())) &&
-              (ingCatTab==="All"||ing.cat===ingCatTab)
-            );
-            if(!filtered.length)return(<div style={{fontSize:10,color:"#475569",textAlign:"center",padding:"20px 0"}}>No ingredients found</div>);
-            // When searching, show flat list. When browsing by tab, group by category
-            if(ingSearch||ingCatTab!=="All"){
-              return filtered.map(ing=>(<div key={ing.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 6px",borderBottom:"1px solid #1e293b",fontSize:10,color:"#cbd5e1",borderRadius:4}}>
+          {ings.filter(ing=>(!ingSearch||ing.food.toLowerCase().includes(ingSearch.toLowerCase()))&&(ingCatTab==="All"||ing.cat===ingCatTab)).length===0&&(
+            <div style={{fontSize:10,color:"#475569",textAlign:"center",padding:"20px 0"}}>No ingredients found</div>
+          )}
+          {(ingSearch||ingCatTab!=="All")
+            ?ings.filter(ing=>(!ingSearch||ing.food.toLowerCase().includes(ingSearch.toLowerCase()))&&(ingCatTab==="All"||ing.cat===ingCatTab)).map(ing=>(<div key={ing.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 6px",borderBottom:"1px solid #1e293b",fontSize:10,color:"#cbd5e1",borderRadius:4}}>
                 <div>
                   <span>{ing.food}</span>
                   {ingSearch&&ing.cat&&<span style={{fontSize:8,color:"#475569",marginLeft:6,background:"rgba(30,41,59,0.6)",padding:"1px 4px",borderRadius:3}}>{ing.cat}</span>}
                 </div>
                 <span style={{color:"#64748b"}}>{ing.unit==="piece"?`${ing.perUnit?.cals}/pc`:`${ing.per100?.cals}/100g`}</span>
-              </div>));
-            }
-            // Grouped by category
-            return Object.keys(catG).map(cat=>{
+              </div>))
+            :Object.keys(catG).map(cat=>{
               const items=catG[cat];
               if(!items?.length)return null;
               return(<div key={cat}>
@@ -3467,8 +3487,8 @@ const [storageReady, setStorageReady] = useState(false);
                   <span style={{color:"#64748b"}}>{ing.unit==="piece"?`${ing.perUnit?.cals}/pc`:`${ing.per100?.cals}/100g`}</span>
                 </div>))}
               </div>);
-            });
-          })()}
+            })
+          }
         </div>
 
         {nIF?(<div style={{padding:10,background:"rgba(30,41,59,0.4)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",borderRadius:12,border:"1.5px solid rgba(148,163,184,0.1)"}}>
@@ -3764,16 +3784,49 @@ const [storageReady, setStorageReady] = useState(false);
                 </div>
                 {row("Training Days",(profile.trainingCount||0)+"/week")}
               </div>
-              {td.length>0&&(<div style={{background:"rgba(30,41,59,0.35)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",padding:12,marginBottom:12}}>
-                <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:8}}>Schedule</div>
+              {/* Weekly schedule — tap each day to toggle gym/rest */}
+              <div style={{background:"rgba(30,41,59,0.35)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",padding:12,marginBottom:12}}>
+                <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:4}}>Weekly Schedule</div>
+                <div style={{fontSize:9,color:"#334155",marginBottom:10}}>Tap a day to toggle between Gym and Rest</div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                  {DAYS.map(d=>{const isTd=td.includes(d);
-                    return(<div key={d} style={{flex:"1 0 44%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 10px",borderRadius:8,background:isTd?"rgba(59,130,246,0.1)":"rgba(30,41,59,0.3)",border:`1px solid ${isTd?"rgba(59,130,246,0.2)":"rgba(148,163,184,0.06)"}`}}>
-                      <span style={{fontSize:10,fontWeight:700,color:isTd?"#f1f5f9":"#475569"}}>{d}</span>
-                      <span style={{fontSize:10}}>{isTd?IC.train(14):IC.rest(14)}</span>
-                    </div>);})}
+                  {DAYS.map(d=>{
+                    const isGym=types[d]==="training"||types[d]==="football";
+                    const isComp=!!comp[d];
+                    return(<button key={d} disabled={isComp} onClick={()=>{
+                      const newType=isGym?"rest":"training";
+                      const u={...types,[d]:newType};
+                      const uc={...checks,[d]:{}};
+                      const newC={...cm};
+                      // Rebuild the day immediately with the correct calorie target
+                      const di2=DAYS.indexOf(d);
+                      if(!comp[d]&&!isPast(di2)&&Object.keys(im).length>0){
+                        const newTrain=DAYS.filter(x=>u[x]==="training"||u[x]==="football").length;
+                        const newRest=7-newTrain;
+                        const newRatio=1.15;
+                        const newEff2=wCal||eff;
+                        const newRestM=newTrain>0&&newRest>0?7/(newTrain*newRatio+newRest):1;
+                        const newTrainM=newTrain>0&&newRest>0?(newRestM/1)*newRatio:1;
+                        const tgt=Math.round(newEff2*(newType==="training"?newTrainM:newRestM));
+                        const t=gTpl(d);
+                        newC[d]=shuffleMealTiming(autoRebalance(t,tgt,im,[],cfPref,bW),newType,im);
+                      }
+                      dispatch({type:'SET_TYPES',types:u,checks:uc,cm:newC});
+                      sv(u,uc,newC,comp,wCal,wMacPct);
+                      const newTd=DAYS.filter(x=>u[x]==="training"||u[x]==="football");
+                      const newActivity=newTd.length===0?"sedentary":newTd.length<=2?"light":newTd.length<=4?"moderate":newTd.length<=5?"active":"very";
+                      saveProfile({...profile,trainingDays:newTd,trainingCount:newTd.length,activity:newActivity});
+                      fl(`${d} → ${newType==="training"?"Gym 🏋️":"Rest 😴"}`);
+                    }} style={{flex:"1 0 44%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",borderRadius:8,cursor:isComp?"default":"pointer",opacity:isComp?0.5:1,background:isGym?"rgba(59,130,246,0.12)":"rgba(30,41,59,0.3)",border:`1.5px solid ${isGym?"rgba(59,130,246,0.3)":"rgba(148,163,184,0.08)"}`}}>
+                      <div>
+                        <div style={{fontSize:10,fontWeight:700,color:isGym?"#93c5fd":"#64748b"}}>{d.slice(0,3)}</div>
+                        <div style={{fontSize:8,color:isGym?"#3b82f6":"#334155"}}>{isGym?"Gym":"Rest"}</div>
+                      </div>
+                      <span>{isGym?IC.train(16):IC.rest(16)}</span>
+                    </button>);
+                  })}
                 </div>
-              </div>)}
+                {isComp&&<div style={{fontSize:8,color:"#334155",marginTop:6}}>Completed days are locked</div>}
+              </div>
             </>)}
 
             {/* PROGRESS sub-tab — weight chart */}
@@ -3963,7 +4016,7 @@ const [storageReady, setStorageReady] = useState(false);
                 <button style={{padding:"5px 12px",border:"1px solid rgba(148,163,184,0.2)",borderRadius:7,background:"rgba(30,41,59,0.5)",color:"#94a3b8",fontSize:9,fontWeight:600,cursor:"pointer"}} onClick={()=>{if(window.fbSignOut)window.fbSignOut();}}>Sign out</button>
               </div>)}
               {window.fbSyncStatus&&(<div style={{fontSize:9,color:"#4ade80",textAlign:"center",marginBottom:8}}>{window.fbSyncStatus}</div>)}
-              <button style={{width:"100%",padding:10,border:"1px solid rgba(59,130,246,0.2)",borderRadius:10,background:"rgba(23,37,84,0.2)",color:"#93c5fd",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"center",marginBottom:10}} onClick={()=>setShowHomeScreenGuide(true)}>📲 Add to Home Screen</button>
+              <button style={{width:"100%",padding:10,border:"1px solid rgba(59,130,246,0.2)",borderRadius:10,background:"rgba(23,37,84,0.2)",color:"#93c5fd",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"center",marginBottom:10}} onClick={()=>{localStorage.removeItem("ept:homeScreenDismissed");setShowHomeScreenGuide(true);}}>📲 Add to Home Screen</button>
 
               {/* Clear Meals */}
               <div style={{borderTop:"1px solid rgba(148,163,184,0.08)",paddingTop:14}}>
@@ -4268,39 +4321,33 @@ const S={
 };
 
 let appMounted = false;
-function showSignIn() {
-  document.getElementById("root").style.display = "none";
-  document.getElementById("signin-gate").style.display = "flex";
-}
-function hideSignIn() {
-  document.getElementById("signin-gate").style.display = "none";
-  document.getElementById("root").style.display = "block";
-}
-document.getElementById("google-signin-btn").addEventListener("click", function() {
+function googleSignIn(){
   const provider = new firebase.auth.GoogleAuthProvider();
   fbAuth.signInWithPopup(provider).catch(function(err) {
     console.warn("Popup failed, trying redirect", err);
     fbAuth.signInWithRedirect(provider);
   });
-});
+}
+window.googleSignIn = googleSignIn;
+
 fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 fbAuth.getRedirectResult().catch(function(e){ console.warn("Redirect result:", e); });
-let hasSignedIn = false;
+
+// Mount app immediately — demo shows for guests, access check runs for signed-in users
+if (!appMounted) {
+  appMounted = true;
+  const root = ReactDOM.createRoot(document.getElementById("root"));
+  root.render(React.createElement(App));
+}
+
 fbAuth.onAuthStateChanged(async function(user) {
   window.fbUser = user;
   if (user) {
-    hasSignedIn = true;
-    hideSignIn();
     await syncFromCloud();
-    if (!appMounted) {
-      appMounted = true;
-      const root = ReactDOM.createRoot(document.getElementById("root"));
-      root.render(React.createElement(App));
-    }
+    // Notify React app that auth state changed
+    window.dispatchEvent(new Event("fbAuthReady"));
   } else {
-    // Only show login screen if user has never signed in this session
-    // Prevents flickering when auth state briefly fires null during Google popup
-    if (!hasSignedIn) showSignIn();
+    window.dispatchEvent(new Event("fbAuthReady"));
   }
 });
 </script>
