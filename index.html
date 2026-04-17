@@ -1537,18 +1537,25 @@ function autoCat(cals,p,c,f){
 
 // Sequential tip system — shows one at a time in order, no auto-dismiss
 const TIP_ORDER=["day-type","copy-day","hydration","lock-ingredient","spread-leftover","plateau-mode","complete-day"];
+// Track which tips are currently mounted to prevent duplicates
+const _mountedTips=new Set();
 
-function Tip({tipKey,title,text,position="below",align="right",children}){
+function Tip({tipKey,title,text,position="below",align="right",onlyFirst=false,children}){
   const idxKey="ept:tipIdx";
   const getIdx=()=>parseInt(localStorage.getItem(idxKey)||"0");
   const myIdx=TIP_ORDER.indexOf(tipKey);
-  const[show,setShow]=useState(()=>myIdx>=0&&getIdx()===myIdx);
+  // Prevent duplicate: if onlyFirst is set and this key is already mounted, don't show
+  const canMount=!onlyFirst||!_mountedTips.has(tipKey);
+  const[show,setShow]=useState(()=>canMount&&myIdx>=0&&getIdx()===myIdx);
 
-  // Listen for other tips being dismissed so this one can appear
   useEffect(()=>{
-    const check=()=>{setShow(myIdx>=0&&getIdx()===myIdx);};
+    if(onlyFirst)_mountedTips.add(tipKey);
+    const check=()=>{setShow(canMount&&myIdx>=0&&getIdx()===myIdx);};
     window.addEventListener("tipDismissed",check);
-    return()=>window.removeEventListener("tipDismissed",check);
+    return()=>{
+      window.removeEventListener("tipDismissed",check);
+      if(onlyFirst)_mountedTips.delete(tipKey);
+    };
   },[]);
 
   const dismiss=()=>{
@@ -1565,12 +1572,11 @@ function Tip({tipKey,title,text,position="below",align="right",children}){
       :{top:-6,[align==="right"?"right":"left"]:18,borderBottom:"none",borderRight:"none",transform:"rotate(45deg)"})};
   return(<div style={{position:"relative",display:"inline-block"}}>
     {children}
-    {show&&(<div onClick={e=>e.stopPropagation()} style={{position:"absolute",...(isAbove?{bottom:"calc(100% + 8px)"}:{top:"calc(100% + 8px)"}), ...(align==="right"?{right:0}:{left:0}),background:"rgba(15,23,42,0.97)",border:"1px solid rgba(59,130,246,0.3)",borderRadius:10,padding:"10px 12px",width:210,zIndex:200,boxShadow:"0 4px 20px rgba(0,0,0,0.5)"}}>
+    {show&&(<div onClick={e=>{e.stopPropagation();dismiss();}} style={{position:"absolute",...(isAbove?{bottom:"calc(100% + 8px)"}:{top:"calc(100% + 8px)"}), ...(align==="right"?{right:0}:{left:0}),background:"rgba(15,23,42,0.97)",border:"1px solid rgba(59,130,246,0.3)",borderRadius:10,padding:"10px 12px",width:210,zIndex:200,boxShadow:"0 4px 20px rgba(0,0,0,0.5)",cursor:"pointer"}}>
       <div style={arrowStyle}/>
-      <div style={{fontSize:9,color:"#334155",marginBottom:3}}>Tip {myIdx+1} of {TIP_ORDER.length}</div>
+      <div style={{fontSize:9,color:"#334155",marginBottom:3}}>Tip {myIdx+1} of {TIP_ORDER.length} · tap anywhere to dismiss</div>
       <div style={{fontSize:11,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>{title}</div>
-      <div style={{fontSize:10,color:"#64748b",lineHeight:1.5,marginBottom:8}}>{text}</div>
-      <button onClick={dismiss} style={{fontSize:9,fontWeight:700,color:"#3b82f6",background:"none",border:"none",cursor:"pointer",padding:0}}>Got it →</button>
+      <div style={{fontSize:10,color:"#64748b",lineHeight:1.5,marginBottom:6}}>{text}</div>
     </div>)}
   </div>);}
 
@@ -1762,6 +1768,7 @@ const [storageReady, setStorageReady] = useState(false);
       if(adminExpDate){
         let hh=adminExpHour%12;if(adminExpAmPm==="PM")hh+=12;
         const d=new Date(`${adminExpDate}T${String(hh).padStart(2,"0")}:${String(adminExpMin).padStart(2,"0")}:00`);
+        if(d<=new Date()){setAdminBusy(false);return fl("⚠️ Expiry date must be in the future");}
         expiryAt=firebase.firestore.Timestamp.fromDate(d);
       }
       const payload={code,active:true,used:false,usesCount:0,maxUses:adminMaxUses,createdBy:window.fbUser.email,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
@@ -2819,39 +2826,36 @@ const [storageReady, setStorageReady] = useState(false);
             <div onClick={()=>setHydExpanded(e=>!e)} style={{height:6,borderRadius:3,background:"rgba(30,41,59,0.6)",overflow:"hidden",marginBottom:hydExpanded?8:0,cursor:"pointer"}}>
               <div style={{height:"100%",borderRadius:3,width:`${pct}%`,background:barCol,transition:"width .4s"}}/>
             </div>
-            {/* Expanded content */}
-            {hydExpanded&&(<>
-              {/* Suggestion */}
+            {/* Expanded content — stop all clicks propagating to header toggle */}
+            {hydExpanded&&(<div onClick={e=>e.stopPropagation()}>
               {suggestion&&!isFutureDay&&<div style={{fontSize:9,color:"#64748b",marginBottom:8,fontStyle:"italic"}}>{suggestion}</div>}
-              {/* Quick add buttons */}
               {!isFutureDay&&(<>
                 <div style={{display:"flex",gap:4,marginBottom:showHydCustom?6:0,flexWrap:"wrap"}}>
-                  {DRINKS.map(d=>(<button key={d.label} onClick={()=>addDrink(d)} style={{flex:1,minWidth:44,padding:"5px 2px",borderRadius:8,border:"1px solid rgba(56,189,248,0.2)",background:"rgba(15,23,42,0.5)",cursor:"pointer",textAlign:"center"}}>
+                  {DRINKS.map(d=>(<button key={d.label} onClick={e=>{e.stopPropagation();addDrink(d);}} style={{flex:1,minWidth:44,padding:"5px 2px",borderRadius:8,border:"1px solid rgba(56,189,248,0.2)",background:"rgba(15,23,42,0.5)",cursor:"pointer",textAlign:"center"}}>
                     <div style={{fontSize:16}}>{d.icon}</div>
                     <div style={{fontSize:7,color:"#64748b",fontWeight:600}}>{d.label}</div>
                     <div style={{fontSize:7,color:"#38bdf8"}}>{d.ml}ml</div>
                   </button>))}
-                  <button onClick={()=>setShowHydCustom(s=>!s)} style={{flex:1,minWidth:44,padding:"5px 2px",borderRadius:8,border:"1px solid rgba(148,163,184,0.15)",background:"rgba(15,23,42,0.5)",cursor:"pointer",textAlign:"center"}}>
+                  <button onClick={e=>{e.stopPropagation();setShowHydCustom(s=>!s);}} style={{flex:1,minWidth:44,padding:"5px 2px",borderRadius:8,border:"1px solid rgba(148,163,184,0.15)",background:"rgba(15,23,42,0.5)",cursor:"pointer",textAlign:"center"}}>
                     <div style={{fontSize:16}}>➕</div>
                     <div style={{fontSize:7,color:"#64748b",fontWeight:600}}>Custom</div>
                     <div style={{fontSize:7,color:"#475569"}}>ml</div>
                   </button>
                 </div>
                 {showHydCustom&&(<div style={{display:"flex",gap:6,marginBottom:6}}>
-                  <input type="number" style={{...S.fi,flex:1,marginBottom:0}} placeholder="Amount in ml" value={hydCustomVal} onChange={e=>setHydCustomVal(e.target.value)}/>
-                  <button style={S.cb} onClick={()=>{const ml=parseInt(hydCustomVal)||0;if(ml>0){addDrink({label:"Custom",icon:"💧",ml});setHydCustomVal("");setShowHydCustom(false);}}}>Add</button>
-                  <button style={S.sb} onClick={()=>{setShowHydCustom(false);setHydCustomVal("");}}>✕</button>
+                  <input type="number" inputMode="numeric" style={{...S.fi,flex:1,marginBottom:0}} placeholder="Amount in ml" value={hydCustomVal} onChange={e=>setHydCustomVal(e.target.value)} onClick={e=>e.stopPropagation()}/>
+                  <button style={S.cb} onClick={e=>{e.stopPropagation();const ml=parseInt(hydCustomVal)||0;if(ml>0){addDrink({label:"Custom",icon:"💧",ml});setHydCustomVal("");setShowHydCustom(false);}}}>Add</button>
+                  <button style={S.sb} onClick={e=>{e.stopPropagation();setShowHydCustom(false);setHydCustomVal("");}}>✕</button>
                 </div>)}
-                {/* Log + undo row */}
                 {hydrationLog.length>0&&(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
                   <div style={{display:"flex",gap:4,flexWrap:"wrap",flex:1}}>
                     {hydrationLog.slice(-5).map((e,i)=>(<span key={i} style={{fontSize:9,color:"#475569"}}>{e.icon}{e.ml}ml{i<Math.min(4,hydrationLog.length-1)?",":""}</span>))}
                     {hydrationLog.length>5&&<span style={{fontSize:9,color:"#334155"}}>+{hydrationLog.length-5} more</span>}
                   </div>
-                  <button onClick={removeLast} style={{fontSize:9,color:"#475569",background:"none",border:"none",cursor:"pointer",flexShrink:0,padding:"0 4px"}}>undo</button>
+                  <button onClick={e=>{e.stopPropagation();removeLast();}} style={{fontSize:9,color:"#475569",background:"none",border:"none",cursor:"pointer",flexShrink:0,padding:"0 4px"}}>undo</button>
                 </div>)}
               </>)}
-            </>)}
+            </div>)}
           </div>);
         })()}
         {/* Weekly remaining calories */}
@@ -2967,7 +2971,7 @@ const [storageReady, setStorageReady] = useState(false);
                               :{background:"rgba(10,15,30,0.3)",borderRadius:7,padding:"5px 6px",borderLeft:"3px dashed rgba(71,85,105,0.5)",border:"1px solid rgba(148,163,184,0.06)"})}}>
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{display:"flex",alignItems:"center",gap:4}}>
-                              {!isRO&&<Tip tipKey="lock-ingredient" title="Lock ingredient" text="Locks this item so it stays fixed when the app rebalances your meals. Great for your protein shake or any food you always have." position="below" align="left"><button onClick={()=>togLock(sel,meal.id,ii)} style={{width:20,height:20,borderRadius:4,border:"none",background:lk?"#1e3a8a":"#334155",color:lk?"#3b82f6":"#64748b",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexShrink:0,transition:"all .2s"}}>{lk?IC.lock(12):IC.lock(12)}</button></Tip>}
+                              {!isRO&&<Tip tipKey="lock-ingredient" onlyFirst={true} title="Lock ingredient" text="Locks this item so it stays fixed when the app rebalances your meals. Great for your protein shake or any food you always have." position="below" align="left"><button onClick={()=>togLock(sel,meal.id,ii)} style={{width:20,height:20,borderRadius:4,border:"none",background:lk?"#1e3a8a":"#334155",color:lk?"#3b82f6":"#64748b",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexShrink:0,transition:"all .2s"}}>{lk?IC.lock(12):IC.lock(12)}</button></Tip>}
                               {isRO&&<span style={{fontSize:11,flexShrink:0}}>{lk?IC.lock(12):IC.lock(12)}</span>}
                               <span style={{fontSize:11,fontWeight:600,color:lk?"#93c5fd":"#cbd5e1"}}>{ing.food}</span>
                               {badges.map((b,bi)=>(<span key={bi} style={{fontSize:7,padding:"1px 3px",borderRadius:3,background:"rgba(51,65,85,0.4)",color:b.c,fontWeight:700,lineHeight:1}}>{b.l}</span>))}
@@ -2982,20 +2986,32 @@ const [storageReady, setStorageReady] = useState(false);
                           </div></div>);
                       })}
                       {!isRO&&(showAI===meal.id?(<div onClick={e=>e.stopPropagation()} style={{marginTop:3,padding:8,background:"rgba(10,15,30,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",borderRadius:7,border:"1px solid rgba(148,163,184,0.06)"}}>
-                        {(!addMode||addSec!==meal.id)&&(<div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:3}}>
-                          <button style={S.mb} onClick={e=>{e.stopPropagation();setAS(meal.id);setAM("ing");}}>{IC.meal(12)} Pick from my ingredients</button>
-                          <button style={S.mb} onClick={e=>{e.stopPropagation();if(typeof ZXing==="undefined")return fl("Scanner loading — try again");setSAI(null);setAS(meal.id);setScanning(true);}}>
-                            <svg width="12" height="12" viewBox="0 0 36 36" style={{verticalAlign:"middle",marginRight:4}}><rect x="2" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="2" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><line x1="4" y1="18" x2="32" y2="18" stroke="#f87171" strokeWidth="1.5" strokeDasharray="3,2"/></svg>
-                            Scan a barcode
-                          </button>
-                        </div>)}
-                        {addMode==="ing"&&addSec===meal.id&&(<div style={{marginBottom:3}}>
-                          <select style={{width:"100%",padding:6,border:"1.5px solid rgba(148,163,184,0.12)",borderRadius:7,fontSize:11,fontFamily:"'DM Sans'",marginBottom:3,color:"#e2e8f0",background:"rgba(30,41,59,0.45)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)"}} defaultValue="" onChange={e=>{if(e.target.value){startAI(meal.id,e.target.value);setSAI(null);setAS(null);setAM(null);}}}>
-                            <option value="" disabled>Pick...</option>{Object.keys(catG).map(cat=>(<optgroup key={cat} label={cat}>{catG[cat].map(ing=>(<option key={ing.id} value={ing.id}>{ing.food}</option>))}</optgroup>))}
-                          </select>
-                          <button style={S.sb} onClick={e=>{e.stopPropagation();setAS(null);setAM(null);}}>← Back</button>
-                        </div>)}
-                        {(!addMode||addSec!==meal.id)&&<button style={S.sb} onClick={e=>{e.stopPropagation();setSAI(null);setAS(null);setAM(null);}}>Cancel</button>}
+                        {(()=>{
+                          const[mealIngSearch,setMIS]=useState("");
+                          const filtered=ings.filter(x=>!mealIngSearch||x.food.toLowerCase().includes(mealIngSearch.toLowerCase()));
+                          return(<>
+                            {/* Search bar */}
+                            <div style={{position:"relative",marginBottom:6}}>
+                              <input autoFocus style={{...S.fi,marginBottom:0,paddingLeft:26,fontSize:10}} placeholder="Search ingredients…" value={mealIngSearch} onChange={e=>setMIS(e.target.value)} onClick={e=>e.stopPropagation()}/>
+                              <span style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",fontSize:11,color:"#475569",pointerEvents:"none"}}>🔍</span>
+                              {mealIngSearch&&<button onClick={e=>{e.stopPropagation();setMIS("");}} style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"#475569",fontSize:12,cursor:"pointer",padding:0}}>✕</button>}
+                            </div>
+                            {/* Ingredient list */}
+                            <div style={{maxHeight:160,overflowY:"auto",marginBottom:6}}>
+                              {filtered.length===0&&<div style={{fontSize:9,color:"#475569",textAlign:"center",padding:"8px 0"}}>No ingredients found</div>}
+                              {filtered.map(ing=>(<button key={ing.id} style={{...S.mb,display:"flex",justifyContent:"space-between",width:"100%",marginBottom:2}} onClick={e=>{e.stopPropagation();startAI(meal.id,ing.id);setSAI(null);setAS(null);setAM(null);}}>
+                                <span style={{fontSize:10}}>{ing.food}</span>
+                                <span style={{fontSize:9,color:"#64748b"}}>{ing.unit==="piece"?`${ing.perUnit?.cals}kcal/pc`:`${ing.per100?.cals}kcal`}</span>
+                              </button>))}
+                            </div>
+                            {/* Scan option */}
+                            <button style={{...S.mb,width:"100%",marginBottom:4}} onClick={e=>{e.stopPropagation();if(typeof ZXing==="undefined")return fl("Scanner loading — try again");setSAI(null);setAS(meal.id);setScanning(true);}}>
+                              <svg width="11" height="11" viewBox="0 0 36 36" style={{verticalAlign:"middle",marginRight:4}}><rect x="2" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="2" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><line x1="4" y1="18" x2="32" y2="18" stroke="#f87171" strokeWidth="1.5" strokeDasharray="3,2"/></svg>
+                              Scan a new barcode
+                            </button>
+                            <button style={S.sb} onClick={e=>{e.stopPropagation();setSAI(null);setAS(null);setAM(null);}}>Cancel</button>
+                          </>);
+                        })()}
                       </div>
                       ):<div style={{marginTop:3}}>
                         <button style={{width:"100%",padding:5,border:"1.5px dashed #475569",borderRadius:5,background:"transparent",color:"#64748b",fontSize:10,fontWeight:600,cursor:"pointer"}} onClick={e=>{e.stopPropagation();setSAI(meal.id);}}>+ Add ingredient to this meal</button>
@@ -3516,9 +3532,40 @@ const [storageReady, setStorageReady] = useState(false);
                         const ca=Math.round((n.carbohydrates_100g||0)*10)/10;
                         const fa=Math.round((n.fat_100g||0)*10)/10;
                         const{cat,defAmt,maxAmt}=autoCat(cal,pr,ca,fa);
-                        setNI({food:name,unit:"g",cals:String(cal),p:String(pr),c:String(ca),f:String(fa),defAmt:String(defAmt),maxAmt:String(maxAmt),cat,barcode:code});
-                        setNIF(true);setScanning(false);setScanStatus("");
-                        fl("Scanned: "+name);
+                        const scanData={food:name,unit:"g",cals:String(cal),p:String(pr),c:String(ca),f:String(fa),defAmt:String(defAmt),maxAmt:String(maxAmt),cat,barcode:code};
+                        // If scanning from a meal context — auto-save without showing form
+                        if(addSec){
+                          const id2=name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/-+$/,"");
+                          const dup=ings.find(x=>x.id===id2||x.food.toLowerCase()===name.toLowerCase());
+                          if(dup){
+                            // Already in ingredients — just add to meal
+                            addIngSec(sel,addSec,dup.id,addTime?fmtTime24(addTime):"");
+                            setAS(null);setAM(null);setSAI(null);setAddTime("");
+                            setScanning(false);setScanStatus("");
+                            fl("✓ "+name+" added to meal");
+                          }else{
+                            // New item — save to ingredients and add to meal, no community share when from meal
+                            const e2={id:id2,food:name,unit:"g",defAmt:+defAmt,maxAmt:+(maxAmt||defAmt*2),cat};
+                            e2.per100={cals:cal,p:pr,c:ca,f:fa};
+                            const u2=[...ings,e2];setIngs(u2);await sI(u2);
+                            addIngSec(sel,addSec,id2,addTime?fmtTime24(addTime):"");
+                            setAS(null);setAM(null);setSAI(null);setAddTime("");
+                            setScanning(false);setScanStatus("");
+                            fl("✓ "+name+" saved and added to meal");
+                          }
+                        }else{
+                          // Scanning from ingredients tab — check for duplicate first
+                          const id2=name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/-+$/,"");
+                          const dup=ings.find(x=>x.id===id2||x.food.toLowerCase()===name.toLowerCase());
+                          if(dup){
+                            setScanStatus("✅ "+name+" is already in your ingredients");
+                            setTimeout(()=>{setScanning(false);setScanStatus("");},2500);
+                          }else{
+                            setNI(scanData);
+                            setNIF(true);setScanning(false);setScanStatus("");
+                            fl("Scanned: "+name);
+                          }
+                        }
                       }else{
                         setScanStatus("✗ Product not found — try manual entry");
                         setTimeout(()=>{setScanning(false);setScanStatus("");},2000);
@@ -4092,7 +4139,7 @@ const [storageReady, setStorageReady] = useState(false);
         <div style={{background:"rgba(30,41,59,0.35)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",padding:14,marginBottom:10}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
             <div style={{fontSize:10,fontWeight:700,color:"#4ade80",textTransform:"uppercase",letterSpacing:"1.2px"}}>Unused Codes ({adminCodes.length})</div>
-            <button style={S.sb} onClick={loadAdminCodes}>Refresh</button>
+            <button style={S.sb} onClick={async()=>{await loadAdminCodes();fl("Codes refreshed ✅");}}>Refresh</button>
           </div>
           {adminCodes.length===0&&<div style={{fontSize:10,color:"#475569",textAlign:"center",padding:"8px 0"}}>No unused codes</div>}
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
