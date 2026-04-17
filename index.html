@@ -2416,6 +2416,13 @@ function App(){
     const futureDays=DAYS.filter((d,i)=>!isPast(i)&&!comp[d]);
     if(!futureDays.length)return fl("No editable days left");
 
+    // Real surplus = wRem minus what future days are already targeting normally.
+    // wRem includes the normal future-day budget, so we must subtract it to find
+    // the genuine extra calories available to redistribute.
+    const futureTarget=futureDays.reduce((s,d)=>s+gDT(d),0);
+    const surplus=wRem-futureTarget;
+    if(surplus<=10)return fl("Days are already at their target — nothing extra to spread");
+
     // Calculate how much each day can actually absorb (capped at 20% of its target)
     const dayCapacity=futureDays.map(d=>{
       const curTgt=gDT(d);
@@ -2423,9 +2430,9 @@ function App(){
     });
     const totalCapacity=dayCapacity.reduce((s,x)=>s+x.maxBoost,0);
 
-    // Only spread up to total capacity — never go negative
-    const toSpread=Math.min(wRem,totalCapacity);
-    const leftover=wRem-toSpread;
+    // Only spread up to total capacity
+    const toSpread=Math.min(surplus,totalCapacity);
+    const leftover=surplus-toSpread;
 
     if(toSpread<5)return fl("Days are already near their max — try reducing a meal instead");
 
@@ -2435,18 +2442,20 @@ function App(){
     dayCapacity.forEach(({d,curTgt,maxBoost},i)=>{
       const share=i<dayCapacity.length-1
         ?Math.min(maxBoost,Math.floor(toSpread/futureDays.length))
-        :remaining; // give remainder to last day
+        :remaining;
       const boost=Math.min(maxBoost,share);
       remaining-=boost;
       const boosted=curTgt+boost;
-      const ms=newCm[d]?.length>0?dc(newCm[d]):gTpl(d);
+      // Fall back to template if stored meals have no items (e.g. fresh onboarding meals)
+      const hasMealItems=newCm[d]?.some(m=>m.items?.length>0);
+      const ms=hasMealItems?dc(newCm[d]):gTpl(d);
       newCm[d]=shuffleMealTiming(autoRebalance(ms,boosted,im,gDone(d),cfPref,bW),types[d],im);
     });
 
     dispatch({type:'SET_CM',cm:newCm});sv(types,checks,newCm,comp,wCal,wMacPct);
 
     if(leftover>10){
-      fl(`Spread ${toSpread} kcal across ${futureDays.length} days — ${leftover} kcal couldn't be added as days are near their balance limit. Consider adjusting a meal manually.`);
+      fl(`Spread ${toSpread} kcal across ${futureDays.length} days — ${leftover} kcal couldn't fit. Adjust meals manually.`);
     }else{
       fl(`${toSpread} kcal spread across ${futureDays.length} days ✅`);
     }
@@ -3065,9 +3074,9 @@ function App(){
           <span style={{fontSize:9,color:"#64748b",fontWeight:600}}>📅 Weekly budget</span>
           <div style={{display:"flex",alignItems:"center",gap:6}}>
             <span style={{fontSize:10,fontWeight:700,color:wRem<0?"#f87171":wRem<200?"#fbbf24":"#4ade80"}}>{wRem>=0?`${wRem} kcal left`:`${Math.abs(wRem)} kcal over`}</span>
-            {wRem>10&&<Tip tipKey="spread-leftover" title="Spread leftover calories" text="Distributes your remaining weekly calories evenly across future days — so nothing goes to waste." position="below" align="right">
+            {(()=>{const fDays=DAYS.filter((d,i)=>!isPast(i)&&!comp[d]);const fTgt=fDays.reduce((s,d)=>s+gDT(d),0);const surplus=wRem-fTgt;const hasItems=fDays.some(d=>cm[d]?.some(m=>m.items?.length>0));return surplus>0&&surplus<=150&&hasItems&&(<Tip tipKey="spread-leftover" title="Spread leftover calories" text="Distributes your remaining weekly calories evenly across future days — so nothing goes to waste." position="below" align="right">
               <button title="Spread remaining calories evenly across future days this week" style={{fontSize:8,padding:"2px 7px",border:"1px solid rgba(51,65,85,0.5)",borderRadius:4,background:"rgba(30,41,59,0.6)",color:"#93c5fd",fontWeight:700,cursor:"pointer"}} onClick={spreadRemaining}>Spread leftover</button>
-            </Tip>}
+            </Tip>);})()}
           </div>
         </div>
         {/* SUPPLEMENT TIMING ALERTS */}
@@ -3200,7 +3209,6 @@ function App(){
                 {selE&&!selCo&&!g.meals.every(m=>checks[sel]?.[m.id])&&(addSec===g.sec?(<div style={{padding:8,background:"rgba(10,15,30,0.4)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",borderRadius:10,border:"1px solid rgba(148,163,184,0.06)",marginTop:3}}>
                   <div style={{marginBottom:5}}><input type="time" style={{...S.fi,marginBottom:0,width:"auto"}} value={addTime} onChange={e=>setAddTime(e.target.value)} placeholder="Time"/></div>
                   {!addMode&&(<div style={{display:"flex",flexDirection:"column",gap:3}}>
-                    <button style={S.mb} onClick={()=>setAM("presets")}>{IC.copy(12)} Saved meal template</button>
                     <button style={S.mb} onClick={()=>setAM("ing")}>{IC.meal(12)} Pick from my ingredients</button>
                     <button style={S.mb} onClick={()=>{
                       if(typeof ZXing==="undefined"){fl("Scanner loading — try again in a moment");return;}
@@ -3209,14 +3217,14 @@ function App(){
                       <svg width="12" height="12" viewBox="0 0 36 36" style={{verticalAlign:"middle",marginRight:4}}><rect x="2" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="2" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><line x1="4" y1="18" x2="32" y2="18" stroke="#f87171" strokeWidth="1.5" strokeDasharray="3,2"/></svg>
                       Scan a food barcode
                     </button>
-                    <button style={S.mb} onClick={()=>setAM("custom")}>{IC.edit(12)} Create a new custom meal</button>
                     <button style={S.sb} onClick={()=>{setAS(null);setAM(null);setAddTime("");}}>Cancel</button></div>)}
                   {addMode==="presets"&&(<div><div style={{maxHeight:200,overflowY:"auto"}}>{[...allPr,...sP].map((t,ti)=>(<button key={ti} style={S.mb} onClick={()=>addPreset(sel,g.sec,t,addTime?fmtTime24(addTime):"")}>{gL(t.name)||gS(t.name)} <span style={{color:"#64748b",fontSize:10}}>{sm(t,im).cals}cal</span></button>))}</div><button style={{...S.sb,marginTop:4}} onClick={()=>setAM(null)}>Back</button></div>)}
                   {addMode==="ing"&&(<div><select style={{width:"100%",padding:6,border:"1.5px solid rgba(148,163,184,0.12)",borderRadius:7,fontSize:11,fontFamily:"'DM Sans'",marginBottom:3,color:"#e2e8f0",background:"rgba(30,41,59,0.45)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)"}} defaultValue="" onChange={e=>{if(e.target.value)addIngSec(sel,g.sec,e.target.value,addTime?fmtTime24(addTime):"");}}><option value="" disabled>Select...</option>{Object.keys(catG).map(cat=>(<optgroup key={cat} label={cat}>{catG[cat].map(ing=>(<option key={ing.id} value={ing.id}>{ing.food}</option>))}</optgroup>))}</select><button style={S.sb} onClick={()=>setAM(null)}>Back</button></div>)}
                   {addMode==="custom"&&(<div><input style={S.fi} placeholder="e.g. Tuna wrap" value={subN} onChange={e=>setSubN(e.target.value)}/><div style={{display:"flex",gap:5}}><button style={{...S.cb,...(!subN.trim()?S.cbOff:{})}} disabled={!subN.trim()} onClick={()=>addInSec(sel,g.sec,subN,addTime?fmtTime24(addTime):"")}>Create</button><button style={S.sb} onClick={()=>setAM(null)}>Back</button></div></div>)}
-                </div>):(<div style={{marginTop:3}}>
-                  <button style={{width:"100%",padding:6,border:"1.5px solid #334155",borderRadius:6,background:"transparent",color:"#64748b",fontSize:10,fontWeight:600,cursor:"pointer",textAlign:"center"}} onClick={()=>{setAS(g.sec);setAM(null);}}>+ Add another item to {g.sec}</button>
-                  <div style={{fontSize:8,color:"#334155",textAlign:"center",marginTop:2}}>e.g. a banana, a coffee or a separate snack alongside your meal</div>
+                </div>):(<div style={{display:"flex",flexDirection:"column",gap:3,marginTop:5}}>
+                  <button style={S.mb} onClick={()=>{setAS(g.sec);setAM(null);}}>{IC.meal(12)} Add item</button>
+                  <button style={S.mb} onClick={()=>{setAS(g.sec);setAM("presets");}}>{IC.copy(12)} Saved meal template</button>
+                  <button style={S.mb} onClick={()=>{setAS(g.sec);setAM("custom");}}>{IC.edit(12)} Create new meal</button>
                 </div>))}
               </div></div>);
           })}
@@ -3904,7 +3912,7 @@ function App(){
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6}}>
                   <span style={{fontSize:10,fontWeight:700,color:wRem<0?"#f87171":wRem<200?"#fbbf24":"#4ade80"}}>{wRem>=0?`${wRem} kcal left this week`:`${Math.abs(wRem)} kcal over`}</span>
-                  {wRem>10&&<button style={{fontSize:9,padding:"2px 7px",border:"1px solid rgba(51,65,85,0.5)",borderRadius:4,background:"rgba(30,41,59,0.6)",color:"#93c5fd",fontWeight:700,cursor:"pointer"}} onClick={spreadRemaining}>Spread</button>}
+                  {(()=>{const fDays=DAYS.filter((d,i)=>!isPast(i)&&!comp[d]);const fTgt=fDays.reduce((s,d)=>s+gDT(d),0);const surplus=wRem-fTgt;const hasItems=fDays.some(d=>cm[d]?.some(m=>m.items?.length>0));return surplus>0&&surplus<=150&&hasItems&&<button style={{fontSize:9,padding:"2px 7px",border:"1px solid rgba(51,65,85,0.5)",borderRadius:4,background:"rgba(30,41,59,0.6)",color:"#93c5fd",fontWeight:700,cursor:"pointer"}} onClick={spreadRemaining}>Spread</button>;})()}
                 </div>
               </div>);
             })()}
