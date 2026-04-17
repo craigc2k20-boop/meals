@@ -1837,22 +1837,30 @@ function App(){
     }
   };
 
-  // Re-run access check when Firebase auth resolves
+  // Use refs so the fbAuthReady handler always reads latest values without re-registering
+  const pendingActionRef=React.useRef(pendingAction);
+  const pendingCodeRef=React.useRef(pendingCode);
+  const stripeUrlRef=React.useRef(stripeUrl);
+  useEffect(()=>{pendingActionRef.current=pendingAction;},[pendingAction]);
+  useEffect(()=>{pendingCodeRef.current=pendingCode;},[pendingCode]);
+  useEffect(()=>{stripeUrlRef.current=stripeUrl;},[stripeUrl]);
+
+  // Register fbAuthReady listener ONCE on mount — never re-registers
   useEffect(()=>{
     const handler=async()=>{
       await runAccessCheck();
-      if(pendingAction==="pay"&&window.fbUser){
+      if(pendingActionRef.current==="pay"&&window.fbUser){
         setPendingAction(null);
-        window.location.href=stripeUrl;
-      }else if(pendingAction==="code"&&window.fbUser&&pendingCode){
-        const result=await redeemCode(pendingCode);
+        window.location.href=stripeUrlRef.current;
+      }else if(pendingActionRef.current==="code"&&window.fbUser&&pendingCodeRef.current){
+        const result=await redeemCode(pendingCodeRef.current);
         setPendingAction(null);setPendingCode("");
         if(result!==true)fl(result||"Invalid code");
       }
     };
     window.addEventListener("fbAuthReady",handler);
     return()=>window.removeEventListener("fbAuthReady",handler);
-  },[pendingAction,pendingCode,stripeUrl]);
+  },[]);
 
   // ── Access control runs via runAccessCheck() triggered by fbAuthReady event ──
 
