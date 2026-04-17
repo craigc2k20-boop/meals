@@ -3098,6 +3098,8 @@ function App(){
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:5}}>
                 {g.meals.map(meal=>{const mt=sm(meal,im);const done=checks[sel]?.[meal.id];const isE=exp===`${sel}-${meal.id}`;const lbl=gL(meal.name);const isRO=!selE||done||selCo;const isSingle=meal.items.length===1;
+                  // Hide empty non-fixed meals (e.g. onboarding heading shells with no items yet)
+                  if(meal.items.length===0&&!meal.fixed)return null;
                   // Per-meal synergy glow
                   const mIds=meal.items.map(it=>it.ingId);
                   const hasIronM=mIds.some(id=>HIGH_IRON.includes(id));const hasCalcM=mIds.some(id=>HIGH_CALCIUM.includes(id));
