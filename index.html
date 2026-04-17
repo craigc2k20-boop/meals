@@ -2026,7 +2026,8 @@ function App(){
       });
       items.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
       setAdminFeedback(items.slice(0,50));
-    }catch(e){console.warn("Load feedback failed",e);}
+      fl("Loaded "+items.length+" feedback item"+(items.length===1?"":"s"));
+    }catch(e){console.warn("Load feedback failed",e);fl("Feedback load error: "+(e.code||e.message||"unknown"));}
   };
 
   const sendNotification=async(item)=>{
