@@ -1934,11 +1934,13 @@ function App(){
     }catch{}
   })();},[]);
 
-  // Show What's New if user hasn't seen this patch version
+  // Show What's New if user hasn't seen this patch version (only for returning users)
   useEffect(()=>{
     if(accessState==="checking"||accessState==="locked"||accessState==="guest")return;
     const seen=localStorage.getItem("ept:patchSeen");
-    if(seen!==PATCH_VERSION)setShowWhatsNew(true);
+    const hasData=localStorage.getItem("ept:"+V+":profile"); // only show to users with existing profile
+    if(seen!==PATCH_VERSION&&hasData)setShowWhatsNew(true);
+    else if(!hasData)localStorage.setItem("ept:patchSeen",PATCH_VERSION); // mark as seen for new users
   },[accessState]);
 
   // ── Payment success handler ──────────────────────────────
@@ -2645,7 +2647,7 @@ function App(){
                 <label style={S.lbl}>Weight</label>
                 <button style={{fontSize:9,fontWeight:700,color:"#3b82f6",background:"rgba(59,130,246,0.1)",border:"1px solid rgba(59,130,246,0.3)",borderRadius:4,padding:"1px 6px",cursor:"pointer"}} onClick={()=>setPF({...profForm,weightUnit:profForm.weightUnit==="kg"?"lbs":"kg",weight:profForm.weightUnit==="kg"?String(kgToLbs(profForm.weight)):String(lbsToKg(profForm.weight))})}>{profForm.weightUnit==="kg"?"kg → lbs":"lbs → kg"}</button>
               </div>
-              <input style={S.fi} type="number" step="0.1" placeholder={profForm.weightUnit==="kg"?"e.g. 80":"e.g. 176"} value={profForm.weight} onChange={e=>{const v=e.target.value;const max=profForm.weightUnit==="kg"?250:550;const min=profForm.weightUnit==="kg"?30:66;if(v===""||(!isNaN(v)&&+v>=min&&+v<=max))setPF({...profForm,weight:v});}}/>
+              <input style={S.fi} type="number" step="0.1" placeholder={profForm.weightUnit==="kg"?"e.g. 80":"e.g. 176"} value={profForm.weight} onChange={e=>setPF({...profForm,weight:e.target.value})} onBlur={e=>{const v=+e.target.value;const max=profForm.weightUnit==="kg"?250:550;const min=profForm.weightUnit==="kg"?30:66;if(v&&(v<min||v>max))setPF({...profForm,weight:""});}}/>
             </div>
             {/* Height */}
             <div style={{flex:1}}>
@@ -2653,9 +2655,7 @@ function App(){
                 <label style={S.lbl}>Height</label>
                 <button style={{fontSize:9,fontWeight:700,color:"#3b82f6",background:"rgba(59,130,246,0.1)",border:"1px solid rgba(59,130,246,0.3)",borderRadius:4,padding:"1px 6px",cursor:"pointer"}} onClick={()=>setPF({...profForm,heightUnit:profForm.heightUnit==="ftin"?"cm":"ftin",height:profForm.heightUnit==="ftin"?String(ftToCm(profForm.height)):cmToFtIn(parseFloat(profForm.height))})}>{profForm.heightUnit==="ftin"?"ft.in → cm":"cm → ft.in"}</button>
               </div>
-              <input style={S.fi} type="number" step={profForm.heightUnit==="cm"?"0.1":"0.01"} placeholder={profForm.heightUnit==="cm"?"e.g. 175":"e.g. 5.9"} value={profForm.height} onChange={e=>{const v=e.target.value;if(v===""||(!isNaN(v)&&+v>=(profForm.heightUnit==="cm"?130:4.2)&&+v<=(profForm.heightUnit==="cm"?220:7.3)))setPF({...profForm,height:v});}}/>
-              {profForm.heightUnit==="ftin"&&profForm.height&&<span style={{fontSize:9,color:"#475569"}}>{ftToCm(profForm.height)}cm</span>}
-              {profForm.heightUnit==="cm"&&profForm.height&&<span style={{fontSize:9,color:"#475569"}}>{cmToFtIn(parseFloat(profForm.height))}</span>}
+              <input style={S.fi} type="number" step={profForm.heightUnit==="cm"?"0.1":"0.01"} placeholder={profForm.heightUnit==="cm"?"e.g. 175":"e.g. 5.9"} value={profForm.height} onChange={e=>setPF({...profForm,height:e.target.value})} onBlur={e=>{const v=+e.target.value;const min=profForm.heightUnit==="cm"?130:4.2;const max=profForm.heightUnit==="cm"?220:7.3;if(v&&(v<min||v>max))setPF({...profForm,height:""});}}/>
             </div>
           </div>
           <div style={{display:"flex",gap:5,marginBottom:5}}>
@@ -2673,7 +2673,7 @@ function App(){
                 <label style={S.lbl}>Waist <span style={{fontSize:8,color:"#475569",fontWeight:400}}>(optional)</span></label>
                 <button style={{fontSize:9,fontWeight:700,color:"#3b82f6",background:"rgba(59,130,246,0.1)",border:"1px solid rgba(59,130,246,0.3)",borderRadius:4,padding:"1px 6px",cursor:"pointer"}} onClick={()=>{const cur=profForm.waistUnit||"in";const nv=cur==="in"?"cm":"in";const wv=profForm.waist?cur==="in"?String(+(parseFloat(profForm.waist)*2.54).toFixed(1)):String(cmToIn(profForm.waist)):profForm.waist;setPF({...profForm,waistUnit:nv,waist:wv});}}>{(profForm.waistUnit||"in")==="in"?"in → cm":"cm → in"}</button>
               </div>
-              <input style={S.fi} type="number" step="0.1" placeholder={profForm.waistUnit==="cm"?"e.g. 86":"e.g. 34"} value={profForm.waist} onChange={e=>{const v=e.target.value;const max=(profForm.waistUnit||"in")==="in"?70:180;if(v===""||(!isNaN(v)&&+v>=10&&+v<=max))setPF({...profForm,waist:v});}}/>
+              <input style={S.fi} type="number" step="0.1" placeholder={profForm.waistUnit==="cm"?"e.g. 86":"e.g. 34"} value={profForm.waist} onChange={e=>setPF({...profForm,waist:e.target.value})} onBlur={e=>{const v=+e.target.value;const max=(profForm.waistUnit||"in")==="in"?70:180;if(v&&(v<10||v>max))setPF({...profForm,waist:""});}}/>
             </div>
           </div>
           <div style={{display:"flex",gap:5,marginBottom:5}}>
