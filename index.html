@@ -2084,7 +2084,14 @@ function App(){
   const saveHydration=async(log)=>{try{await window.storage.set(hk,JSON.stringify(log));}catch{}};
   const loadHydration=async()=>{try{const r=await window.storage.get(hk);if(r?.value)setHydrationLog(JSON.parse(r.value));else setHydrationLog([]);}catch{setHydrationLog([]);}};
   useEffect(()=>{loadHydration();},[sel]);
-  const im={};ings.forEach(i=>{
+  // Merge user ingredients + shared ingredients (user's own entries take priority)
+  const allIngs=React.useMemo(()=>{
+    const map={};
+    sharedIngs.forEach(i=>{map[i.id]=i;});
+    ings.forEach(i=>{map[i.id]=i;}); // user's own override shared
+    return Object.values(map);
+  },[ings,sharedIngs]);
+  const im={};allIngs.forEach(i=>{
     const c=ING_CONSTRAINTS[i.id]||{unit_type:i.unit==="piece"?"discrete":"continuous",limit_range:[i.step||5,i.maxAmt||200]};
     // Propagate limit_range[1] into maxAmt so all existing engine checks auto-inherit the constraint
     im[i.id]={...i,constraints:c,maxAmt:c.limit_range[1]};
@@ -2469,7 +2476,7 @@ function App(){
     wrapGlow:calBudgetOver?"0 0 30px rgba(239,68,68,0.15),inset 0 0 30px rgba(239,68,68,0.05)":"none",
   };
   const secs=groupSec(sMs);
-  const catG={};ings.forEach(i=>{const c=i.cat||"Other";if(!catG[c])catG[c]=[];catG[c].push(i);});
+  const catG={};allIngs.forEach(i=>{const c=i.cat||"Other";if(!catG[c])catG[c]=[];catG[c].push(i);});
   const showCT=isFut&&sel==="Monday";
   const allPr=[...T_TPL,...R_TPL,...PRESETS].filter((t,i,a)=>a.findIndex(x=>x.name===t.name)===i);
 
@@ -3595,16 +3602,16 @@ function App(){
 
         {/* Category tabs — only show when not searching */}
         {!ingSearch&&(<div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:8,paddingBottom:2}}>
-          {["All",...Object.keys(catG).filter(c=>catG[c]?.length>0)].map(c=>(<button key={c} onClick={()=>setIngCatTab(c)} style={{padding:"4px 10px",borderRadius:20,border:`1.5px solid ${ingCatTab===c?"rgba(59,130,246,0.6)":"rgba(51,65,85,0.4)"}`,background:ingCatTab===c?"rgba(59,130,246,0.15)":"transparent",color:ingCatTab===c?"#93c5fd":"#64748b",fontSize:9,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>{c}{c!=="All"?` (${catG[c]?.length})`:` (${ings.length})`}</button>))}
+          {["All",...Object.keys(catG).filter(c=>catG[c]?.length>0)].map(c=>(<button key={c} onClick={()=>setIngCatTab(c)} style={{padding:"4px 10px",borderRadius:20,border:`1.5px solid ${ingCatTab===c?"rgba(59,130,246,0.6)":"rgba(51,65,85,0.4)"}`,background:ingCatTab===c?"rgba(59,130,246,0.15)":"transparent",color:ingCatTab===c?"#93c5fd":"#64748b",fontSize:9,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>{c}{c!=="All"?` (${catG[c]?.length})`:` (${allIngs.length})`}</button>))}
         </div>)}
 
         {/* Ingredient list */}
         <div style={{maxHeight:350,overflowY:"auto",marginBottom:12}}>
-          {ings.filter(ing=>(!ingSearch||ing.food.toLowerCase().includes(ingSearch.toLowerCase()))&&(ingCatTab==="All"||ing.cat===ingCatTab)).length===0&&(
+          {allIngs.filter(ing=>(!ingSearch||ing.food.toLowerCase().includes(ingSearch.toLowerCase()))&&(ingCatTab==="All"||ing.cat===ingCatTab)).length===0&&(
             <div style={{fontSize:10,color:"#475569",textAlign:"center",padding:"20px 0"}}>No ingredients found</div>
           )}
           {(ingSearch||ingCatTab!=="All")
-            ?ings.filter(ing=>(!ingSearch||ing.food.toLowerCase().includes(ingSearch.toLowerCase()))&&(ingCatTab==="All"||ing.cat===ingCatTab)).map(ing=>(<div key={ing.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 6px",borderBottom:"1px solid #1e293b",fontSize:10,color:"#cbd5e1",borderRadius:4}}>
+            ?allIngs.filter(ing=>(!ingSearch||ing.food.toLowerCase().includes(ingSearch.toLowerCase()))&&(ingCatTab==="All"||ing.cat===ingCatTab)).map(ing=>(<div key={ing.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 6px",borderBottom:"1px solid #1e293b",fontSize:10,color:"#cbd5e1",borderRadius:4}}>
                 <div>
                   <span>{ing.food}</span>
                   {ingSearch&&ing.cat&&<span style={{fontSize:8,color:"#475569",marginLeft:6,background:"rgba(30,41,59,0.6)",padding:"1px 4px",borderRadius:3}}>{ing.cat}</span>}
