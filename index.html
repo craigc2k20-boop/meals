@@ -2433,7 +2433,7 @@ function App(){
 
   const scaleGroup=(day,mealId,role,direction)=>{const di=DAYS.indexOf(day);if(!isEdit(di)||comp[day])return;const updated=scaleRecipeGroup(gM(day),mealId,role,direction,im);uDay(day,updated,true);};
 
-  const allDone=d=>{const ms=gM(d);const c=checks[d]||{};return ms.length>0&&ms.every(m=>c[m.id]);};
+  const allDone=d=>{const ms=gM(d).filter(m=>m.items.length>0||m.fixed);const c=checks[d]||{};return ms.length>0&&ms.every(m=>c[m.id]);};
   const compDay=d=>{if(!allDone(d))return;const tot=sa(gM(d),im);const co={...comp,[d]:tot.cals};const w=wCal||cal;dispatch({type:'COMPLETE_DAY',day:d,cals:tot.cals});dispatch({type:'SET_WCAL',wCal:w});sv(types,checks,cm,co,w,wMacPct);
     // Sunday = week finalization — archive adherence snapshot ONLY, no TDEE recalculation
     // TDEE correction is a separate Monday action after weight data is entered
@@ -2561,7 +2561,7 @@ function App(){
   };
 
   const isCur=wKey===cWk;const todayI=isCur?(new Date().getDay()+6)%7:-1;
-  const prog=d=>{const ms=gM(d);return{done:ms.filter(m=>checks[d]?.[m.id]).length,total:ms.length};};
+  const prog=d=>{const ms=gM(d).filter(m=>m.items.length>0||m.fixed);return{done:ms.filter(m=>checks[d]?.[m.id]).length,total:ms.length};};
   const sMs=gM(sel);const sT=sa(sMs,im);const sP2=prog(sel);
   // Actual macro % from food
   const actP=sT.cals?Math.round(sT.p*4/sT.cals*100):0;
