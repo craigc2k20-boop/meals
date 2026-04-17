@@ -2127,11 +2127,13 @@ function App(){
 
   // Profile persistence
   const profKey=V+":profile";
-  useEffect(()=>{(async()=>{try{const r=await window.storage.get(profKey);if(r?.value){const p=JSON.parse(r.value);
-    // Backfill training day fields for profiles saved before this feature
-    if(p.trainingCount===undefined){p.trainingCount=4;p.trainingDays=["Monday","Tuesday","Thursday","Friday"];}
-    if(!p.weightUnit){p.weightUnit="kg";p.heightUnit="ftin";p.waistUnit="in";}
-    setProfile(p);setPF(p);}else{setShowProfile(true);}}catch{setShowProfile(true);}})();},[]);
+  useEffect(()=>{
+    if(accessState==="checking"||accessState==="guest")return; // wait for auth to resolve
+    (async()=>{try{const r=await window.storage.get(profKey);if(r?.value){const p=JSON.parse(r.value);
+      if(p.trainingCount===undefined){p.trainingCount=4;p.trainingDays=["Monday","Tuesday","Thursday","Friday"];}
+      if(!p.weightUnit){p.weightUnit="kg";p.heightUnit="ftin";p.waistUnit="in";}
+      setProfile(p);setPF(p);}else{setShowProfile(true);}}catch{setShowProfile(true);}})();
+  },[accessState]);
   const saveProfile=async(p)=>{setProfile(p);setPF(p);try{await window.storage.set(profKey,JSON.stringify(p));}catch{}};
 
   // Normalize profForm values to internal units (kg, ft.in, inches) for calculations
@@ -4373,6 +4375,13 @@ fbAuth.onAuthStateChanged(async function(user) {
   window.fbUser = user;
   if (user) {
     await syncFromCloud();
+    // If data was loaded from cloud and we haven't already reloaded this session,
+    // reload once so the app initialises with the user's data already in localStorage
+    if(window.fbSyncStatus==="Loaded from cloud"&&!sessionStorage.getItem("ept:synced")){
+      sessionStorage.setItem("ept:synced","1");
+      window.location.reload();
+      return;
+    }
     // Notify React app that auth state changed
     window.dispatchEvent(new Event("fbAuthReady"));
   } else {
