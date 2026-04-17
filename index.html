@@ -1687,7 +1687,7 @@ function App(){
   const stallAdj=_stallAdj||0;
 
 // storageReady flag — set true after initial window.storage load completes
-const [storageReady, setStorageReady] = useState(false);
+  const [storageReady, setStorageReady] = useState(false);
   const wCal=_wCal;const wMacPct=_wMacPct;
   const[sel,setSel]=useState(()=>{
     const saved=localStorage.getItem("ept:lastSel");
