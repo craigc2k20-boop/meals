@@ -3208,29 +3208,59 @@ function App(){
                     </div>)}
                   </div>);
                 })}
-                {selE&&!selCo&&!g.meals.every(m=>checks[sel]?.[m.id])&&(addSec===g.sec?(<div style={{padding:8,background:"rgba(10,15,30,0.4)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",borderRadius:10,border:"1px solid rgba(148,163,184,0.06)",marginTop:3}}>
-                  <div style={{marginBottom:5}}><input type="time" style={{...S.fi,marginBottom:0,width:"auto"}} value={addTime} onChange={e=>setAddTime(e.target.value)} placeholder="Time"/></div>
-                  {!addMode&&(<div style={{display:"flex",flexDirection:"column",gap:3}}>
-                    <button style={S.mb} onClick={()=>setAM("ing")}>{IC.meal(12)} Pick from my ingredients</button>
-                    <button style={S.mb} onClick={()=>{
-                      if(typeof ZXing==="undefined"){fl("Scanner loading — try again in a moment");return;}
-                      setScanning(true);
-                    }}>
-                      <svg width="12" height="12" viewBox="0 0 36 36" style={{verticalAlign:"middle",marginRight:4}}><rect x="2" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="2" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><line x1="4" y1="18" x2="32" y2="18" stroke="#f87171" strokeWidth="1.5" strokeDasharray="3,2"/></svg>
-                      Scan a food barcode
-                    </button>
-                    <button style={S.sb} onClick={()=>{setAS(null);setAM(null);setAddTime("");}}>Cancel</button></div>)}
-                  {addMode==="presets"&&(<div><div style={{maxHeight:200,overflowY:"auto"}}>{[...allPr,...sP].map((t,ti)=>(<button key={ti} style={S.mb} onClick={()=>addPreset(sel,g.sec,t,addTime?fmtTime24(addTime):"")}>{gL(t.name)||gS(t.name)} <span style={{color:"#64748b",fontSize:10}}>{sm(t,im).cals}cal</span></button>))}</div><button style={{...S.sb,marginTop:4}} onClick={()=>setAM(null)}>Back</button></div>)}
-                  {addMode==="ing"&&(<div><select style={{width:"100%",padding:6,border:"1.5px solid rgba(148,163,184,0.12)",borderRadius:7,fontSize:11,fontFamily:"'DM Sans'",marginBottom:3,color:"#e2e8f0",background:"rgba(30,41,59,0.45)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)"}} defaultValue="" onChange={e=>{if(e.target.value)addIngSec(sel,g.sec,e.target.value,addTime?fmtTime24(addTime):"");}}><option value="" disabled>Select...</option>{Object.keys(catG).map(cat=>(<optgroup key={cat} label={cat}>{catG[cat].map(ing=>(<option key={ing.id} value={ing.id}>{ing.food}</option>))}</optgroup>))}</select><button style={S.sb} onClick={()=>setAM(null)}>Back</button></div>)}
-                  {addMode==="custom"&&(<div><input style={S.fi} placeholder="e.g. Tuna wrap" value={subN} onChange={e=>setSubN(e.target.value)}/><div style={{display:"flex",gap:5}}><button style={{...S.cb,...(!subN.trim()?S.cbOff:{})}} disabled={!subN.trim()} onClick={()=>addInSec(sel,g.sec,subN,addTime?fmtTime24(addTime):"")}>Create</button><button style={S.sb} onClick={()=>setAM(null)}>Back</button></div></div>)}
-                </div>):(<div style={{display:"flex",flexDirection:"column",gap:3,marginTop:5}}>
-                  <button style={S.mb} onClick={()=>{setAS(g.sec);setAM(null);}}>{IC.meal(12)} Add item</button>
-                  <button style={S.mb} onClick={()=>{setAS(g.sec);setAM("presets");}}>{IC.copy(12)} Saved meal template</button>
-                  <button style={S.mb} onClick={()=>{setAS(g.sec);setAM("custom");}}>{IC.edit(12)} Create new meal</button>
-                </div>))}
               </div></div>);
           })}
         </div>
+        {selE&&!selCo&&(()=>{
+          // Available sections = not all rendered meals checked (or no rendered meals yet)
+          const availSecs=secs.filter(g=>{const r=g.meals.filter(m=>m.items.length>0||m.fixed);return r.length===0||!r.every(m=>checks[sel]?.[m.id]);});
+          if(!availSecs.length)return null;
+          const reset=()=>{setAS(null);setAM(null);setSubN("");};
+          return(<div style={{marginTop:8,padding:10,background:"rgba(10,15,30,0.35)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",borderRadius:10,border:"1px solid rgba(148,163,184,0.06)"}}>
+            {/* Step 1 — pick action */}
+            {!addMode&&(<div style={{display:"flex",flexDirection:"column",gap:3}}>
+              <button style={S.mb} onClick={()=>setAM("ing")}>{IC.meal(12)} Add item</button>
+              <button style={S.mb} onClick={()=>setAM("presets")}>{IC.copy(12)} Saved meal template</button>
+              <button style={S.mb} onClick={()=>setAM("custom")}>{IC.edit(12)} Create new meal</button>
+            </div>)}
+            {/* Step 2 — pick which heading */}
+            {addMode&&!addSec&&(<div>
+              <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:6}}>Add to which meal?</div>
+              <div style={{display:"flex",flexDirection:"column",gap:3}}>
+                {availSecs.map(g=>(<button key={g.sec} style={S.mb} onClick={()=>setAS(g.sec)}>{g.sec}{g.time?` · ${g.time}`:""}</button>))}
+              </div>
+              <button style={{...S.sb,marginTop:6,width:"100%"}} onClick={reset}>Cancel</button>
+            </div>)}
+            {/* Step 3 — action panel for chosen heading */}
+            {addMode&&addSec&&(<div>
+              <div style={{fontSize:9,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:6}}>{addSec}</div>
+              {addMode==="ing"&&(<div>
+                <select style={{width:"100%",padding:6,border:"1.5px solid rgba(148,163,184,0.12)",borderRadius:7,fontSize:11,fontFamily:"'DM Sans'",marginBottom:6,color:"#e2e8f0",background:"rgba(30,41,59,0.45)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)"}} defaultValue="" onChange={e=>{if(e.target.value){addIngSec(sel,addSec,e.target.value,"");reset();}}}>
+                  <option value="" disabled>Select ingredient…</option>
+                  {Object.keys(catG).map(cat=>(<optgroup key={cat} label={cat}>{catG[cat].map(ing=>(<option key={ing.id} value={ing.id}>{ing.food}</option>))}</optgroup>))}
+                </select>
+                <button style={S.mb} onClick={()=>{if(typeof ZXing==="undefined"){fl("Scanner loading — try again");return;}setScanFromMealId(null);setScanning(true);}}>
+                  <svg width="12" height="12" viewBox="0 0 36 36" style={{verticalAlign:"middle",marginRight:4}}><rect x="2" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="2" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="2" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><rect x="24" y="24" width="10" height="10" rx="2" fill="none" stroke="#e2e8f0" strokeWidth="2.5"/><line x1="4" y1="18" x2="32" y2="18" stroke="#f87171" strokeWidth="1.5" strokeDasharray="3,2"/></svg>
+                  Scan a food barcode
+                </button>
+                <button style={{...S.sb,marginTop:4,width:"100%"}} onClick={()=>setAS(null)}>← Back</button>
+              </div>)}
+              {addMode==="presets"&&(<div>
+                <div style={{maxHeight:200,overflowY:"auto",marginBottom:4}}>
+                  {[...allPr,...sP].map((t,ti)=>(<button key={ti} style={S.mb} onClick={()=>{addPreset(sel,addSec,t,"");reset();}}>{gL(t.name)||gS(t.name)} <span style={{color:"#64748b",fontSize:10}}>{sm(t,im).cals}cal</span></button>))}
+                </div>
+                <button style={{...S.sb,width:"100%"}} onClick={()=>setAS(null)}>← Back</button>
+              </div>)}
+              {addMode==="custom"&&(<div>
+                <input style={S.fi} placeholder="e.g. Beans on toast" value={subN} onChange={e=>setSubN(e.target.value)}/>
+                <div style={{display:"flex",gap:5}}>
+                  <button style={{...S.cb,flex:1,...(!subN.trim()?S.cbOff:{})}} disabled={!subN.trim()} onClick={()=>{addInSec(sel,addSec,subN,"");reset();}}>Create</button>
+                  <button style={S.sb} onClick={()=>setAS(null)}>← Back</button>
+                </div>
+              </div>)}
+            </div>)}
+          </div>);
+        })()}
         {selE&&!selCo&&(<div style={{marginTop:10,padding:10,background:"rgba(10,15,30,0.35)",borderRadius:10,border:"1px solid rgba(148,163,184,0.06)"}}>
           <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:6}}>Add a new meal section</div>
           <input style={{...S.fi}} placeholder="e.g. Breakfast, Snack, Post-workout" value={newSecN} onChange={e=>setNSN(e.target.value)}/>
