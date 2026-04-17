@@ -2987,17 +2987,14 @@ const [storageReady, setStorageReady] = useState(false);
                           </div></div>);
                       })}
                       {!isRO&&(showAI===meal.id?(<div onClick={e=>e.stopPropagation()} style={{marginTop:3,padding:8,background:"rgba(10,15,30,0.35)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",borderRadius:7,border:"1px solid rgba(148,163,184,0.06)"}}>
-                        {(()=>{
-                          const filtered=ings.filter(x=>!mealIngSearch||x.food.toLowerCase().includes(mealIngSearch.toLowerCase()));
-                          return(<>
                             <div style={{position:"relative",marginBottom:6}}>
                               <input style={{...S.fi,marginBottom:0,paddingLeft:26,fontSize:10}} placeholder="Search ingredients…" value={mealIngSearch} onChange={e=>setMIS(e.target.value)} onClick={e=>e.stopPropagation()}/>
                               <span style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",fontSize:11,color:"#475569",pointerEvents:"none"}}>🔍</span>
                               {mealIngSearch&&<button onClick={e=>{e.stopPropagation();setMIS("");}} style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"#475569",fontSize:12,cursor:"pointer",padding:0}}>✕</button>}
                             </div>
                             <div style={{maxHeight:160,overflowY:"auto",marginBottom:6}}>
-                              {filtered.length===0&&<div style={{fontSize:9,color:"#475569",textAlign:"center",padding:"8px 0"}}>No ingredients found</div>}
-                              {filtered.map(ing=>(<button key={ing.id} style={{...S.mb,display:"flex",justifyContent:"space-between",width:"100%",marginBottom:2}} onClick={e=>{e.stopPropagation();startAI(meal.id,ing.id);setSAI(null);setAS(null);setAM(null);setMIS("");}}>
+                              {ings.filter(x=>!mealIngSearch||x.food.toLowerCase().includes(mealIngSearch.toLowerCase())).length===0&&<div style={{fontSize:9,color:"#475569",textAlign:"center",padding:"8px 0"}}>No ingredients found</div>}
+                              {ings.filter(x=>!mealIngSearch||x.food.toLowerCase().includes(mealIngSearch.toLowerCase())).map(ing=>(<button key={ing.id} style={{...S.mb,display:"flex",justifyContent:"space-between",width:"100%",marginBottom:2}} onClick={e=>{e.stopPropagation();startAI(meal.id,ing.id);setSAI(null);setAS(null);setAM(null);setMIS("");}}>
                                 <span style={{fontSize:10}}>{ing.food}</span>
                                 <span style={{fontSize:9,color:"#64748b"}}>{ing.unit==="piece"?`${ing.perUnit?.cals}kcal/pc`:`${ing.per100?.cals}kcal`}</span>
                               </button>))}
@@ -3007,8 +3004,6 @@ const [storageReady, setStorageReady] = useState(false);
                               Scan a new barcode
                             </button>
                             <button style={S.sb} onClick={e=>{e.stopPropagation();setSAI(null);setAS(null);setAM(null);setMIS("");}}>Cancel</button>
-                          </>);
-                        })()}
                       </div>
                       ):<div style={{marginTop:3}}>
                         <button style={{width:"100%",padding:5,border:"1.5px dashed #475569",borderRadius:5,background:"transparent",color:"#64748b",fontSize:10,fontWeight:600,cursor:"pointer"}} onClick={e=>{e.stopPropagation();setSAI(meal.id);}}>+ Add ingredient to this meal</button>
