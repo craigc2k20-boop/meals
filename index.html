@@ -1836,6 +1836,8 @@ function App(){
   const[showDeleteAccount,setShowDeleteAccount]=useState(false);
   const[showHomeScreenGuide,setShowHomeScreenGuide]=useState(false);
   const[showWhatsNew,setShowWhatsNew]=useState(false);
+  const[showOnboarding,setShowOnboarding]=useState(false);
+  const[obWalkStep,setObWalkStep]=useState(0);
   const[onboardStep,setOB]=useState(1); // 1=goal, 2=training, 3=stats, 4=meals
   const[obMeals,setObMeals]=useState([{name:"Breakfast",time:"08:00"},{name:"Lunch",time:"12:30"},{name:"Dinner",time:"18:00"},{name:"Snack",time:"15:30"}]); // onboarding meal slots
   const[copyFrom,setCopyFrom]=useState(null); // day name when copy picker is open
@@ -3010,6 +3012,8 @@ function App(){
               setShowProfile(false);setOB(1);fl("Welcome! Add ingredients to your meals 🎉");
               // Show home screen guide first time only
               if(!localStorage.getItem("ept:homeScreenDismissed")){setShowHomeScreenGuide(true);}
+              // Show tab walkthrough first time only
+              if(!localStorage.getItem("ept:onboardingDone")){setObWalkStep(0);setTab("meals");setTimeout(()=>setShowOnboarding(true),600);}
             }}>Complete setup ✅</button>
           </div>
         </div>);})()}
@@ -3047,12 +3051,50 @@ function App(){
 
       {/* TABS */}
       <div style={S.tabBar}>
-        <button style={{...S.tabBtn,...(tab==="meals"?{...S.tabAct,color:T.accentText}:{}),display:"flex",alignItems:"center",justifyContent:"center",gap:3}} onClick={()=>setTab("meals")}>{IC.meal(12)} Meals</button>
-        <button style={{...S.tabBtn,...(tab==="ingredients"?{...S.tabAct,color:T.accentText}:{}),display:"flex",alignItems:"center",justifyContent:"center",gap:3}} onClick={()=>setTab("ingredients")}>{IC.pill(12)} Ingredients</button>
-        <button style={{...S.tabBtn,...(tab==="profile"?{...S.tabAct,color:T.accentText}:{}),display:"flex",alignItems:"center",justifyContent:"center",gap:3}} onClick={()=>setTab("profile")}>{IC.user(12)} Profile</button>
+        <button style={{...S.tabBtn,...(tab==="meals"?{...S.tabAct,color:T.accentText}:{}),...(showOnboarding&&obWalkStep===0?{boxShadow:"0 0 0 2px #3b82f6, 0 0 14px 5px rgba(59,130,246,0.38)",position:"relative",zIndex:1}:{}),display:"flex",alignItems:"center",justifyContent:"center",gap:3}} onClick={()=>setTab("meals")}>{IC.meal(12)} Meals</button>
+        <button style={{...S.tabBtn,...(tab==="ingredients"?{...S.tabAct,color:T.accentText}:{}),...(showOnboarding&&obWalkStep===1?{boxShadow:"0 0 0 2px #3b82f6, 0 0 14px 5px rgba(59,130,246,0.38)",position:"relative",zIndex:1}:{}),display:"flex",alignItems:"center",justifyContent:"center",gap:3}} onClick={()=>setTab("ingredients")}>{IC.pill(12)} Ingredients</button>
+        <button style={{...S.tabBtn,...(tab==="profile"?{...S.tabAct,color:T.accentText}:{}),...(showOnboarding&&obWalkStep===2?{boxShadow:"0 0 0 2px #3b82f6, 0 0 14px 5px rgba(59,130,246,0.38)",position:"relative",zIndex:1}:{}),display:"flex",alignItems:"center",justifyContent:"center",gap:3}} onClick={()=>setTab("profile")}>{IC.user(12)} Profile</button>
         {prevReview && new Date().getDay()===1 && <button style={{...S.tabBtn,...(tab==="review"?{...S.tabAct,color:"#fbbf24"}:{}),color:tab==="review"?"#fbbf24":"#64748b",display:"flex",alignItems:"center",justifyContent:"center",gap:3}} onClick={()=>setTab("review")}>{IC.fire(12)} Review</button>}
         {isAdmin&&<button style={{...S.tabBtn,...(tab==="admin"?{...S.tabAct,color:"#f87171"}:{}),color:tab==="admin"?"#f87171":"#64748b",display:"flex",alignItems:"center",justifyContent:"center",gap:3}} onClick={()=>setTab("admin")}>⚙️ Admin</button>}
       </div>
+
+      {/* ONE-TIME ONBOARDING WALKTHROUGH */}
+      {showOnboarding&&(function(){
+        var OB_STEPS=[
+          {tab:"meals",   emoji:"🍽️", title:"Meals",       desc:"Your daily plan lives here. Tap any meal to add ingredients, then check items off as you eat them."},
+          {tab:"ingredients",emoji:"🔬",title:"Ingredients",desc:"Your food library. Browse, add custom items, or scan barcodes — anything here can be dropped into a meal."},
+          {tab:"profile", emoji:"👤", title:"Profile",      desc:"Your stats & targets. Update weight, goal, or training schedule here whenever things change."},
+        ];
+        var obStep=OB_STEPS[obWalkStep];
+        var isLast=obWalkStep===OB_STEPS.length-1;
+        var dismiss=function(){localStorage.setItem("ept:onboardingDone","1");setShowOnboarding(false);};
+        var next=function(){if(isLast){dismiss();}else{var ns=obWalkStep+1;setObWalkStep(ns);setTab(OB_STEPS[ns].tab);}};
+        var isMobile=window.innerWidth<640;
+        return(
+          <div style={{position:"fixed",inset:0,zIndex:2000}}>
+            <div style={{position:"absolute",inset:0,background:"rgba(5,8,20,0.72)",backdropFilter:"blur(3px)",WebkitBackdropFilter:"blur(3px)"}} onClick={dismiss}/>
+            <div style={{position:"absolute",bottom:isMobile?82:130,left:"50%",transform:"translateX(-50%)",width:isMobile?"calc(100% - 28px)":"480px",maxWidth:isMobile?380:520,background:"rgba(13,20,40,0.96)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(59,130,246,0.3)",borderRadius:isMobile?18:22,padding:isMobile?"16px 16px 13px":"26px 28px 20px",boxShadow:"0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(59,130,246,0.08)",zIndex:2001}}>
+              <div style={{position:"absolute",bottom:isMobile?-9:-11,left:"50%",transform:"translateX(-50%) rotate(45deg)",width:isMobile?18:22,height:isMobile?18:22,background:"rgba(13,20,40,0.96)",border:"1px solid rgba(59,130,246,0.3)",borderTop:"none",borderLeft:"none",borderRadius:"0 0 4px 0"}}/>
+              <div style={{display:"flex",justifyContent:"center",gap:isMobile?6:8,marginBottom:isMobile?14:18}}>
+                {OB_STEPS.map(function(_,i){return(
+                  <div key={i} style={{height:isMobile?5:7,width:i===obWalkStep?(isMobile?22:30):(isMobile?5:7),borderRadius:isMobile?3:4,background:i<obWalkStep?"#4ade80":i===obWalkStep?"#3b82f6":"rgba(51,65,85,0.55)",transition:"all .25s ease"}}/>
+                );})}
+              </div>
+              <div style={{display:"flex",alignItems:"flex-start",gap:isMobile?12:18,marginBottom:isMobile?14:20}}>
+                <div style={{fontSize:isMobile?28:40,lineHeight:1,flexShrink:0,marginTop:2}}>{obStep.emoji}</div>
+                <div>
+                  <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:isMobile?15:20,fontWeight:800,color:"#f1f5f9",marginBottom:isMobile?4:7,letterSpacing:"-0.2px"}}>{obStep.title}</div>
+                  <div style={{fontSize:isMobile?12:15,color:"#94a3b8",lineHeight:1.55}}>{obStep.desc}</div>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:isMobile?8:10}}>
+                <button style={{flex:1,padding:isMobile?"9px 0":"13px 0",borderRadius:isMobile?10:12,border:"none",background:"rgba(59,130,246,0.85)",color:"#fff",fontSize:isMobile?12:15,fontWeight:700,cursor:"pointer",boxShadow:"0 2px 12px rgba(59,130,246,0.25)"}} onClick={next}>{isLast?"Got it \u2713":"Next \u2192"}</button>
+                <button style={{padding:isMobile?"9px 14px":"13px 20px",borderRadius:isMobile?10:12,border:"1px solid rgba(148,163,184,0.12)",background:"transparent",color:"#475569",fontSize:isMobile?11:13,fontWeight:600,cursor:"pointer"}} onClick={dismiss}>Skip</button>
+              </div>
+            </div>
+          </div>
+        );
+      }())}
 
 
       {/* MEALS TAB */}
