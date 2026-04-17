@@ -1701,24 +1701,6 @@ function App(){
   const[exp,setExp]=useState(null);
   const[accessState,setAccessState]=useState("checking"); // checking|open|trial|locked|guest
 
-  // Re-run access check when Firebase auth resolves
-  useEffect(()=>{
-    const handler=async()=>{
-      await runAccessCheck();
-      // After sign-in, action on pending intent
-      if(pendingAction==="pay"&&window.fbUser){
-        setPendingAction(null);
-        window.location.href=stripeUrl;
-      }else if(pendingAction==="code"&&window.fbUser&&pendingCode){
-        const result=await redeemCode(pendingCode);
-        setPendingAction(null);setPendingCode("");
-        if(result!==true)fl(result||"Invalid code");
-      }
-    };
-    window.addEventListener("fbAuthReady",handler);
-    return()=>window.removeEventListener("fbAuthReady",handler);
-  },[pendingAction,pendingCode,stripeUrl]);
-
   const runAccessCheck=async()=>{
     const email=window.fbUser?.email;
     const uid=window.fbUser?.uid;
@@ -1840,6 +1822,23 @@ function App(){
   const[copyFrom,setCopyFrom]=useState(null); // day name when copy picker is open
   const[scrolled,setScrolled]=useState(false);
   useEffect(()=>{const onScroll=()=>setScrolled(window.scrollY>60);window.addEventListener("scroll",onScroll,{passive:true});return()=>window.removeEventListener("scroll",onScroll);},[]);
+
+  // Re-run access check when Firebase auth resolves
+  useEffect(()=>{
+    const handler=async()=>{
+      await runAccessCheck();
+      if(pendingAction==="pay"&&window.fbUser){
+        setPendingAction(null);
+        window.location.href=stripeUrl;
+      }else if(pendingAction==="code"&&window.fbUser&&pendingCode){
+        const result=await redeemCode(pendingCode);
+        setPendingAction(null);setPendingCode("");
+        if(result!==true)fl(result||"Invalid code");
+      }
+    };
+    window.addEventListener("fbAuthReady",handler);
+    return()=>window.removeEventListener("fbAuthReady",handler);
+  },[pendingAction,pendingCode,stripeUrl]);
 
   // ── Access control runs via runAccessCheck() triggered by fbAuthReady event ──
 
