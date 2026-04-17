@@ -2065,6 +2065,7 @@ function App(){
     else if(dx>0&&i>0){setSel(DAYS[i-1]);setExp(null);}
   },[sel]);
   const[profTab,setProfTab]=useState("overview"); // profile sub-tab
+  const[pendingDayChange,setPendingDayChange]=useState(null); // {day, newType, oldType, previewCals, oldCals, newTrainCount, oldTrainCount, newActivity, oldActivity}
   const[profForm,setPF]=useState({weight:"",height:"",age:"",gender:"male",activity:"moderate",bodyFat:"",waist:"",sleep:"good",stress:"moderate",job:"desk",goal:"lose",carbFatPref:"balanced",trainingCount:0,trainingDays:[],weightUnit:"kg",heightUnit:"ftin",waistUnit:"in"});
   const cfPref=profile?.carbFatPref||"balanced";
   const bW=profile?.weight ? parseFloat(profile.weight) : 83; // body weight for fat floor
@@ -3943,43 +3944,98 @@ function App(){
                 <div style={{fontSize:9,color:"#334155",marginBottom:10}}>Tap a day to toggle between Gym and Rest</div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
                   {DAYS.map(d=>{
+                    const isPending=pendingDayChange&&pendingDayChange.day===d;
+                    const effectiveGym=isPending?(pendingDayChange.newType==="training"):(types[d]==="training"||types[d]==="football");
                     const isGym=types[d]==="training"||types[d]==="football";
                     const isComp=!!comp[d];
                     return(<button key={d} disabled={isComp} onClick={()=>{
+                      if(pendingDayChange)return;
                       const newType=isGym?"rest":"training";
                       const u={...types,[d]:newType};
-                      const uc={...checks,[d]:{}};
+                      const newTd=DAYS.filter(x=>u[x]==="training"||u[x]==="football");
+                      const oldTd=DAYS.filter(x=>types[x]==="training"||types[x]==="football");
+                      const newTrainCount=newTd.length;
+                      const oldTrainCount=oldTd.length;
+                      const newActivity=newTrainCount===0?"sedentary":newTrainCount<=2?"light":newTrainCount<=4?"moderate":newTrainCount<=5?"active":"very";
+                      const oldActivity=oldTrainCount===0?"sedentary":oldTrainCount<=2?"light":oldTrainCount<=4?"moderate":oldTrainCount<=5?"active":"very";
+                      const newRatio=1.15;const newEff2=wCal||eff;
+                      const newRest2=7-newTrainCount;
+                      const newRestM=newTrainCount>0&&newRest2>0?7/(newTrainCount*newRatio+newRest2):1;
+                      const newTrainM=newTrainCount>0&&newRest2>0?(newRestM/1)*newRatio:1;
+                      const oldRest2=7-oldTrainCount;
+                      const oldRestM=oldTrainCount>0&&oldRest2>0?7/(oldTrainCount*newRatio+oldRest2):1;
+                      const oldTrainM=oldTrainCount>0&&oldRest2>0?(oldRestM/1)*newRatio:1;
+                      const oldCals=Math.round(newEff2*(isGym?oldTrainM:oldRestM));
+                      const newCals=Math.round(newEff2*(newType==="training"?newTrainM:newRestM));
+                      setPendingDayChange({day:d,newType,oldType:isGym?"training":"rest",oldCals,newCals,newTrainCount,oldTrainCount,newActivity,oldActivity,newTypes:u});
+                    }} style={{flex:"1 0 44%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",borderRadius:8,cursor:isComp?"default":"pointer",opacity:isComp?0.5:1,background:effectiveGym?"rgba(59,130,246,0.12)":"rgba(30,41,59,0.3)",border:`1.5px solid ${effectiveGym?(isPending?"rgba(251,191,36,0.6)":"rgba(59,130,246,0.3)"):"rgba(148,163,184,0.08)"}`}}>
+                      <div>
+                        <div style={{fontSize:10,fontWeight:700,color:effectiveGym?"#93c5fd":"#64748b"}}>{d.slice(0,3)}{isPending&&<span style={{fontSize:7,color:"#fbbf24",marginLeft:3}}>?</span>}</div>
+                        <div style={{fontSize:8,color:effectiveGym?"#3b82f6":"#334155"}}>{effectiveGym?"Gym":"Rest"}</div>
+                      </div>
+                      <span>{effectiveGym?IC.train(16):IC.rest(16)}</span>
+                    </button>);
+                  })}
+                </div>
+                {DAYS.some(d=>!!comp[d])&&<div style={{fontSize:8,color:"#334155",marginTop:6}}>Completed days are locked</div>}
+              </div>
+              {/* Confirmation panel */}
+              {pendingDayChange&&(()=>{
+                const p=pendingDayChange;
+                const adding=p.newType==="training";
+                const calDiff=p.newCals-p.oldCals;
+                const actLabels2={sedentary:"Sedentary",light:"Light",moderate:"Moderate",active:"Active",very:"Very Active"};
+                const actChanged=p.newActivity!==p.oldActivity;
+                return(<div style={{background:"rgba(15,23,42,0.7)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",borderRadius:12,border:"1.5px solid rgba(251,191,36,0.25)",padding:14,marginTop:4}}>
+                  <div style={{fontSize:11,fontWeight:700,color:"#fbbf24",marginBottom:10}}>
+                    {adding?"➕":"➖"} {p.day} → {adding?"Gym 🏋️":"Rest 😴"} — confirm changes?
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:12}}>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:10,padding:"5px 8px",borderRadius:7,background:"rgba(30,41,59,0.5)"}}>
+                      <span style={{color:"#94a3b8"}}>📅 Training days</span>
+                      <span style={{color:"#e2e8f0",fontWeight:700}}>{p.oldTrainCount}/week → <span style={{color:adding?"#4ade80":"#f87171"}}>{p.newTrainCount}/week</span></span>
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:10,padding:"5px 8px",borderRadius:7,background:"rgba(30,41,59,0.5)"}}>
+                      <span style={{color:"#94a3b8"}}>🔥 {p.day} calorie target</span>
+                      <span style={{color:"#e2e8f0",fontWeight:700}}>{p.oldCals} kcal → <span style={{color:adding?"#4ade80":"#f87171"}}>{p.newCals} kcal ({calDiff>0?"+":""}{calDiff})</span></span>
+                    </div>
+                    {actChanged&&<div style={{display:"flex",justifyContent:"space-between",fontSize:10,padding:"5px 8px",borderRadius:7,background:"rgba(30,41,59,0.5)"}}>
+                      <span style={{color:"#94a3b8"}}>⚡ Activity level</span>
+                      <span style={{color:"#e2e8f0",fontWeight:700}}>{actLabels2[p.oldActivity]} → <span style={{color:"#93c5fd"}}>{actLabels2[p.newActivity]}</span></span>
+                    </div>}
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:10,padding:"5px 8px",borderRadius:7,background:"rgba(30,41,59,0.5)"}}>
+                      <span style={{color:"#94a3b8"}}>🍽 Meal plan for {p.day}</span>
+                      <span style={{color:"#fbbf24",fontWeight:700}}>Will be rebuilt</span>
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={()=>{
+                      const u=p.newTypes;
+                      const uc={...checks,[p.day]:{}};
                       const newC={...cm};
-                      // Rebuild the day immediately with the correct calorie target
-                      const di2=DAYS.indexOf(d);
-                      if(!comp[d]&&!isPast(di2)&&Object.keys(im).length>0){
+                      const di2=DAYS.indexOf(p.day);
+                      if(!comp[p.day]&&!isPast(di2)&&Object.keys(im).length>0){
                         const newTrain=DAYS.filter(x=>u[x]==="training"||u[x]==="football").length;
                         const newRest=7-newTrain;
                         const newRatio=1.15;
                         const newEff2=wCal||eff;
                         const newRestM=newTrain>0&&newRest>0?7/(newTrain*newRatio+newRest):1;
                         const newTrainM=newTrain>0&&newRest>0?(newRestM/1)*newRatio:1;
-                        const tgt=Math.round(newEff2*(newType==="training"?newTrainM:newRestM));
-                        const t=gTpl(d);
-                        newC[d]=shuffleMealTiming(autoRebalance(t,tgt,im,[],cfPref,bW),newType,im);
+                        const tgt=Math.round(newEff2*(p.newType==="training"?newTrainM:newRestM));
+                        const t=gTpl(p.day);
+                        newC[p.day]=shuffleMealTiming(autoRebalance(t,tgt,im,[],cfPref,bW),p.newType,im);
                       }
                       dispatch({type:'SET_TYPES',types:u,checks:uc,cm:newC});
                       sv(u,uc,newC,comp,wCal,wMacPct);
                       const newTd=DAYS.filter(x=>u[x]==="training"||u[x]==="football");
-                      const newActivity=newTd.length===0?"sedentary":newTd.length<=2?"light":newTd.length<=4?"moderate":newTd.length<=5?"active":"very";
-                      saveProfile({...profile,trainingDays:newTd,trainingCount:newTd.length,activity:newActivity});
-                      fl(`${d} → ${newType==="training"?"Gym 🏋️":"Rest 😴"}`);
-                    }} style={{flex:"1 0 44%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",borderRadius:8,cursor:isComp?"default":"pointer",opacity:isComp?0.5:1,background:isGym?"rgba(59,130,246,0.12)":"rgba(30,41,59,0.3)",border:`1.5px solid ${isGym?"rgba(59,130,246,0.3)":"rgba(148,163,184,0.08)"}`}}>
-                      <div>
-                        <div style={{fontSize:10,fontWeight:700,color:isGym?"#93c5fd":"#64748b"}}>{d.slice(0,3)}</div>
-                        <div style={{fontSize:8,color:isGym?"#3b82f6":"#334155"}}>{isGym?"Gym":"Rest"}</div>
-                      </div>
-                      <span>{isGym?IC.train(16):IC.rest(16)}</span>
-                    </button>);
-                  })}
-                </div>
-                {DAYS.some(d=>!!comp[d])&&<div style={{fontSize:8,color:"#334155",marginTop:6}}>Completed days are locked</div>}
-              </div>
+                      saveProfile({...profile,trainingDays:newTd,trainingCount:newTd.length,activity:p.newActivity});
+                      setPendingDayChange(null);
+                      fl(`${p.day} → ${p.newType==="training"?"Gym 🏋️":"Rest 😴"} ✅`);
+                    }} style={{flex:1,padding:"8px 0",border:"none",borderRadius:8,background:"rgba(34,197,94,0.8)",color:"#052e16",fontSize:11,fontWeight:700,cursor:"pointer"}}>Confirm ✓</button>
+                    <button onClick={()=>setPendingDayChange(null)} style={{flex:1,padding:"8px 0",border:"1px solid rgba(148,163,184,0.15)",borderRadius:8,background:"rgba(30,41,59,0.5)",color:"#94a3b8",fontSize:11,fontWeight:700,cursor:"pointer"}}>Cancel ✕</button>
+                  </div>
+                </div>);
+              })()}
             </>)}
 
             {/* PROGRESS sub-tab — weight chart */}
