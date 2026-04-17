@@ -2044,6 +2044,7 @@ function App(){
   })();},[]);
 
   useEffect(()=>{
+    if(accessState==="checking"||accessState==="guest")return;
     setStorageReady(false);
     dispatch({type:'RESET',initT,initC});
     (async()=>{
@@ -2079,7 +2080,7 @@ function App(){
       // Signal that initial load is done — auto-save can now fire safely
       setStorageReady(true);
     })();
-  },[sk]);
+  },[sk,accessState]);
 
   const sv=useCallback(async(t,c,m,co,w,wm)=>{try{await window.storage.set(sk,JSON.stringify({types:t,checks:c,cm:m,completed:co,wCal:w,wMacPct:wm,stallAdj,tplVer:V}));}catch{}},[sk,stallAdj]);
   const svWeight=async(wt)=>{try{await window.storage.set(sk+":wt",JSON.stringify(wt));}catch{}};
