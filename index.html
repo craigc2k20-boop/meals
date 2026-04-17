@@ -3538,8 +3538,23 @@ const [storageReady, setStorageReady] = useState(false);
                             const e2={id:id2,food:name,unit:"g",defAmt:+defAmt,maxAmt:+(maxAmt||defAmt*2),cat};
                             e2.per100={cals:cal,p:pr,c:ca,f:fa};
                             const u2=[...ings,e2];setIngs(u2);await sI(u2);
+                            // Also share to community
+                            try{
+                              const existing=await fbDb.collection("sharedIngredients").doc(code).get();
+                              if(!existing.exists)await fbDb.collection("sharedIngredients").doc(code).set({...e2,barcode:code,addedAt:firebase.firestore.FieldValue.serverTimestamp(),addedBy:window.fbUser?.displayName||window.fbUser?.email||"unknown"});
+                            }catch{}
                           }
-                          startAI(scanFromMealId,ingId);
+                          // Add directly to meal without confirmation modal
+                          const di=DAYS.indexOf(sel);
+                          if(isEdit(di)&&!comp[sel]){
+                            const ms=dc(gM(sel));
+                            const mi=ms.findIndex(m=>m.id===scanFromMealId);
+                            if(mi!==-1){
+                              const ingObj=dup||{id:id2,defAmt:+defAmt};
+                              ms[mi].items.push({ingId,amt:ingObj.defAmt||+defAmt});
+                              uDay(sel,ms);
+                            }
+                          }
                           setScanFromMealId(null);setScanning(false);setScanStatus("");
                           fl("✓ "+name+(dup?" added to meal":" saved and added to meal"));
                         // If scanning from section-level add
