@@ -2282,7 +2282,17 @@ function App(){
   const gDone=d=>Object.keys(checks[d]||{}).filter(k=>checks[d][k]);
 
   const wT={cals:0,p:0,c:0,f:0};DAYS.forEach(d=>{const t=sa(gM(d),im);wT.cals+=t.cals;wT.p+=t.p;wT.c+=t.c;wT.f+=t.f;});
-  const wBud=eff*7;const wRem=wBud-wT.cals;
+  const wBud=eff*7;
+  // Past days with no tracked meal data should count as fully "spent" at their daily target.
+  // This prevents mid-week new users (e.g. starting Thursday) from seeing an inflated
+  // weekly remaining that includes Monday–Wednesday they never actually had.
+  const pastUntrackedOffset=DAYS.reduce((sum,d,i)=>{
+    if(!isPast(i))return sum;
+    const hasTrackedData=Array.isArray(cm[d])&&cm[d].some(m=>m.items&&m.items.length>0);
+    if(hasTrackedData||comp[d])return sum;
+    return sum+Math.max(0,gDT(d)-sa(gM(d),im).cals);
+  },0);
+  const wRem=wBud-wT.cals-pastUntrackedOffset;
 
   // Persistence handled by explicit sv() calls on every user action
   // One-time materialization: after initial load, fill in any missing days and save
@@ -3602,8 +3612,8 @@ function App(){
         </div>
 
         {/* Category tabs — only show when not searching */}
-        {!ingSearch&&(<div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:8,paddingBottom:2}}>
-          {["All",...Object.keys(catG).filter(c=>catG[c]?.length>0)].map(c=>(<button key={c} onClick={()=>setIngCatTab(c)} style={{padding:"4px 10px",borderRadius:20,border:`1.5px solid ${ingCatTab===c?"rgba(59,130,246,0.6)":"rgba(51,65,85,0.4)"}`,background:ingCatTab===c?"rgba(59,130,246,0.15)":"transparent",color:ingCatTab===c?"#93c5fd":"#64748b",fontSize:9,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>{c}{c!=="All"?` (${catG[c]?.length})`:` (${allIngs.length})`}</button>))}
+        {!ingSearch&&(<div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:10}}>
+          {["All",...Object.keys(catG).filter(c=>catG[c]?.length>0)].map(c=>(<button key={c} onClick={()=>setIngCatTab(c)} style={{padding:"5px 11px",borderRadius:20,border:`1.5px solid ${ingCatTab===c?"rgba(59,130,246,0.6)":"rgba(51,65,85,0.4)"}`,background:ingCatTab===c?"rgba(59,130,246,0.15)":"transparent",color:ingCatTab===c?"#93c5fd":"#64748b",fontSize:10,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>{c}{c!=="All"?` (${catG[c]?.length})`:` (${allIngs.length})`}</button>))}
         </div>)}
 
         {/* Ingredient list */}
@@ -3814,9 +3824,9 @@ function App(){
           const goalLabels={aggressive:"Hard Cut (-500)",lose:"Steady Loss (-300)",maintain:"Maintain (±0)",gain:"Lean Bulk (+200)",bulk:"Bulk (+400)"};
           const actLabels={sedentary:"Sedentary",light:"Light (1-2/wk)",moderate:"Moderate (3-4/wk)",active:"Active (4-5/wk)",very:"Very Active (6-7/wk)"};
           const prefLabels={"high-carb":"High Carb","balanced":"Balanced","high-fat":"High Fat"};
-          const row=(label,val,col)=>(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid rgba(148,163,184,0.06)"}}>
-            <span style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.2px"}}>{label}</span>
-            <span style={{fontSize:12,fontWeight:700,color:col||"#e2e8f0"}}>{val}</span>
+          const row=(label,val,col)=>(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:"1px solid rgba(148,163,184,0.06)"}}>
+            <span style={{fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"1px"}}>{label}</span>
+            <span style={{fontSize:14,fontWeight:700,color:col||"#e2e8f0"}}>{val}</span>
           </div>);
 
           // Weight stats
