@@ -3938,103 +3938,150 @@ function App(){
                 </div>
                 {row("Training Days",(profile.trainingCount||0)+"/week")}
               </div>
-              {/* Weekly schedule — tap each day to toggle gym/rest */}
-              <div style={{background:"rgba(30,41,59,0.35)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",padding:12,marginBottom:12}}>
-                <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:4}}>Weekly Schedule</div>
-                <div style={{fontSize:9,color:"#334155",marginBottom:10}}>Tap a day to toggle between Gym and Rest</div>
-                <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                  {DAYS.map(d=>{
-                    const isPending=pendingDayChange&&pendingDayChange.day===d;
-                    const effectiveGym=isPending?(pendingDayChange.newType==="training"):(types[d]==="training"||types[d]==="football");
-                    const isGym=types[d]==="training"||types[d]==="football";
-                    const isComp=!!comp[d];
-                    return(<button key={d} disabled={isComp} onClick={()=>{
-                      if(pendingDayChange)return;
-                      const newType=isGym?"rest":"training";
-                      const u={...types,[d]:newType};
-                      const newTd=DAYS.filter(x=>u[x]==="training"||u[x]==="football");
-                      const oldTd=DAYS.filter(x=>types[x]==="training"||types[x]==="football");
-                      const newTrainCount=newTd.length;
-                      const oldTrainCount=oldTd.length;
-                      const newActivity=newTrainCount===0?"sedentary":newTrainCount<=2?"light":newTrainCount<=4?"moderate":newTrainCount<=5?"active":"very";
-                      const oldActivity=oldTrainCount===0?"sedentary":oldTrainCount<=2?"light":oldTrainCount<=4?"moderate":oldTrainCount<=5?"active":"very";
-                      const newRatio=1.15;const newEff2=wCal||eff;
-                      const newRest2=7-newTrainCount;
-                      const newRestM=newTrainCount>0&&newRest2>0?7/(newTrainCount*newRatio+newRest2):1;
-                      const newTrainM=newTrainCount>0&&newRest2>0?(newRestM/1)*newRatio:1;
-                      const oldRest2=7-oldTrainCount;
-                      const oldRestM=oldTrainCount>0&&oldRest2>0?7/(oldTrainCount*newRatio+oldRest2):1;
-                      const oldTrainM=oldTrainCount>0&&oldRest2>0?(oldRestM/1)*newRatio:1;
-                      const oldCals=Math.round(newEff2*(isGym?oldTrainM:oldRestM));
-                      const newCals=Math.round(newEff2*(newType==="training"?newTrainM:newRestM));
-                      setPendingDayChange({day:d,newType,oldType:isGym?"training":"rest",oldCals,newCals,newTrainCount,oldTrainCount,newActivity,oldActivity,newTypes:u});
-                    }} style={{flex:"1 0 44%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",borderRadius:8,cursor:isComp?"default":"pointer",opacity:isComp?0.5:1,background:effectiveGym?"rgba(59,130,246,0.12)":"rgba(30,41,59,0.3)",border:`1.5px solid ${effectiveGym?(isPending?"rgba(251,191,36,0.6)":"rgba(59,130,246,0.3)"):"rgba(148,163,184,0.08)"}`}}>
-                      <div>
-                        <div style={{fontSize:10,fontWeight:700,color:effectiveGym?"#93c5fd":"#64748b"}}>{d.slice(0,3)}{isPending&&<span style={{fontSize:7,color:"#fbbf24",marginLeft:3}}>?</span>}</div>
-                        <div style={{fontSize:8,color:effectiveGym?"#3b82f6":"#334155"}}>{effectiveGym?"Gym":"Rest"}</div>
-                      </div>
-                      <span>{effectiveGym?IC.train(16):IC.rest(16)}</span>
-                    </button>);
-                  })}
-                </div>
-                {DAYS.some(d=>!!comp[d])&&<div style={{fontSize:8,color:"#334155",marginTop:6}}>Completed days are locked</div>}
-              </div>
-              {/* Confirmation panel */}
-              {pendingDayChange&&(()=>{
-                const p=pendingDayChange;
-                const adding=p.newType==="training";
-                const calDiff=p.newCals-p.oldCals;
+              {/* Weekly schedule — tap days freely, confirm applies all at once */}
+              {(()=>{
+                // pendingDayChange is now used as a map: {Monday:"training", Wednesday:"rest", ...}
+                const pending=pendingDayChange||{};
+                const hasPending=Object.keys(pending).length>0;
                 const actLabels2={sedentary:"Sedentary",light:"Light",moderate:"Moderate",active:"Active",very:"Very Active"};
-                const actChanged=p.newActivity!==p.oldActivity;
-                return(<div style={{background:"rgba(15,23,42,0.7)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",borderRadius:12,border:"1.5px solid rgba(251,191,36,0.25)",padding:14,marginTop:4}}>
-                  <div style={{fontSize:11,fontWeight:700,color:"#fbbf24",marginBottom:10}}>
-                    {adding?"➕":"➖"} {p.day} → {adding?"Gym 🏋️":"Rest 😴"} — confirm changes?
-                  </div>
-                  <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:12}}>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:10,padding:"5px 8px",borderRadius:7,background:"rgba(30,41,59,0.5)"}}>
-                      <span style={{color:"#94a3b8"}}>📅 Training days</span>
-                      <span style={{color:"#e2e8f0",fontWeight:700}}>{p.oldTrainCount}/week → <span style={{color:adding?"#4ade80":"#f87171"}}>{p.newTrainCount}/week</span></span>
+                const newEff2=wCal||eff;
+                const newRatio=1.15;
+
+                // Effective types merging committed types with pending overrides
+                const effectiveTypes={...types,...pending};
+
+                // Remaining days = not past AND not completed
+                const remainingDays=DAYS.filter((d,i)=>!isPast(i)&&!comp[d]);
+
+                // Old counts (full week for profile display, remaining for cals)
+                const oldTrainCountWeek=DAYS.filter(d=>types[d]==="training"||types[d]==="football").length;
+                const newTrainCountWeek=DAYS.filter(d=>effectiveTypes[d]==="training"||effectiveTypes[d]==="football").length;
+                const oldActivity=oldTrainCountWeek===0?"sedentary":oldTrainCountWeek<=2?"light":oldTrainCountWeek<=4?"moderate":oldTrainCountWeek<=5?"active":"very";
+                const newActivity=newTrainCountWeek===0?"sedentary":newTrainCountWeek<=2?"light":newTrainCountWeek<=4?"moderate":newTrainCountWeek<=5?"active":"very";
+
+                // Calorie multipliers based on REMAINING days only
+                const remTrainNew=remainingDays.filter(d=>effectiveTypes[d]==="training"||effectiveTypes[d]==="football").length;
+                const remRestNew=remainingDays.length-remTrainNew;
+                const remTrainOld=remainingDays.filter(d=>types[d]==="training"||types[d]==="football").length;
+                const remRestOld=remainingDays.length-remTrainOld;
+
+                const calcMults=(tr,re)=>{
+                  if(tr===0&&re===0)return{trainM:1,restM:1};
+                  if(tr===0)return{trainM:1,restM:1};
+                  if(re===0)return{trainM:newRatio,restM:newRatio};
+                  const total=tr+re;
+                  const restM=total/(tr*newRatio+re);
+                  return{trainM:restM*newRatio,restM};
+                };
+                const{trainM:newTrainM,restM:newRestM}=calcMults(remTrainNew,remRestNew);
+                const{trainM:oldTrainM,restM:oldRestM}=calcMults(remTrainOld,remRestOld);
+
+                // Changed days list for summary
+                const changedDays=Object.keys(pending);
+                const daysBeingRebuilt=changedDays.filter(d=>remainingDays.includes(d));
+
+                return(<>
+                  <div style={{background:"rgba(30,41,59,0.35)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",borderRadius:12,border:`1px solid ${hasPending?"rgba(251,191,36,0.2)":"rgba(148,163,184,0.08)"}`,padding:12,marginBottom:12,transition:"border-color .2s"}}>
+                    <div style={{fontSize:9,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:4}}>Weekly Schedule</div>
+                    <div style={{fontSize:9,color:"#334155",marginBottom:10}}>{hasPending?"Tap more days or confirm below":"Tap any day to toggle — past days are locked"}</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                      {DAYS.map((d,di)=>{
+                        const locked=isPast(di)||!!comp[d];
+                        const hasPendingThisDay=pending[d]!==undefined;
+                        const effectiveGym=effectiveTypes[d]==="training"||effectiveTypes[d]==="football";
+                        const originalGym=types[d]==="training"||types[d]==="football";
+                        const changed=hasPendingThisDay&&(effectiveGym!==originalGym);
+                        return(<button key={d} disabled={locked} onClick={()=>{
+                          if(locked)return;
+                          const currentEffective=effectiveTypes[d];
+                          const isCurrentGym=currentEffective==="training"||currentEffective==="football";
+                          const newType=isCurrentGym?"rest":"training";
+                          // If toggling back to original, remove from pending
+                          const origType=types[d];
+                          const wouldMatchOriginal=(newType===origType)||(newType==="training"&&origType==="football");
+                          const newPending={...pending};
+                          if(wouldMatchOriginal){delete newPending[d];}
+                          else{newPending[d]=newType;}
+                          setPendingDayChange(Object.keys(newPending).length>0?newPending:null);
+                        }} style={{flex:"1 0 44%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",borderRadius:8,cursor:locked?"default":"pointer",opacity:locked?0.35:1,background:effectiveGym?"rgba(59,130,246,0.12)":"rgba(30,41,59,0.3)",border:`1.5px solid ${locked?"rgba(71,85,105,0.3)":changed?"rgba(251,191,36,0.5)":effectiveGym?"rgba(59,130,246,0.3)":"rgba(148,163,184,0.08)"}`}}>
+                          <div>
+                            <div style={{fontSize:10,fontWeight:700,color:locked?"#334155":effectiveGym?"#93c5fd":"#64748b"}}>{d.slice(0,3)}{changed&&<span style={{fontSize:7,color:"#fbbf24",marginLeft:3}}>✎</span>}{locked&&<span style={{fontSize:7,color:"#475569",marginLeft:3}}>🔒</span>}</div>
+                            <div style={{fontSize:8,color:locked?"#1e293b":effectiveGym?"#3b82f6":"#334155"}}>{effectiveGym?"Gym":"Rest"}</div>
+                          </div>
+                          <span>{effectiveGym?IC.train(16):IC.rest(16)}</span>
+                        </button>);
+                      })}
                     </div>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:10,padding:"5px 8px",borderRadius:7,background:"rgba(30,41,59,0.5)"}}>
-                      <span style={{color:"#94a3b8"}}>🔥 {p.day} calorie target</span>
-                      <span style={{color:"#e2e8f0",fontWeight:700}}>{p.oldCals} kcal → <span style={{color:adding?"#4ade80":"#f87171"}}>{p.newCals} kcal ({calDiff>0?"+":""}{calDiff})</span></span>
-                    </div>
-                    {actChanged&&<div style={{display:"flex",justifyContent:"space-between",fontSize:10,padding:"5px 8px",borderRadius:7,background:"rgba(30,41,59,0.5)"}}>
-                      <span style={{color:"#94a3b8"}}>⚡ Activity level</span>
-                      <span style={{color:"#e2e8f0",fontWeight:700}}>{actLabels2[p.oldActivity]} → <span style={{color:"#93c5fd"}}>{actLabels2[p.newActivity]}</span></span>
-                    </div>}
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:10,padding:"5px 8px",borderRadius:7,background:"rgba(30,41,59,0.5)"}}>
-                      <span style={{color:"#94a3b8"}}>🍽 Meal plan for {p.day}</span>
-                      <span style={{color:"#fbbf24",fontWeight:700}}>Will be rebuilt</span>
-                    </div>
+                    {(DAYS.some((d,i)=>isPast(i))||DAYS.some(d=>!!comp[d]))&&<div style={{fontSize:8,color:"#334155",marginTop:6}}>🔒 Past and completed days are locked</div>}
                   </div>
-                  <div style={{display:"flex",gap:8}}>
-                    <button onClick={()=>{
-                      const u=p.newTypes;
-                      const uc={...checks,[p.day]:{}};
-                      const newC={...cm};
-                      const di2=DAYS.indexOf(p.day);
-                      if(!comp[p.day]&&!isPast(di2)&&Object.keys(im).length>0){
-                        const newTrain=DAYS.filter(x=>u[x]==="training"||u[x]==="football").length;
-                        const newRest=7-newTrain;
-                        const newRatio=1.15;
-                        const newEff2=wCal||eff;
-                        const newRestM=newTrain>0&&newRest>0?7/(newTrain*newRatio+newRest):1;
-                        const newTrainM=newTrain>0&&newRest>0?(newRestM/1)*newRatio:1;
-                        const tgt=Math.round(newEff2*(p.newType==="training"?newTrainM:newRestM));
-                        const t=gTpl(p.day);
-                        newC[p.day]=shuffleMealTiming(autoRebalance(t,tgt,im,[],cfPref,bW),p.newType,im);
-                      }
-                      dispatch({type:'SET_TYPES',types:u,checks:uc,cm:newC});
-                      sv(u,uc,newC,comp,wCal,wMacPct);
-                      const newTd=DAYS.filter(x=>u[x]==="training"||u[x]==="football");
-                      saveProfile({...profile,trainingDays:newTd,trainingCount:newTd.length,activity:p.newActivity});
-                      setPendingDayChange(null);
-                      fl(`${p.day} → ${p.newType==="training"?"Gym 🏋️":"Rest 😴"} ✅`);
-                    }} style={{flex:1,padding:"8px 0",border:"none",borderRadius:8,background:"rgba(34,197,94,0.8)",color:"#052e16",fontSize:11,fontWeight:700,cursor:"pointer"}}>Confirm ✓</button>
-                    <button onClick={()=>setPendingDayChange(null)} style={{flex:1,padding:"8px 0",border:"1px solid rgba(148,163,184,0.15)",borderRadius:8,background:"rgba(30,41,59,0.5)",color:"#94a3b8",fontSize:11,fontWeight:700,cursor:"pointer"}}>Cancel ✕</button>
-                  </div>
-                </div>);
+
+                  {/* Confirmation panel — only shown when there are pending changes */}
+                  {hasPending&&(()=>{
+                    const trainCountChanged=newTrainCountWeek!==oldTrainCountWeek;
+                    const actChanged=newActivity!==oldActivity;
+                    return(<div style={{background:"rgba(15,23,42,0.7)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",borderRadius:12,border:"1.5px solid rgba(251,191,36,0.25)",padding:14,marginTop:4}}>
+                      <div style={{fontSize:11,fontWeight:700,color:"#fbbf24",marginBottom:10}}>
+                        {changedDays.length} day{changedDays.length>1?"s":""} changed — confirm?
+                      </div>
+                      {/* Per-day changes */}
+                      <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:8}}>
+                        {changedDays.map(d=>{
+                          const wasGym=types[d]==="training"||types[d]==="football";
+                          const nowGym=effectiveTypes[d]==="training"||effectiveTypes[d]==="football";
+                          const isPastDay=isPast(DAYS.indexOf(d));
+                          const oldCalsDay=Math.round(newEff2*(wasGym?oldTrainM:oldRestM));
+                          const newCalsDay=Math.round(newEff2*(nowGym?newTrainM:newRestM));
+                          const diff=newCalsDay-oldCalsDay;
+                          return(<div key={d} style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:10,padding:"4px 8px",borderRadius:6,background:"rgba(30,41,59,0.5)"}}>
+                            <span style={{color:"#94a3b8"}}>{nowGym?"🏋️":"😴"} {d}: {wasGym?"Gym":"Rest"} → <span style={{color:nowGym?"#4ade80":"#f87171",fontWeight:700}}>{nowGym?"Gym":"Rest"}</span></span>
+                            {!isPastDay&&<span style={{color:diff>0?"#4ade80":"#f87171",fontWeight:700,fontSize:9}}>{diff>0?"+":""}{diff} kcal</span>}
+                          </div>);
+                        })}
+                      </div>
+                      {/* Summary rows */}
+                      <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:12}}>
+                        {trainCountChanged&&<div style={{display:"flex",justifyContent:"space-between",fontSize:10,padding:"5px 8px",borderRadius:7,background:"rgba(30,41,59,0.5)"}}>
+                          <span style={{color:"#94a3b8"}}>📅 Training days / week</span>
+                          <span style={{color:"#e2e8f0",fontWeight:700}}>{oldTrainCountWeek} → <span style={{color:newTrainCountWeek>oldTrainCountWeek?"#4ade80":"#f87171"}}>{newTrainCountWeek}</span></span>
+                        </div>}
+                        {actChanged&&<div style={{display:"flex",justifyContent:"space-between",fontSize:10,padding:"5px 8px",borderRadius:7,background:"rgba(30,41,59,0.5)"}}>
+                          <span style={{color:"#94a3b8"}}>⚡ Activity level</span>
+                          <span style={{color:"#e2e8f0",fontWeight:700}}>{actLabels2[oldActivity]} → <span style={{color:"#93c5fd"}}>{actLabels2[newActivity]}</span></span>
+                        </div>}
+                        {daysBeingRebuilt.length>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:10,padding:"5px 8px",borderRadius:7,background:"rgba(30,41,59,0.5)"}}>
+                          <span style={{color:"#94a3b8"}}>🍽 Meal plans rebuilt</span>
+                          <span style={{color:"#fbbf24",fontWeight:700}}>{daysBeingRebuilt.join(", ")}</span>
+                        </div>}
+                        {remainingDays.length<7&&<div style={{display:"flex",justifyContent:"space-between",fontSize:10,padding:"5px 8px",borderRadius:7,background:"rgba(30,41,59,0.5)"}}>
+                          <span style={{color:"#94a3b8"}}>📆 Calories calculated on</span>
+                          <span style={{color:"#64748b",fontWeight:700}}>{remainingDays.length} remaining days</span>
+                        </div>}
+                      </div>
+                      <div style={{display:"flex",gap:8}}>
+                        <button onClick={()=>{
+                          const u={...types,...pending};
+                          const uc={...checks};
+                          const newC={...cm};
+                          daysBeingRebuilt.forEach(d=>{
+                            uc[d]={};
+                            if(Object.keys(im).length>0){
+                              const tgt=Math.round(newEff2*((u[d]==="training"||u[d]==="football")?newTrainM:newRestM));
+                              const t=gTpl(d);
+                              newC[d]=shuffleMealTiming(autoRebalance(t,tgt,im,[],cfPref,bW),u[d],im);
+                            }
+                          });
+                          dispatch({type:'SET_TYPES',types:u,checks:uc,cm:newC});
+                          sv(u,uc,newC,comp,wCal,wMacPct);
+                          const newTd=DAYS.filter(x=>u[x]==="training"||u[x]==="football");
+                          saveProfile({...profile,trainingDays:newTd,trainingCount:newTd.length,activity:newActivity});
+                          setPendingDayChange(null);
+                          fl(`${changedDays.length} day${changedDays.length>1?"s":""} updated ✅`);
+                        }} style={{flex:1,padding:"8px 0",border:"none",borderRadius:8,background:"rgba(34,197,94,0.8)",color:"#052e16",fontSize:11,fontWeight:700,cursor:"pointer"}}>Confirm ✓</button>
+                        <button onClick={()=>setPendingDayChange(null)} style={{flex:1,padding:"8px 0",border:"1px solid rgba(148,163,184,0.15)",borderRadius:8,background:"rgba(30,41,59,0.5)",color:"#94a3b8",fontSize:11,fontWeight:700,cursor:"pointer"}}>Cancel ✕</button>
+                      </div>
+                    </div>);
+                  })()}
+                </>);
               })()}
             </>)}
 
