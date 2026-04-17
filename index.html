@@ -1772,6 +1772,8 @@ function App(){
   const[adminUsedCodes,setAdminUsedCodes]=useState([]);
   const[adminNewCode,setAdminNewCode]=useState("");
   const[adminBusy,setAdminBusy]=useState(false);
+  const[importLog,setImportLog]=useState([]);
+  const[importBusy,setImportBusy]=useState(false);
   const[adminMaxUses,setAdminMaxUses]=useState(1);
   const[adminReqEmail,setAdminReqEmail]=useState("");
   const[adminExpDate,setAdminExpDate]=useState("");
@@ -1852,7 +1854,7 @@ function App(){
       }
     }catch{}
     const saveCache=(state,trialEnd)=>{
-      try{localStorage.setItem("ept:accessCache",JSON.stringify({uid,state,trialEnd:trialEnd?.getTime()||null,expires:Date.now()+3600000}));}catch{}
+      try{localStorage.setItem("ept:accessCache",JSON.stringify({uid,state,trialEnd:trialEnd?.getTime()||null,expires:Date.now()+86400000}));}catch{}
     };
     try{
       const doc=await fbDb.collection("users").doc(uid).get();
@@ -1868,6 +1870,18 @@ function App(){
       saveCache("locked");setAccessState("locked");
     }catch(e){
       console.warn("Access check failed, retrying",e);
+      // On first failure, check if we have a stale cache for this user — better than locking them out
+      try{
+        const staleCached=localStorage.getItem("ept:accessCache");
+        if(staleCached){
+          const sc=JSON.parse(staleCached);
+          if(sc.uid===uid&&sc.state==="open"){setAccessState("open");console.warn("Using stale cache (open) due to network error");return;}
+          if(sc.uid===uid&&sc.state==="trial"&&sc.trialEnd>Date.now()){
+            const daysLeft=Math.max(1,Math.ceil((sc.trialEnd-Date.now())/86400000));
+            setTrialDaysLeft(daysLeft);setTrialEndDate(new Date(sc.trialEnd));setAccessState("trial");console.warn("Using stale cache (trial) due to network error");return;
+          }
+        }
+      }catch{}
       setTimeout(async()=>{
         try{
           const doc=await fbDb.collection("users").doc(window.fbUser?.uid).get();
@@ -1879,7 +1893,21 @@ function App(){
             else{setTrialExpired(true);}
           }
           setAccessState("locked");
-        }catch{setAccessState("locked");}
+        }catch{
+          // Final fallback: if still failing, try stale cache one more time before locking
+          try{
+            const staleCached=localStorage.getItem("ept:accessCache");
+            if(staleCached){
+              const sc=JSON.parse(staleCached);
+              if(sc.uid===uid&&sc.state==="open"){setAccessState("open");return;}
+              if(sc.uid===uid&&sc.state==="trial"&&sc.trialEnd>Date.now()){
+                const daysLeft=Math.max(1,Math.ceil((sc.trialEnd-Date.now())/86400000));
+                setTrialDaysLeft(daysLeft);setTrialEndDate(new Date(sc.trialEnd));setAccessState("trial");return;
+              }
+            }
+          }catch{}
+          setAccessState("locked");
+        }
       },3000);
     }
   };
@@ -4361,8 +4389,218 @@ function App(){
           </div>
         </div>
 
+        {/* Bulk Import Shared Ingredients */}
+        {(()=>{
+          const BULK_ITEMS=[
+            ["si_cod","Cod fillet (raw)","g",{cals:82,p:18,c:0,f:0.7},150,250,"Protein"],
+            ["si_haddock","Haddock fillet (raw)","g",{cals:79,p:17.4,c:0,f:0.6},150,250,"Protein"],
+            ["si_pork_loin","Pork loin (raw)","g",{cals:122,p:22,c:0,f:3.5},150,250,"Protein"],
+            ["si_lean_ham","Lean ham slices","g",{cals:107,p:17.5,c:1,f:3.5},50,100,"Protein"],
+            ["si_turkey_slices","Turkey breast slices","g",{cals:99,p:22,c:0.5,f:1},80,150,"Protein"],
+            ["si_sardines","Sardines in brine (tinned)","g",{cals:172,p:23,c:0,f:9},120,200,"Protein"],
+            ["si_mackerel_tin","Mackerel in brine (tinned)","g",{cals:152,p:20,c:0,f:8},120,200,"Protein"],
+            ["si_beef_steak","Lean beef steak (raw)","g",{cals:144,p:22,c:0,f:6},150,250,"Protein"],
+            ["si_pork_mince","Pork mince 5% (raw)","g",{cals:121,p:21,c:0,f:3.8},150,250,"Protein"],
+            ["si_tofu_firm","Tofu (firm)","g",{cals:76,p:8,c:1.9,f:4.2},150,250,"Protein"],
+            ["si_quorn_mince","Quorn mince","g",{cals:78,p:13,c:2.5,f:1.5},150,250,"Protein"],
+            ["si_quorn_pieces","Quorn chicken-style pieces","g",{cals:82,p:13.8,c:3.7,f:1.5},150,250,"Protein"],
+            ["si_smoked_salmon","Smoked salmon","g",{cals:142,p:23,c:0,f:5.5},80,150,"Protein"],
+            ["si_chicken_drumstick","Chicken drumstick (skinless, raw)","g",{cals:120,p:21,c:0,f:4},150,250,"Protein"],
+            ["si_canned_chicken","Canned chicken breast","g",{cals:108,p:24,c:0,f:1.5},100,200,"Protein"],
+            ["si_tuna_spring","Tuna in spring water (tinned)","g",{cals:103,p:24,c:0,f:0.4},100,160,"Protein"],
+            ["si_bacon_back","Back bacon (grilled)","g",{cals:172,p:28,c:0,f:6},50,120,"Protein"],
+            ["si_pork_sausage","Pork sausage (grilled)","piece",{cals:115,p:7.4,c:5.2,f:7.5},2,4,"Protein"],
+            ["si_beef_jerky","Beef jerky","g",{cals:290,p:33,c:6,f:14},30,60,"Protein"],
+            ["si_chorizo","Chorizo (sliced)","g",{cals:439,p:25,c:1.5,f:37},20,50,"Protein"],
+            ["si_salami","Salami","g",{cals:406,p:22,c:1.2,f:35},20,50,"Protein"],
+            ["si_protein_powder_vanilla","Protein powder (vanilla, per 30g)","piece",{cals:120,p:25,c:3,f:2},1,2,"Protein"],
+            ["si_semi_milk","Semi-skimmed milk","ml",{cals:50,p:3.6,c:4.8,f:1.8},200,400,"Dairy"],
+            ["si_whole_milk","Whole milk","ml",{cals:64,p:3.4,c:4.7,f:3.6},200,400,"Dairy"],
+            ["si_greek_full","Greek yogurt (full fat)","g",{cals:97,p:5,c:4.5,f:6.5},150,250,"Dairy"],
+            ["si_cheddar","Cheddar cheese (medium)","g",{cals:403,p:25,c:0.1,f:33},20,50,"Dairy"],
+            ["si_mozzarella_light","Mozzarella (light)","g",{cals:190,p:19,c:0,f:12},50,125,"Dairy"],
+            ["si_feta","Feta cheese","g",{cals:250,p:14,c:1.5,f:20},30,80,"Dairy"],
+            ["si_cream_cheese_light","Cream cheese (light)","g",{cals:144,p:7,c:3.5,f:11},30,60,"Dairy"],
+            ["si_quark","Quark","g",{cals:55,p:11.5,c:3.7,f:0.2},150,250,"Dairy"],
+            ["si_ricotta","Ricotta","g",{cals:174,p:11,c:3,f:13},80,150,"Dairy"],
+            ["si_oat_milk","Oat milk (unsweetened)","ml",{cals:46,p:1,c:8.5,f:1},200,400,"Dairy"],
+            ["si_almond_milk","Almond milk (unsweetened)","ml",{cals:13,p:0.5,c:0.7,f:1},200,400,"Dairy"],
+            ["si_soy_milk","Soy milk (unsweetened)","ml",{cals:35,p:3.3,c:1.7,f:1.8},200,400,"Dairy"],
+            ["si_double_cream","Double cream","g",{cals:469,p:1.5,c:2.7,f:50},30,60,"Dairy"],
+            ["si_parmesan","Parmesan (grated)","g",{cals:431,p:38,c:0,f:29},10,30,"Dairy"],
+            ["si_brie","Brie","g",{cals:319,p:18.5,c:0.1,f:26.9},30,60,"Dairy"],
+            ["si_white_rice","White rice (dry)","g",{cals:361,p:6.7,c:80,f:0.7},75,125,"Carbs"],
+            ["si_brown_rice","Brown rice (dry)","g",{cals:357,p:7.5,c:76,f:2.8},75,125,"Carbs"],
+            ["si_wholemeal_pasta","Wholemeal pasta (dry)","g",{cals:325,p:13,c:62,f:2.5},75,120,"Carbs"],
+            ["si_spaghetti","Spaghetti (dry)","g",{cals:353,p:12,c:71,f:1.5},75,120,"Carbs"],
+            ["si_white_bread","White bread (sliced)","piece",{cals:77,p:2.6,c:14.5,f:0.7},2,4,"Carbs"],
+            ["si_wholemeal_bread","Wholemeal bread (sliced)","piece",{cals:85,p:4.2,c:15,f:1.1},2,4,"Carbs"],
+            ["si_flour_tortilla","Flour tortilla","piece",{cals:190,p:5,c:34,f:4},1,2,"Carbs"],
+            ["si_pitta","White pitta bread","piece",{cals:145,p:5,c:28,f:1},1,2,"Carbs"],
+            ["si_sweet_potato","Sweet potato (raw)","g",{cals:86,p:1.6,c:20,f:0.1},150,300,"Carbs"],
+            ["si_potato","White potato (raw)","g",{cals:77,p:1.9,c:17,f:0.1},150,300,"Carbs"],
+            ["si_couscous","Couscous (dry)","g",{cals:376,p:13,c:73,f:1.9},60,100,"Carbs"],
+            ["si_quinoa","Quinoa (dry)","g",{cals:368,p:14,c:64,f:6},60,100,"Carbs"],
+            ["si_corn_tortilla","Corn tortilla","piece",{cals:59,p:1.5,c:12,f:0.8},2,4,"Carbs"],
+            ["si_english_muffin","English muffin","piece",{cals:134,p:5,c:26,f:1.2},1,2,"Carbs"],
+            ["si_rye_crispbread","Rye crispbread","piece",{cals:33,p:1.3,c:6.5,f:0.3},3,6,"Carbs"],
+            ["si_red_lentils_dry","Red lentils (dry)","g",{cals:352,p:24,c:60,f:1.1},60,100,"Carbs"],
+            ["si_baked_beans","Baked beans (tinned)","g",{cals:82,p:4.8,c:13.7,f:0.2},200,400,"Carbs"],
+            ["si_weetabix","Weetabix","piece",{cals:68,p:2.4,c:13,f:0.7},2,3,"Carbs"],
+            ["si_cornflakes","Cornflakes","g",{cals:372,p:6.7,c:84,f:0.9},30,60,"Carbs"],
+            ["si_naan","Plain naan bread","piece",{cals:285,p:9.5,c:49,f:6},1,2,"Carbs"],
+            ["si_rice_noodles","Rice noodles (dry)","g",{cals:360,p:5.9,c:80,f:0.6},60,100,"Carbs"],
+            ["si_udon","Udon noodles (cooked)","g",{cals:100,p:2.7,c:21,f:0.4},150,300,"Carbs"],
+            ["si_bread_roll","White bread roll","piece",{cals:145,p:5,c:29,f:1.2},1,2,"Carbs"],
+            ["si_wholemeal_roll","Wholemeal roll","piece",{cals:151,p:6.5,c:28,f:2},1,2,"Carbs"],
+            ["si_gnocchi","Gnocchi (cooked)","g",{cals:169,p:3,c:37,f:0.5},150,300,"Carbs"],
+            ["si_plain_flour","Plain flour","g",{cals:361,p:10,c:76,f:1},30,100,"Carbs"],
+            ["si_breadcrumbs","Dried breadcrumbs","g",{cals:355,p:12,c:73,f:2},20,50,"Carbs"],
+            ["si_instant_noodles","Instant noodles (dry block)","g",{cals:446,p:10,c:63,f:17},85,85,"Carbs"],
+            ["si_frozen_chips","Oven chips (frozen)","g",{cals:154,p:2.5,c:26,f:4.7},150,250,"Carbs"],
+            ["si_carrot","Carrot (raw)","g",{cals:41,p:0.9,c:9.6,f:0.2},100,200,"Veg"],
+            ["si_cucumber","Cucumber","g",{cals:15,p:0.6,c:2.6,f:0.1},80,200,"Veg"],
+            ["si_tomato","Tomato (fresh)","g",{cals:18,p:0.9,c:3.5,f:0.2},80,200,"Veg"],
+            ["si_onion","Onion (raw)","g",{cals:40,p:1,c:9.3,f:0.1},80,150,"Veg"],
+            ["si_red_onion","Red onion (raw)","g",{cals:38,p:0.8,c:8.6,f:0.1},80,150,"Veg"],
+            ["si_courgette","Courgette","g",{cals:17,p:1.2,c:3.1,f:0.3},100,200,"Veg"],
+            ["si_aubergine","Aubergine","g",{cals:25,p:1,c:5.5,f:0.2},100,200,"Veg"],
+            ["si_kale","Kale","g",{cals:49,p:4.3,c:7.5,f:0.9},60,120,"Veg"],
+            ["si_cauliflower","Cauliflower","g",{cals:25,p:1.9,c:4.2,f:0.3},100,200,"Veg"],
+            ["si_asparagus","Asparagus","g",{cals:20,p:2.2,c:3.9,f:0.1},80,150,"Veg"],
+            ["si_green_beans","Green beans","g",{cals:31,p:1.8,c:6.1,f:0.1},80,150,"Veg"],
+            ["si_peas_frozen","Peas (frozen)","g",{cals:81,p:5.4,c:14,f:0.4},80,150,"Veg"],
+            ["si_edamame","Edamame (shelled)","g",{cals:121,p:11.9,c:8.9,f:5.2},80,150,"Veg"],
+            ["si_leek","Leek","g",{cals:61,p:1.5,c:14.2,f:0.3},80,150,"Veg"],
+            ["si_celery","Celery","g",{cals:17,p:0.7,c:3.5,f:0.2},60,120,"Veg"],
+            ["si_butternut_squash","Butternut squash (raw)","g",{cals:45,p:1,c:11.7,f:0.1},150,300,"Veg"],
+            ["si_cherry_tomatoes","Cherry tomatoes","g",{cals:18,p:0.9,c:3.5,f:0.2},80,200,"Veg"],
+            ["si_butter_beans","Butter beans (tinned, drained)","g",{cals:103,p:7,c:17,f:0.5},80,160,"Veg"],
+            ["si_garlic","Garlic clove","piece",{cals:4,p:0.2,c:0.9,f:0},2,6,"Veg"],
+            ["si_frozen_spinach","Frozen spinach","g",{cals:24,p:2.8,c:1,f:0.6},100,200,"Veg"],
+            ["si_mangetout","Mange tout","g",{cals:32,p:3.3,c:4.2,f:0.2},60,120,"Veg"],
+            ["si_pak_choi","Pak choi","g",{cals:13,p:1.6,c:2.2,f:0.2},80,150,"Veg"],
+            ["si_spring_onion","Spring onions","g",{cals:32,p:1.8,c:7.3,f:0.2},30,80,"Veg"],
+            ["si_tinned_tomatoes","Tinned tomatoes (chopped)","g",{cals:21,p:1,c:3.5,f:0},200,400,"Veg"],
+            ["si_iceberg_lettuce","Iceberg lettuce","g",{cals:14,p:0.9,c:2,f:0.1},60,150,"Veg"],
+            ["si_romaine","Romaine lettuce","g",{cals:17,p:1.2,c:3.3,f:0.3},60,150,"Veg"],
+            ["si_broccolini","Tenderstem broccoli","g",{cals:34,p:3.3,c:3.2,f:0.9},80,160,"Veg"],
+            ["si_spinach_fresh","Fresh spinach","g",{cals:23,p:2.9,c:3.6,f:0.4},60,120,"Veg"],
+            ["si_beetroot_cooked","Beetroot (cooked)","g",{cals:44,p:1.7,c:10,f:0.1},80,200,"Veg"],
+            ["si_corn_on_cob","Corn on the cob","piece",{cals:120,p:4,c:27,f:1.8},1,2,"Veg"],
+            ["si_orange","Orange","piece",{cals:62,p:1.2,c:15.4,f:0.2},1,2,"Fruit"],
+            ["si_strawberries","Strawberries","g",{cals:32,p:0.7,c:7.7,f:0.3},80,150,"Fruit"],
+            ["si_grapes","Grapes","g",{cals:69,p:0.6,c:18.1,f:0.2},80,150,"Fruit"],
+            ["si_mango","Mango","g",{cals:60,p:0.8,c:15,f:0.4},80,200,"Fruit"],
+            ["si_pineapple","Pineapple","g",{cals:50,p:0.5,c:13.1,f:0.1},80,200,"Fruit"],
+            ["si_watermelon","Watermelon","g",{cals:30,p:0.6,c:7.6,f:0.2},150,300,"Fruit"],
+            ["si_pear","Pear","piece",{cals:85,p:0.5,c:22.5,f:0.2},1,2,"Fruit"],
+            ["si_peach","Peach","piece",{cals:59,p:1.4,c:14.3,f:0.4},1,2,"Fruit"],
+            ["si_cantaloupe","Cantaloupe melon","g",{cals:34,p:0.8,c:8,f:0.2},150,300,"Fruit"],
+            ["si_kiwi","Kiwi","piece",{cals:41,p:0.8,c:10,f:0.3},2,4,"Fruit"],
+            ["si_cherries","Cherries","g",{cals:63,p:1,c:16,f:0.2},80,150,"Fruit"],
+            ["si_dried_cranberries","Dried cranberries","g",{cals:325,p:0.1,c:82,f:1.3},20,40,"Fruit"],
+            ["si_plum","Plum","piece",{cals:46,p:0.7,c:11.4,f:0.3},2,4,"Fruit"],
+            ["si_nectarine","Nectarine","piece",{cals:44,p:1.1,c:10.6,f:0.3},1,2,"Fruit"],
+            ["si_grapefruit","Grapefruit (half)","piece",{cals:52,p:1,c:13.1,f:0.2},1,2,"Fruit"],
+            ["si_ketchup","Ketchup","g",{cals:100,p:1.7,c:23,f:0.1},15,30,"Sauce"],
+            ["si_brown_sauce","Brown sauce","g",{cals:100,p:1.3,c:23,f:0.1},15,30,"Sauce"],
+            ["si_sriracha","Hot sauce (Sriracha)","g",{cals:93,p:1,c:20,f:1},10,20,"Sauce"],
+            ["si_mayo_light","Mayonnaise (light)","g",{cals:237,p:1,c:8,f:22},15,30,"Sauce"],
+            ["si_mustard","Mustard","g",{cals:60,p:4.5,c:6,f:3},10,20,"Sauce"],
+            ["si_balsamic","Balsamic vinegar","g",{cals:88,p:0.5,c:17,f:0},10,20,"Sauce"],
+            ["si_bbq_sauce","Barbecue sauce","g",{cals:150,p:1.5,c:34,f:0.6},30,60,"Sauce"],
+            ["si_sweet_chilli","Sweet chilli sauce","g",{cals:160,p:0.5,c:40,f:0},20,40,"Sauce"],
+            ["si_teriyaki","Teriyaki sauce","g",{cals:89,p:5.2,c:18,f:0},20,40,"Sauce"],
+            ["si_pesto_green","Green pesto (jar)","g",{cals:419,p:6.5,c:4.1,f:41},30,60,"Sauce"],
+            ["si_coconut_milk_tin","Coconut milk (tinned)","g",{cals:179,p:1.8,c:4,f:17},60,200,"Sauce"],
+            ["si_tikka_sauce","Tikka masala sauce","g",{cals:90,p:2,c:7,f:6},100,200,"Sauce"],
+            ["si_bolognese_jar","Bolognese sauce (jar)","g",{cals:58,p:3,c:7.5,f:2},125,250,"Sauce"],
+            ["si_oyster_sauce","Oyster sauce","g",{cals:89,p:2,c:18,f:0.3},20,40,"Sauce"],
+            ["si_fish_sauce","Fish sauce","g",{cals:35,p:5,c:3.6,f:0},10,20,"Sauce"],
+            ["si_apple_cider_vinegar","Apple cider vinegar","g",{cals:22,p:0,c:0.9,f:0},15,30,"Sauce"],
+            ["si_worcestershire","Worcestershire sauce","g",{cals:78,p:1.1,c:18,f:0},10,20,"Sauce"],
+            ["si_houmous","Houmous","g",{cals:166,p:7.5,c:14,f:9},40,100,"Sauce"],
+            ["si_guacamole","Guacamole","g",{cals:157,p:2,c:8.5,f:13},40,80,"Sauce"],
+            ["si_salsa","Salsa (jar)","g",{cals:37,p:1.4,c:7.3,f:0.3},40,80,"Sauce"],
+            ["si_thai_curry_paste","Thai red curry paste","g",{cals:97,p:2.5,c:10,f:5},20,40,"Sauce"],
+            ["si_hoisin","Hoisin sauce","g",{cals:220,p:3.5,c:40,f:4.5},20,40,"Sauce"],
+            ["si_maple_syrup","Maple syrup","g",{cals:260,p:0,c:67,f:0},10,25,"Sauce"],
+            ["si_cooking_spray","Cooking spray (per spray)","piece",{cals:1,p:0,c:0,f:0.1},5,15,"Sauce"],
+            ["si_almond_butter","Almond butter","g",{cals:614,p:21,c:20,f:56},15,30,"Fats"],
+            ["si_cashew_butter","Cashew butter","g",{cals:587,p:18,c:27,f:47},15,30,"Fats"],
+            ["si_rapeseed_oil","Rapeseed oil","g",{cals:900,p:0,c:0,f:100},5,15,"Fats"],
+            ["si_coconut_oil","Coconut oil","g",{cals:892,p:0,c:0,f:99},5,15,"Fats"],
+            ["si_mixed_nuts","Mixed nuts","g",{cals:607,p:17,c:16,f:54},20,40,"Fats"],
+            ["si_almonds","Almonds","g",{cals:579,p:21,c:22,f:49},20,40,"Fats"],
+            ["si_cashews","Cashews","g",{cals:553,p:18,c:30,f:44},20,40,"Fats"],
+            ["si_walnuts","Walnuts","g",{cals:654,p:15,c:14,f:65},15,30,"Fats"],
+            ["si_tahini","Tahini","g",{cals:595,p:17,c:21,f:53},15,30,"Fats"],
+            ["si_flaxseeds","Flaxseeds","g",{cals:534,p:18,c:29,f:42},10,20,"Fats"],
+            ["si_chia_seeds","Chia seeds","g",{cals:486,p:17,c:42,f:31},10,20,"Fats"],
+            ["si_sunflower_seeds","Sunflower seeds","g",{cals:584,p:20.8,c:20,f:51.5},15,30,"Fats"],
+            ["si_pumpkin_seeds","Pumpkin seeds","g",{cals:559,p:30,c:10,f:49},15,30,"Fats"],
+            ["si_sesame_oil","Sesame oil","g",{cals:884,p:0,c:0,f:100},5,10,"Fats"],
+            ["si_oat_bar","Cereal / oat bar","piece",{cals:175,p:3.5,c:29,f:5.5},1,2,"Snack"],
+            ["si_nakd_bar","Nakd bar","piece",{cals:130,p:3,c:22,f:4},1,2,"Snack"],
+            ["si_popcorn_salted","Popcorn (salted)","g",{cals:430,p:9,c:74,f:11},25,50,"Snack"],
+            ["si_crisps","Crisps (ready salted)","g",{cals:530,p:6,c:53,f:33},25,50,"Snack"],
+            ["si_milk_choc_square","Milk chocolate (per ~5g square)","piece",{cals:28,p:0.5,c:3.3,f:1.5},2,8,"Snack"],
+            ["si_choc_digestive","Chocolate digestive biscuit","piece",{cals:83,p:1.1,c:12,f:3.5},2,5,"Snack"],
+            ["si_plain_digestive","Plain digestive biscuit","piece",{cals:71,p:1.1,c:10.5,f:3},2,5,"Snack"],
+            ["si_hobnob","Hobnob biscuit","piece",{cals:73,p:1,c:10.3,f:3.3},2,5,"Snack"],
+            ["si_trail_mix","Trail mix","g",{cals:462,p:10,c:47,f:26},30,60,"Snack"],
+            ["si_protein_crisp_bar","Protein crispy bar (~50g)","piece",{cals:195,p:20,c:17,f:5},1,2,"Snack"],
+            ["si_medjool_date","Medjool date","piece",{cals:66,p:0.4,c:18,f:0},2,5,"Snack"],
+            ["si_rice_cracker","Rice cracker (thin)","piece",{cals:15,p:0.3,c:3.2,f:0.1},5,15,"Snack"],
+            ["si_black_coffee","Black coffee","ml",{cals:2,p:0.3,c:0,f:0},240,500,"Other"],
+            ["si_flat_white","Flat white (whole milk)","piece",{cals:160,p:8,c:14,f:7},1,2,"Other"],
+            ["si_oj_fresh","Orange juice (fresh)","ml",{cals:44,p:0.7,c:10.4,f:0.1},200,400,"Other"],
+            ["si_coconut_water","Coconut water","ml",{cals:19,p:0.2,c:4.6,f:0},250,500,"Other"],
+            ["si_sports_drink","Sports drink","ml",{cals:26,p:0,c:6.4,f:0},500,750,"Other"],
+            ["si_latte","Latte (semi-skimmed milk)","piece",{cals:130,p:6,c:12,f:5},1,2,"Other"],
+            ["si_nutritional_yeast","Nutritional yeast","g",{cals:325,p:50,c:37,f:6},10,25,"Other"],
+          ];
+          const runImport=async()=>{
+            if(!window.fbUser)return fl("Not signed in");
+            setImportBusy(true);
+            setImportLog([]);
+            const col=fbDb.collection("sharedIngredients");
+            let added=0,skipped=0,errors=0;
+            for(let i=0;i<BULK_ITEMS.length;i++){
+              const[id,food,unit,macros,defAmt,maxAmt,cat]=BULK_ITEMS[i];
+              try{
+                const ex=await col.doc(id).get();
+                if(ex.exists){skipped++;setImportLog(l=>[...l,{t:"skip",m:food}]);}
+                else{
+                  const doc={id,food,unit,defAmt,maxAmt,cat,barcode:id,addedBy:window.fbUser.displayName||window.fbUser.email||"admin",addedAt:firebase.firestore.FieldValue.serverTimestamp()};
+                  if(unit==="piece")doc.perUnit=macros;else doc.per100=macros;
+                  await col.doc(id).set(doc);
+                  added++;setImportLog(l=>[...l,{t:"ok",m:food}]);
+                }
+              }catch(e){errors++;setImportLog(l=>[...l,{t:"err",m:food+": "+e.message}]);}
+              await new Promise(r=>setTimeout(r,60));
+            }
+            fl(`Import done — ✓ ${added} added, ⏭ ${skipped} skipped, ✗ ${errors} errors`);
+            setImportBusy(false);
+          };
+          const done=importLog.filter(l=>l.t==="ok").length;
+          const pct=importLog.length?Math.round(done/BULK_ITEMS.length*100):0;
+          return(<div style={{background:"rgba(30,41,59,0.35)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",padding:14,marginBottom:12}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#a78bfa",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:8}}>📦 Bulk Import Shared Ingredients ({BULK_ITEMS.length} items)</div>
+            <div style={{fontSize:9,color:"#475569",marginBottom:10}}>Uploads generic food items to the shared library. Skips any that already exist — safe to re-run.</div>
+            <button style={{...S.cb,width:"100%",background:importBusy?"rgba(51,65,85,0.4)":"rgba(167,139,250,0.8)",marginBottom:8}} disabled={importBusy} onClick={runImport}>{importBusy?`Uploading… ${importLog.length}/${BULK_ITEMS.length}`:"Upload All Items"}</button>
+            {importLog.length>0&&<div>
+              <div style={{height:6,borderRadius:3,background:"rgba(15,23,42,0.6)",overflow:"hidden",marginBottom:6}}><div style={{height:"100%",width:pct+"%",background:"#a78bfa",borderRadius:3,transition:"width .3s"}}/></div>
+              <div style={{maxHeight:160,overflowY:"auto",fontSize:9,fontFamily:"monospace",background:"rgba(10,15,30,0.5)",borderRadius:6,padding:8,display:"flex",flexDirection:"column",gap:1}}>
+                {importLog.slice(-40).map((l,i)=>(<div key={i} style={{color:l.t==="ok"?"#4ade80":l.t==="skip"?"#fbbf24":"#f87171"}}>{l.t==="ok"?"✓":l.t==="skip"?"⏭":"✗"} {l.m}</div>))}
+              </div>
+            </div>}
+          </div>);
+        })()}
+
         {/* Used codes */}
-        <div style={{background:"rgba(30,41,59,0.35)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",padding:14}}>
+        <div style={{background:"rgba(30,41,59,0.35)",borderRadius:12,border:"1px solid rgba(148,163,184,0.08)",padding:14,marginBottom:10}}>
           <div style={{fontSize:10,fontWeight:700,color:"#f87171",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:10}}>Used Codes ({adminUsedCodes.length})</div>
           {adminUsedCodes.length===0&&<div style={{fontSize:10,color:"#475569",textAlign:"center",padding:"8px 0"}}>No used codes yet</div>}
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
