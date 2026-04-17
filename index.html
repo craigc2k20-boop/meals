@@ -2638,29 +2638,49 @@ function App(){
           <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:700,color:"#f1f5f9",marginBottom:4,textAlign:"center",textShadow:"0 2px 8px rgba(0,0,0,0.3)"}}>Your stats</div>
           <div style={{fontSize:10,color:"#475569",marginBottom:16,textAlign:"center"}}>Used to calculate your personalised targets</div>
           <div style={{display:"flex",gap:5,marginBottom:5}}>
-            <div style={{flex:1}}><label style={S.lbl}>Weight <button style={{background:"none",border:"none",color:T.accent,fontSize:8,fontWeight:700,cursor:"pointer",padding:0}} onClick={()=>setPF({...profForm,weightUnit:profForm.weightUnit==="kg"?"lbs":"kg",weight:profForm.weightUnit==="kg"?String(kgToLbs(profForm.weight)):String(lbsToKg(profForm.weight))})}>{profForm.weightUnit==="kg"?"kg ⇄ lbs":"lbs ⇄ kg"}</button></label><input style={S.fi} type="number" step="0.1" value={profForm.weight} onChange={e=>setPF({...profForm,weight:e.target.value})}/></div>
-            <div style={{flex:1}}><label style={S.lbl}>Height <button style={{background:"none",border:"none",color:T.accent,fontSize:8,fontWeight:700,cursor:"pointer",padding:0}} onClick={()=>setPF({...profForm,heightUnit:profForm.heightUnit==="ftin"?"cm":"ftin",height:profForm.heightUnit==="ftin"?String(ftToCm(profForm.height)):cmToFtIn(parseFloat(profForm.height))})}>{profForm.heightUnit==="ftin"?"ft.in ⇄ cm":"cm ⇄ ft.in"}</button></label><input style={S.fi} type="number" step={profForm.heightUnit==="cm"?"0.1":"0.01"} value={profForm.height} onChange={e=>setPF({...profForm,height:e.target.value})} placeholder={profForm.heightUnit==="cm"?"185":"6.1"}/>
+            {/* Weight */}
+            <div style={{flex:1}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                <label style={S.lbl}>Weight</label>
+                <button style={{fontSize:9,fontWeight:700,color:"#3b82f6",background:"rgba(59,130,246,0.1)",border:"1px solid rgba(59,130,246,0.3)",borderRadius:4,padding:"1px 6px",cursor:"pointer"}} onClick={()=>setPF({...profForm,weightUnit:profForm.weightUnit==="kg"?"lbs":"kg",weight:profForm.weightUnit==="kg"?String(kgToLbs(profForm.weight)):String(lbsToKg(profForm.weight))})}>{profForm.weightUnit==="kg"?"kg → lbs":"lbs → kg"}</button>
+              </div>
+              <input style={S.fi} type="number" step="0.1" placeholder={profForm.weightUnit==="kg"?"e.g. 80":"e.g. 176"} value={profForm.weight} onChange={e=>{const v=e.target.value;const max=profForm.weightUnit==="kg"?250:550;const min=profForm.weightUnit==="kg"?30:66;if(v===""||(!isNaN(v)&&+v>=min&&+v<=max))setPF({...profForm,weight:v});}}/>
+            </div>
+            {/* Height */}
+            <div style={{flex:1}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                <label style={S.lbl}>Height</label>
+                <button style={{fontSize:9,fontWeight:700,color:"#3b82f6",background:"rgba(59,130,246,0.1)",border:"1px solid rgba(59,130,246,0.3)",borderRadius:4,padding:"1px 6px",cursor:"pointer"}} onClick={()=>setPF({...profForm,heightUnit:profForm.heightUnit==="ftin"?"cm":"ftin",height:profForm.heightUnit==="ftin"?String(ftToCm(profForm.height)):cmToFtIn(parseFloat(profForm.height))})}>{profForm.heightUnit==="ftin"?"ft.in → cm":"cm → ft.in"}</button>
+              </div>
+              <input style={S.fi} type="number" step={profForm.heightUnit==="cm"?"0.1":"0.01"} placeholder={profForm.heightUnit==="cm"?"e.g. 175":"e.g. 5.9"} value={profForm.height} onChange={e=>{const v=e.target.value;if(v===""||(!isNaN(v)&&+v>=(profForm.heightUnit==="cm"?130:4.2)&&+v<=(profForm.heightUnit==="cm"?220:7.3)))setPF({...profForm,height:v});}}/>
               {profForm.heightUnit==="ftin"&&profForm.height&&<span style={{fontSize:9,color:"#475569"}}>{ftToCm(profForm.height)}cm</span>}
-              {profForm.heightUnit==="cm"&&profForm.height&&<span style={{fontSize:9,color:"#475569"}}>{cmToFtIn(parseFloat(profForm.height))}</span>}</div></div>
+              {profForm.heightUnit==="cm"&&profForm.height&&<span style={{fontSize:9,color:"#475569"}}>{cmToFtIn(parseFloat(profForm.height))}</span>}
+            </div>
+          </div>
           <div style={{display:"flex",gap:5,marginBottom:5}}>
-            <div style={{flex:1}}><label style={S.lbl}>Age</label><input style={S.fi} type="number" min="10" max="100" value={profForm.age} onChange={e=>{const v=e.target.value;if(v===""||(!isNaN(v)&&+v>=10&&+v<=100))setPF({...profForm,age:v})}}/></div>
-            <div style={{flex:1}}><label style={S.lbl}>Gender</label><select style={S.fi} value={profForm.gender} onChange={e=>setPF({...profForm,gender:e.target.value})}><option value="male">Male</option><option value="female">Female</option></select></div></div>
+            {/* Age */}
+            <div style={{flex:1}}><label style={S.lbl}>Age</label><input style={S.fi} type="number" placeholder="e.g. 30" value={profForm.age} onChange={e=>setPF({...profForm,age:e.target.value.replace(/[^0-9]/g,"").slice(0,3)})} onBlur={e=>{const v=+e.target.value;if(v&&(v<10||v>100))setPF({...profForm,age:""}); }}/></div>
+            <div style={{flex:1}}><label style={S.lbl}>Gender</label><select style={S.fi} value={profForm.gender} onChange={e=>setPF({...profForm,gender:e.target.value})}><option value="male">Male</option><option value="female">Female</option></select></div>
+          </div>
           <div style={{display:"flex",gap:5,marginBottom:5}}>
-            <div style={{flex:1}}><label style={S.lbl}>Body fat % (optional)</label><input style={S.fi} type="number" placeholder="e.g. 18" min="3" max="50" value={profForm.bodyFat} onChange={e=>{const v=e.target.value;if(v===""||(!isNaN(v)&&+v>=3&&+v<=50))setPF({...profForm,bodyFat:v});}}/>
-              <span style={{fontSize:9,color:"#475569"}}>{profForm.bodyFat?"Katch-McArdle":"Mifflin-St Jeor"}</span></div>
-            <div style={{flex:1}}><label style={S.lbl}>Waist <button style={{background:"none",border:"none",color:T.accent,fontSize:8,fontWeight:700,cursor:"pointer",padding:0}} onClick={()=>{const cur=profForm.waistUnit||"in";const nv=cur==="in"?"cm":"in";const wv=profForm.waist?cur==="in"?String(+(parseFloat(profForm.waist)*2.54).toFixed(1)):String(cmToIn(profForm.waist)):profForm.waist;setPF({...profForm,waistUnit:nv,waist:wv});}}>{(profForm.waistUnit||"in")==="in"?"in ⇄ cm":"cm ⇄ in"}</button></label><input style={S.fi} type="number" step="0.1" placeholder={profForm.waistUnit==="cm"?"86":"34"} value={profForm.waist} onChange={e=>setPF({...profForm,waist:e.target.value})}/></div></div>
-          <div style={{marginBottom:5,opacity:0.5}}>
-            <label style={S.lbl}>Activity Level <span style={{fontSize:8,color:"#3b82f6",fontWeight:600,textTransform:"none",letterSpacing:0}}>— set from training days</span></label>
-            <div style={{...S.fi,color:"#64748b",cursor:"default",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span>{{sedentary:"Sedentary",light:"Light (1-2/wk)",moderate:"Moderate (3-4/wk)",active:"Active (4-5/wk)",very:"Very Active (6-7)"}[profForm.activity]||"Moderate (3-4/wk)"}</span>
-              <span style={{fontSize:8,color:"#334155"}}>🔒</span>
+            {/* Body fat */}
+            <div style={{flex:1}}><label style={S.lbl}>Body fat % <span style={{fontSize:8,color:"#475569",fontWeight:400}}>(optional — improves accuracy)</span></label>
+              <input style={S.fi} type="number" placeholder="e.g. 18" value={profForm.bodyFat} onChange={e=>{const v=e.target.value;if(v===""||(!isNaN(v)&&+v>=3&&+v<=50))setPF({...profForm,bodyFat:v});}}/></div>
+            {/* Waist */}
+            <div style={{flex:1}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                <label style={S.lbl}>Waist <span style={{fontSize:8,color:"#475569",fontWeight:400}}>(optional)</span></label>
+                <button style={{fontSize:9,fontWeight:700,color:"#3b82f6",background:"rgba(59,130,246,0.1)",border:"1px solid rgba(59,130,246,0.3)",borderRadius:4,padding:"1px 6px",cursor:"pointer"}} onClick={()=>{const cur=profForm.waistUnit||"in";const nv=cur==="in"?"cm":"in";const wv=profForm.waist?cur==="in"?String(+(parseFloat(profForm.waist)*2.54).toFixed(1)):String(cmToIn(profForm.waist)):profForm.waist;setPF({...profForm,waistUnit:nv,waist:wv});}}>{(profForm.waistUnit||"in")==="in"?"in → cm":"cm → in"}</button>
+              </div>
+              <input style={S.fi} type="number" step="0.1" placeholder={profForm.waistUnit==="cm"?"e.g. 86":"e.g. 34"} value={profForm.waist} onChange={e=>{const v=e.target.value;const max=(profForm.waistUnit||"in")==="in"?70:180;if(v===""||(!isNaN(v)&&+v>=10&&+v<=max))setPF({...profForm,waist:v});}}/>
             </div>
           </div>
           <div style={{display:"flex",gap:5,marginBottom:5}}>
             <div style={{flex:1}}><label style={S.lbl}>Day job</label><select style={S.fi} value={profForm.job} onChange={e=>setPF({...profForm,job:e.target.value})}>
               <option value="desk">Desk</option><option value="mixed">Mixed</option><option value="active">Active</option></select></div>
             <div style={{flex:1}}><label style={S.lbl}>Sleep</label><select style={S.fi} value={profForm.sleep} onChange={e=>setPF({...profForm,sleep:e.target.value})}>
-              <option value="good">Good</option><option value="fair">Fair</option><option value="poor">Poor</option></select></div></div>
+              <option value="good">Good</option><option value="fair">Fair</option><option value="poor">Poor</option></select></div>
+          </div>
           <div style={{marginBottom:5}}><label style={S.lbl}>Stress</label><select style={S.fi} value={profForm.stress} onChange={e=>setPF({...profForm,stress:e.target.value})}>
             <option value="low">Low</option><option value="moderate">Moderate</option><option value="high">High</option></select></div>
           <label style={{...S.lbl,fontSize:11,marginBottom:6,display:"block",marginTop:8}}>Extra Cal Preference</label>
@@ -2671,14 +2691,18 @@ function App(){
               <div style={{fontSize:7,color:"#475569"}}>{g.s}</div></button>))}
           </div>
           {(()=>{const p=profileTDEE(normPF(profForm));if(!p)return null;
+            const minSafe=profForm.gender==="female"?1200:1500;
+            const safeTarget=Math.max(p.tdee,minSafe);
             return(<div style={{background:"rgba(10,15,30,0.4)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",borderRadius:10,border:"1px solid rgba(148,163,184,0.06)",padding:10,marginBottom:10}}>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{fontSize:11,fontWeight:700,color:"#fbbf24",textTransform:"uppercase",letterSpacing:"1px"}}>Your Daily Target</span><span style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:700,color:"#fbbf24",textShadow:"0 1px 6px rgba(251,191,36,0.2)"}}>{p.tdee} kcal</span></div>
-              <div style={{fontSize:9,color:"#475569"}}>P{p.p}% ({p.pG}g) · C{p.c}% · F{p.f}%</div>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{fontSize:11,fontWeight:700,color:"#fbbf24",textTransform:"uppercase",letterSpacing:"1px"}}>Your Daily Target</span><span style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:700,color:"#fbbf24",textShadow:"0 1px 6px rgba(251,191,36,0.2)"}}>{safeTarget} kcal</span></div>
+              <div style={{fontSize:9,color:"#475569"}}>P{p.p}% · C{p.c}% · F{p.f}%</div>
+              {safeTarget>p.tdee&&<div style={{fontSize:9,color:"#f87171",marginTop:3}}>⚠️ Raised to minimum safe intake ({minSafe} kcal)</div>}
             </div>);})()}
           <div style={{display:"flex",gap:6}}>
             <button style={{...S.sb,flex:0,padding:"10px 16px"}} onClick={()=>setOB(2)}>← Back</button>
             <button style={{...S.cb,flex:1,padding:12,fontSize:13}} onClick={()=>{
               const p=profileTDEE(normPF(profForm));if(!p)return fl("Fill in weight, height and age");
+              const age=+profForm.age;if(!age||age<10||age>100)return fl("Enter a valid age (10–100)");
               const tc=profForm.trainingCount||0;const td=profForm.trainingDays||[];
               if(tc>0&&td.length<tc)return fl(`Pick all ${tc} training days`);
               setOB(4);
