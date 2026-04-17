@@ -13,7 +13,8 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Fraunces:wght@600;700&display=swap" rel="stylesheet"/>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
-  body{background:#0f172a;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+  body{background:#0f172a;overflow-x:hidden;-webkit-font-smoothing:antialiased;scrollbar-width:none;-ms-overflow-style:none;}
+  body::-webkit-scrollbar{display:none;}
   input[type=number]{width:60px}
   ::-webkit-scrollbar{width:4px;height:4px}
   ::-webkit-scrollbar-track{background:transparent}
@@ -3069,15 +3070,36 @@ function App(){
             </div>)}
           </div>);
         })()}
-        {/* Weekly remaining calories */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 10px",borderRadius:8,background:"rgba(10,15,30,0.3)",marginBottom:8}}>
-          <span style={{fontSize:9,color:"#64748b",fontWeight:600}}>📅 Weekly budget</span>
-          <div style={{display:"flex",alignItems:"center",gap:6}}>
-            <span style={{fontSize:10,fontWeight:700,color:wRem<0?"#f87171":wRem<200?"#fbbf24":"#4ade80"}}>{wRem>=0?`${wRem} kcal left`:`${Math.abs(wRem)} kcal over`}</span>
-            {(()=>{const fDays=DAYS.filter((d,i)=>!isPast(i)&&!comp[d]);const fTgt=fDays.reduce((s,d)=>s+gDT(d),0);const surplus=wRem-fTgt;const hasItems=fDays.some(d=>cm[d]?.some(m=>m.items?.length>0));return surplus>0&&surplus<=150&&hasItems&&(<Tip tipKey="spread-leftover" title="Spread leftover calories" text="Distributes your remaining weekly calories evenly across future days — so nothing goes to waste." position="below" align="right">
-              <button title="Spread remaining calories evenly across future days this week" style={{fontSize:8,padding:"2px 7px",border:"1px solid rgba(51,65,85,0.5)",borderRadius:4,background:"rgba(30,41,59,0.6)",color:"#93c5fd",fontWeight:700,cursor:"pointer"}} onClick={spreadRemaining}>Spread leftover</button>
-            </Tip>);})()}
+        {/* Weekly remaining calories + macro bar */}
+        <div style={{padding:"6px 10px",borderRadius:8,background:"rgba(10,15,30,0.3)",marginBottom:8}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <span style={{fontSize:9,color:"#64748b",fontWeight:600}}>📅 Weekly budget</span>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <span style={{fontSize:10,fontWeight:700,color:wRem<0?"#f87171":wRem<200?"#fbbf24":"#4ade80"}}>{wRem>=0?`${wRem} kcal left`:`${Math.abs(wRem)} kcal over`}</span>
+              {(()=>{const fDays=DAYS.filter((d,i)=>!isPast(i)&&!comp[d]);const fTgt=fDays.reduce((s,d)=>s+gDT(d),0);const surplus=wRem-fTgt;const hasItems=fDays.some(d=>cm[d]?.some(m=>m.items?.length>0));return surplus>0&&surplus<=150&&hasItems&&(<Tip tipKey="spread-leftover" title="Spread leftover calories" text="Distributes your remaining weekly calories evenly across future days — so nothing goes to waste." position="below" align="right">
+                <button title="Spread remaining calories evenly across future days this week" style={{fontSize:8,padding:"2px 7px",border:"1px solid rgba(51,65,85,0.5)",borderRadius:4,background:"rgba(30,41,59,0.6)",color:"#93c5fd",fontWeight:700,cursor:"pointer"}} onClick={spreadRemaining}>Spread leftover</button>
+              </Tip>);})()}
+            </div>
           </div>
+          {/* Macro split bar */}
+          {(()=>{
+            const totalP=Math.round(wT.p);const totalC=Math.round(wT.c);const totalF=Math.round(wT.f);
+            const pCal=totalP*4;const cCal=totalC*4;const fCal=totalF*9;
+            const tot=pCal+cCal+fCal||1;
+            const pPct=(pCal/tot)*100;const cPct=(cCal/tot)*100;const fPct=(fCal/tot)*100;
+            return(<>
+              <div style={{display:"flex",height:4,borderRadius:2,overflow:"hidden",marginBottom:5}}>
+                <div style={{width:`${pPct}%`,background:"#f97316",transition:"width .4s"}}/>
+                <div style={{width:`${cPct}%`,background:"#fbbf24",transition:"width .4s"}}/>
+                <div style={{width:`${fPct}%`,background:"#a78bfa",transition:"width .4s"}}/>
+              </div>
+              <div style={{display:"flex",justifyContent:"space-between"}}>
+                <span style={{fontSize:9,fontWeight:700,color:"#f97316"}}>P <span style={{color:"#e2e8f0"}}>{totalP}g</span></span>
+                <span style={{fontSize:9,fontWeight:700,color:"#fbbf24"}}>C <span style={{color:"#e2e8f0"}}>{totalC}g</span></span>
+                <span style={{fontSize:9,fontWeight:700,color:"#a78bfa"}}>F <span style={{color:"#e2e8f0"}}>{totalF}g</span></span>
+              </div>
+            </>);
+          })()}
         </div>
         {/* SUPPLEMENT TIMING ALERTS */}
         {isTrain&&suppAlerts.electrolyte&&(<div style={{background:"rgba(251,191,36,0.08)",borderRadius:10,border:"1px solid rgba(251,191,36,0.3)",padding:"10px 12px",marginBottom:10,display:"flex",alignItems:"flex-start",gap:8}}>
@@ -4817,7 +4839,7 @@ const S={
   cs:{flex:1,padding:7,border:"1.5px solid rgba(51,65,85,0.4)",borderRadius:8,fontSize:12,fontWeight:600,fontFamily:"'DM Sans'",color:"#e2e8f0",background:"rgba(15,23,42,0.5)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)"},
   nav:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,gap:5},
   nb:{width:32,height:32,borderRadius:8,border:"1px solid rgba(148,163,184,0.1)",background:"rgba(30,41,59,0.4)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",fontSize:17,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:600,color:"#94a3b8",boxShadow:"0 2px 8px rgba(0,0,0,0.2)"},
-  strip:{display:"flex",gap:3,marginBottom:10,overflowX:"auto"},
+  strip:{display:"flex",gap:3,marginBottom:10},
   db:{flex:1,minWidth:42,padding:"5px 2px 4px",borderRadius:10,border:"1.5px solid rgba(30,41,59,0.6)",borderTop:"3px solid #3b82f6",background:"rgba(15,23,42,0.5)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",cursor:"pointer",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:0,outline:"none",boxShadow:"0 2px 8px rgba(0,0,0,0.15)",position:"relative",transition:"all .2s ease"},
   sticky:{position:"sticky",top:0,zIndex:20,background:"rgba(10,15,30,0.7)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderBottom:"1px solid rgba(148,163,184,0.08)",padding:"8px 0 5px",marginBottom:8},
   tabBar:{display:"flex",gap:3,marginBottom:10,background:"rgba(30,41,59,0.35)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",borderRadius:10,padding:3,border:"1px solid rgba(148,163,184,0.08)",boxShadow:"0 2px 12px rgba(0,0,0,0.15)"},
