@@ -1483,13 +1483,12 @@ function PaywallScreen({onRedeem,trialExpired,stripeUrl,isGuest=false,isChecking
           <div style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:700,color:"#f1f5f9",marginBottom:3}}>Get started with SlimRoute</div>
           <div style={{fontSize:11,color:"#64748b"}}>Track your nutrition, hit your goals, feel better.</div>
         </div>
-        {/* Primary CTA — code */}
         <button onClick={()=>setShowCode(true)} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:8,boxShadow:"0 4px 20px rgba(59,130,246,0.4)"}}>🎟 I have a trial code</button>
-        {/* Secondary CTAs */}
-        <div style={{display:"flex",gap:8}}>
+        <div style={{display:"flex",gap:8,marginBottom:8}}>
           <button onClick={()=>{setPendingAction("pay");window.googleSignIn();}} style={{flex:1,padding:"10px",borderRadius:8,border:"1px solid rgba(59,130,246,0.3)",background:"rgba(59,130,246,0.1)",color:"#93c5fd",fontSize:12,fontWeight:700,cursor:"pointer"}}>🔓 Unlock £4.99/yr</button>
           <button onClick={()=>setShowInfo(true)} style={{flex:1,padding:"10px",borderRadius:8,border:"1px solid rgba(148,163,184,0.1)",background:"transparent",color:"#64748b",fontSize:12,fontWeight:600,cursor:"pointer"}}>ⓘ What's included</button>
         </div>
+        <button onClick={()=>window.googleSignIn()} style={{width:"100%",padding:"9px",borderRadius:8,border:"1px solid rgba(148,163,184,0.12)",background:"transparent",color:"#475569",fontSize:11,cursor:"pointer"}}>Already have an account? Sign in →</button>
       </>)}
 
       {/* GUEST — code flow: enter code first, then sign in */}
@@ -2406,7 +2405,16 @@ function App(){
 
   return (
     <>
-    {accessState==="checking"&&<PaywallScreen onRedeem={redeemCode} trialExpired={false} stripeUrl={stripeUrl} isGuest={true} isChecking={true} pendingAction={pendingAction} setPendingAction={setPendingAction} setPendingCode={setPendingCode}/>}
+    {accessState==="checking"&&(<div style={{minHeight:"100vh",background:"#0f172a",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif"}}>
+      <div style={{display:"flex",alignItems:"flex-end",gap:2,marginBottom:12}}>
+        <span style={{fontFamily:"'Fraunces',serif",fontSize:36,fontWeight:700,color:"#f1f5f9",letterSpacing:2}}>SLIM</span>
+        <span style={{fontFamily:"'Fraunces',serif",fontSize:36,fontWeight:700,color:"#3b82f6",letterSpacing:2}}>ROUTE</span>
+      </div>
+      <div style={{display:"flex",gap:6}}>
+        {[0,1,2].map(i=>(<div key={i} style={{width:7,height:7,borderRadius:"50%",background:"#3b82f6",animation:`pulse 1.2s ease-in-out ${i*0.2}s infinite`}}/>))}
+      </div>
+      <style>{`@keyframes pulse{0%,100%{opacity:0.2;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}`}</style>
+    </div>)}
     {(accessState==="guest"||accessState==="locked")&&<PaywallScreen onRedeem={redeemCode} trialExpired={trialExpired} stripeUrl={stripeUrl} isGuest={accessState==="guest"} pendingAction={pendingAction} setPendingAction={setPendingAction} setPendingCode={setPendingCode}/>}
     {(accessState==="open"||accessState==="trial")&&showWhatsNew&&<WhatsNewPopup accessState={accessState} onDismiss={()=>{localStorage.setItem("ept:patchSeen",PATCH_VERSION);setShowWhatsNew(false);}}/>}
     {(accessState==="open"||accessState==="trial")&&showHomeScreenGuide&&
