@@ -3568,10 +3568,15 @@ const [storageReady, setStorageReady] = useState(false);
                             setScanning(false);setScanStatus("");
                             fl("✓ "+name+" added to meal");
                           }else{
-                            // New item — save to ingredients and add to meal, no community share when from meal
+                            // New item — save to ingredients and add to meal
                             const e2={id:id2,food:name,unit:"g",defAmt:+defAmt,maxAmt:+(maxAmt||defAmt*2),cat};
                             e2.per100={cals:cal,p:pr,c:ca,f:fa};
                             const u2=[...ings,e2];setIngs(u2);await sI(u2);
+                            // Share to community
+                            try{
+                              const existing=await fbDb.collection("sharedIngredients").doc(code).get();
+                              if(!existing.exists)await fbDb.collection("sharedIngredients").doc(code).set({...e2,barcode:code,addedAt:firebase.firestore.FieldValue.serverTimestamp(),addedBy:window.fbUser?.displayName||window.fbUser?.email||"unknown"});
+                            }catch(err){console.warn("Share failed",err);}
                             addIngSec(sel,addSec,id2,addTime?fmtTime24(addTime):"");
                             setAS(null);setAM(null);setSAI(null);setAddTime("");
                             setScanning(false);setScanStatus("");
