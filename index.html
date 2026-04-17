@@ -1669,6 +1669,19 @@ function HomeScreenGuide({onDismiss}){
   </div>);
 }
 
+class ErrorBoundary extends React.Component{
+  constructor(props){super(props);this.state={error:null};}
+  static getDerivedStateFromError(e){return{error:e};}
+  render(){
+    if(this.state.error)return(<div style={{padding:20,fontFamily:"monospace",background:"#0a0f1e",color:"#f87171",minHeight:"100vh",whiteSpace:"pre-wrap",fontSize:11}}>
+      <div style={{fontSize:16,fontWeight:700,marginBottom:8}}>⚠️ App Error</div>
+      <div>{this.state.error?.message}</div>
+      <div style={{marginTop:8,color:"#64748b"}}>{this.state.error?.stack?.slice(0,500)}</div>
+    </div>);
+    return this.props.children;
+  }
+}
+
 function App(){
   const initT=(td)=>{const t={};const days=td||["Monday","Tuesday","Thursday","Friday"];DAYS.forEach(d=>{t[d]=days.includes(d)?"training":"rest";});return t;};
   const initC=()=>{const c={};DAYS.forEach(d=>{c[d]={};});return c;};
@@ -4337,7 +4350,7 @@ fbAuth.getRedirectResult().catch(function(e){ console.warn("Redirect result:", e
 if (!appMounted) {
   appMounted = true;
   const root = ReactDOM.createRoot(document.getElementById("root"));
-  root.render(React.createElement(App));
+  root.render(React.createElement(ErrorBoundary,null,React.createElement(App)));
 }
 
 fbAuth.onAuthStateChanged(async function(user) {
