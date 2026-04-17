@@ -1995,27 +1995,37 @@ function App(){
     if(!feedbackText.trim()||!window.fbUser)return;
     setFeedbackBusy(true);
     try{
-      await fbDb.collection("users").doc(window.fbUser.uid).collection("feedback").add({
+      const feedbackDoc={
+        id:Date.now().toString(),
         uid:window.fbUser.uid,
         displayName:window.fbUser.displayName||window.fbUser.email?.split("@")[0]||"Unknown",
         email:window.fbUser.email||"",
         type:feedbackType,
         message:feedbackText.trim(),
         tab:tab,
-        device:navigator.userAgent,
-        createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+        createdAt:new Date().toISOString(),
         status:"new"
-      });
+      };
+      await fbDb.collection("users").doc(window.fbUser.uid).set(
+        {feedbackItems:firebase.firestore.FieldValue.arrayUnion(feedbackDoc)},
+        {merge:true}
+      );
       setFeedbackText("");setShowFeedback(false);
       fl("Thanks for the feedback \uD83D\uDE4F We'll look into it!");
-    }catch(e){console.warn("Feedback error",e);fl("Failed to send — please try again");}
+    }catch(e){console.warn("Feedback error",e);fl("Error: "+(e.code||e.message||"unknown"));}
     setFeedbackBusy(false);
   };
 
   const loadAdminFeedback=async()=>{
     try{
-      const snap=await fbDb.collectionGroup("feedback").orderBy("createdAt","desc").limit(50).get();
-      setAdminFeedback(snap.docs.map(d=>({id:d.id,...d.data()})));
+      const snap=await fbDb.collection("users").get();
+      const items=[];
+      snap.docs.forEach(doc=>{
+        const d=doc.data();
+        (d.feedbackItems||[]).forEach(f=>items.push(f));
+      });
+      items.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+      setAdminFeedback(items.slice(0,50));
     }catch(e){console.warn("Load feedback failed",e);}
   };
 
@@ -2029,7 +2039,9 @@ function App(){
         {notifications:firebase.firestore.FieldValue.arrayUnion(notif)},
         {merge:true}
       );
-      await fbDb.collection("users").doc(item.uid).collection("feedback").doc(item.id).update({status:"responded"});
+      const userSnap=await fbDb.collection("users").doc(item.uid).get();
+      const updatedItems=(userSnap.data()?.feedbackItems||[]).map(f=>f.id===item.id?{...f,status:"responded"}:f);
+      await fbDb.collection("users").doc(item.uid).set({feedbackItems:updatedItems},{merge:true});
       setNotifyTexts(t=>({...t,[item.id]:""}));
       setAdminFeedback(f=>f.map(x=>x.id===item.id?{...x,status:"responded"}:x));
       fl("Notification sent ✅");
