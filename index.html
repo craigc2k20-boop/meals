@@ -1995,7 +1995,7 @@ function App(){
     if(!feedbackText.trim()||!window.fbUser)return;
     setFeedbackBusy(true);
     try{
-      await fbDb.collection("feedback").add({
+      await fbDb.collection("users").doc(window.fbUser.uid).collection("feedback").add({
         uid:window.fbUser.uid,
         displayName:window.fbUser.displayName||window.fbUser.email?.split("@")[0]||"Unknown",
         email:window.fbUser.email||"",
@@ -2007,14 +2007,14 @@ function App(){
         status:"new"
       });
       setFeedbackText("");setShowFeedback(false);
-      fl("Thanks for the feedback 🙏 We'll look into it!");
-    }catch(e){fl("Failed to send — please try again");}
+      fl("Thanks for the feedback \uD83D\uDE4F We'll look into it!");
+    }catch(e){console.warn("Feedback error",e);fl("Failed to send — please try again");}
     setFeedbackBusy(false);
   };
 
   const loadAdminFeedback=async()=>{
     try{
-      const snap=await fbDb.collection("feedback").orderBy("createdAt","desc").limit(50).get();
+      const snap=await fbDb.collectionGroup("feedback").orderBy("createdAt","desc").limit(50).get();
       setAdminFeedback(snap.docs.map(d=>({id:d.id,...d.data()})));
     }catch(e){console.warn("Load feedback failed",e);}
   };
@@ -2029,7 +2029,7 @@ function App(){
         {notifications:firebase.firestore.FieldValue.arrayUnion(notif)},
         {merge:true}
       );
-      await fbDb.collection("feedback").doc(item.id).update({status:"responded"});
+      await fbDb.collection("users").doc(item.uid).collection("feedback").doc(item.id).update({status:"responded"});
       setNotifyTexts(t=>({...t,[item.id]:""}));
       setAdminFeedback(f=>f.map(x=>x.id===item.id?{...x,status:"responded"}:x));
       fl("Notification sent ✅");
