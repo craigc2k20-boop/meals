@@ -1700,6 +1700,57 @@ function App(){
   const[toast,setT2]=useState(null);
   const[exp,setExp]=useState(null);
   const[accessState,setAccessState]=useState("checking"); // checking|open|trial|locked|guest
+
+  const runAccessCheck=async()=>{
+    const email=window.fbUser?.email;
+    const uid=window.fbUser?.uid;
+    if(!uid){setAccessState("guest");return;}
+    if(email===ADMIN_EMAIL){setIsAdmin(true);setAccessState("open");return;}
+    try{
+      const cached=localStorage.getItem("ept:accessCache");
+      if(cached){
+        const c=JSON.parse(cached);
+        if(c.uid===uid&&c.expires>Date.now()){
+          if(c.state==="open"){setAccessState("open");return;}
+          if(c.state==="trial"&&c.trialEnd>Date.now()){
+            const daysLeft=Math.max(1,Math.ceil((c.trialEnd-Date.now())/86400000));
+            setTrialDaysLeft(daysLeft);setTrialEndDate(new Date(c.trialEnd));setAccessState("trial");return;
+          }
+        }
+      }
+    }catch{}
+    const saveCache=(state,trialEnd)=>{
+      try{localStorage.setItem("ept:accessCache",JSON.stringify({uid,state,trialEnd:trialEnd?.getTime()||null,expires:Date.now()+3600000}));}catch{}
+    };
+    try{
+      const doc=await fbDb.collection("users").doc(uid).get();
+      const d=doc.data()||{};
+      if(d.paid&&d.paidUntil?.toDate()>new Date()){saveCache("open");setAccessState("open");return;}
+      if(d.trialEnd){
+        const te=d.trialEnd.toDate();
+        if(te>new Date()){
+          const daysLeft=Math.max(1,Math.ceil((te-new Date())/86400000));
+          setTrialDaysLeft(daysLeft);setTrialEndDate(te);saveCache("trial",te);setAccessState("trial");return;
+        }else{setTrialExpired(true);}
+      }
+      saveCache("locked");setAccessState("locked");
+    }catch(e){
+      console.warn("Access check failed, retrying",e);
+      setTimeout(async()=>{
+        try{
+          const doc=await fbDb.collection("users").doc(window.fbUser?.uid).get();
+          const d=doc.data()||{};
+          if(d.paid&&d.paidUntil?.toDate()>new Date()){saveCache("open");setAccessState("open");return;}
+          if(d.trialEnd){
+            const te=d.trialEnd.toDate();
+            if(te>new Date()){const daysLeft=Math.max(1,Math.ceil((te-new Date())/86400000));setTrialDaysLeft(daysLeft);setTrialEndDate(te);saveCache("trial",te);setAccessState("trial");return;}
+            else{setTrialExpired(true);}
+          }
+          setAccessState("locked");
+        }catch{setAccessState("locked");}
+      },3000);
+    }
+  };
   const[trialDaysLeft,setTrialDaysLeft]=useState(7);
   const[trialExpired,setTrialExpired]=useState(false);
   const[trialEndDate,setTrialEndDate]=useState(null);
@@ -1771,58 +1822,6 @@ function App(){
   const[copyFrom,setCopyFrom]=useState(null); // day name when copy picker is open
   const[scrolled,setScrolled]=useState(false);
   useEffect(()=>{const onScroll=()=>setScrolled(window.scrollY>60);window.addEventListener("scroll",onScroll,{passive:true});return()=>window.removeEventListener("scroll",onScroll);},[]);
-
-  // ── Access check — all state setters defined above this point ──
-  const runAccessCheck=async()=>{
-    const email=window.fbUser?.email;
-    const uid=window.fbUser?.uid;
-    if(!uid){setAccessState("guest");return;}
-    if(email===ADMIN_EMAIL){setIsAdmin(true);setAccessState("open");return;}
-    try{
-      const cached=localStorage.getItem("ept:accessCache");
-      if(cached){
-        const c=JSON.parse(cached);
-        if(c.uid===uid&&c.expires>Date.now()){
-          if(c.state==="open"){setAccessState("open");return;}
-          if(c.state==="trial"&&c.trialEnd>Date.now()){
-            const daysLeft=Math.max(1,Math.ceil((c.trialEnd-Date.now())/86400000));
-            setTrialDaysLeft(daysLeft);setTrialEndDate(new Date(c.trialEnd));setAccessState("trial");return;
-          }
-        }
-      }
-    }catch{}
-    const saveCache=(state,trialEnd)=>{
-      try{localStorage.setItem("ept:accessCache",JSON.stringify({uid,state,trialEnd:trialEnd?.getTime()||null,expires:Date.now()+3600000}));}catch{}
-    };
-    try{
-      const doc=await fbDb.collection("users").doc(uid).get();
-      const d=doc.data()||{};
-      if(d.paid&&d.paidUntil?.toDate()>new Date()){saveCache("open");setAccessState("open");return;}
-      if(d.trialEnd){
-        const te=d.trialEnd.toDate();
-        if(te>new Date()){
-          const daysLeft=Math.max(1,Math.ceil((te-new Date())/86400000));
-          setTrialDaysLeft(daysLeft);setTrialEndDate(te);saveCache("trial",te);setAccessState("trial");return;
-        }else{setTrialExpired(true);}
-      }
-      saveCache("locked");setAccessState("locked");
-    }catch(e){
-      console.warn("Access check failed, retrying",e);
-      setTimeout(async()=>{
-        try{
-          const doc=await fbDb.collection("users").doc(window.fbUser?.uid).get();
-          const d=doc.data()||{};
-          if(d.paid&&d.paidUntil?.toDate()>new Date()){saveCache("open");setAccessState("open");return;}
-          if(d.trialEnd){
-            const te=d.trialEnd.toDate();
-            if(te>new Date()){const daysLeft=Math.max(1,Math.ceil((te-new Date())/86400000));setTrialDaysLeft(daysLeft);setTrialEndDate(te);saveCache("trial",te);setAccessState("trial");return;}
-            else{setTrialExpired(true);}
-          }
-          setAccessState("locked");
-        }catch{setAccessState("locked");}
-      },3000);
-    }
-  };
 
   // Re-run access check when Firebase auth resolves
   useEffect(()=>{
